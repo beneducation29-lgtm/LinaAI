@@ -15,8 +15,6 @@ import { LinaAvatar } from '../avatar/LinaAvatar';
 import { CharacterDesignModal } from '../avatar/CharacterDesignModal';
 import { 
   aiTutor, 
-  TEST_SCENARIOS, 
-  TestScenario,
   speechService, 
   MicrophoneState, 
   VoiceSettings,
