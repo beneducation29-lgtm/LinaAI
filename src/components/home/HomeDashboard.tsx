@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { generateDailyPlan } from '../../services/personalization';
+import { buildKnowledgeProfile, generateDailyPlan } from '../../services/personalization';
 import { ProgressCard } from './ProgressCard';
 import { LayerToggles } from '../common/LayerToggles';
 import { ToneTrainingModal } from '../voice/ToneTrainingModal';
@@ -20,7 +20,8 @@ import linaAvatarImg from '../../assets/images/lina_avatar_stylized_179086259485
 import hskStudyImg from '../../assets/images/hsk_study_scene_1790861437105.jpg';
 
 export const HomeDashboard: React.FC = () => {
-  const { user, setCurrentTab, currentLesson, flashcards, aiMemory, learnerProfile, getDueReviewCount, motivation, motivationSnapshot, setDailyGoalMinutes, structuredProgress } = useApp();
+  const { user, setCurrentTab, currentLesson, flashcards, aiMemory, learnerProfile, getDueReviewCount, motivation, motivationSnapshot, setDailyGoalMinutes, structuredProgress, reviewSchedules } = useApp();
+  const knowledge = buildKnowledgeProfile(learnerProfile, aiMemory, reviewSchedules, structuredProgress);
   const [showToneModal, setShowToneModal] = useState(false);
 
   return (
@@ -55,7 +56,7 @@ export const HomeDashboard: React.FC = () => {
 
       <div className="p-5 rounded-3xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200/80 dark:border-amber-900/40">
         <div className="flex items-center gap-2 text-sm font-bold"><Sparkles className="w-4 h-4 text-amber-600"/>Hôm nay Lina đề xuất cho bạn</div>
-        <div className="mt-3 grid sm:grid-cols-3 gap-2">{generateDailyPlan(learnerProfile, aiMemory, getDueReviewCount()).items.slice(0,3).map((item,i)=><button key={i} type="button" onClick={()=>setCurrentTab(item.type==='conversation'?'speak':item.type==='review'||item.type==='quiz'?'review':'learn')} className="text-left p-3 rounded-2xl bg-white/80 dark:bg-stone-900/70 border border-amber-100 dark:border-stone-800"><div className="text-xs font-bold">{item.title}</div><div className="text-[11px] text-stone-500 mt-1 line-clamp-2">{item.target}</div><div className="text-[10px] text-amber-700 mt-2">{item.minutes} phút</div></button>)}</div>
+        <div className="mt-2 text-[11px] text-stone-500">Lina đang điều chỉnh theo tiến bộ thực tế · {knowledge.overallMastery}% mastery · {knowledge.dueReviewCount} mục đến hạn</div><div className="mt-3 grid sm:grid-cols-3 gap-2">{generateDailyPlan(learnerProfile, aiMemory, getDueReviewCount(), knowledge).items.slice(0,3).map((item,i)=><button key={i} type="button" onClick={()=>setCurrentTab(item.type==='conversation'?'speak':item.type==='review'||item.type==='quiz'?'review':'learn')} className="text-left p-3 rounded-2xl bg-white/80 dark:bg-stone-900/70 border border-amber-100 dark:border-stone-800"><div className="text-xs font-bold">{item.title}</div><div className="text-[11px] text-stone-500 mt-1 line-clamp-2">{item.target}</div><div className="text-[10px] text-amber-700 mt-2">{item.minutes} phút</div></button>)}</div>
       </div>
 
       <div className="grid lg:grid-cols-[1.35fr_0.65fr] gap-4">
