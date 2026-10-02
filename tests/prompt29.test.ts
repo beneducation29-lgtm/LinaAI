@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+const root=process.cwd();
+const read=(f:string)=>fs.readFileSync(path.join(root,f),'utf8');
+for(const f of ['PRODUCTION_READINESS.md','SECURITY_AUDIT.md','PRIVACY_DATA_MAP.md','BACKUP_RECOVERY.md','HSK_CONTENT_STATUS.md','ARCHITECTURE.md']) assert.ok(fs.existsSync(path.join(root,f)),f);
+const pkg=JSON.parse(read('package.json'));
+assert.ok(pkg.scripts.build && pkg.scripts.test && pkg.scripts.typecheck);
+const vercel=read('vercel.json');
+assert.match(vercel,/Content-Security-Policy/);
+assert.doesNotMatch(read('package.json'),/--force|--legacy-peer-deps/);
+console.log('Prompt 29 production-gate documentation checks passed.');
