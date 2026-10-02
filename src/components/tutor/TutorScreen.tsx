@@ -54,7 +54,9 @@ export const TutorScreen: React.FC = () => {
     setTutorMode,
     learnerMemory,
     addLearnerMemory,
-    clearConversation
+    clearConversation,
+    aiMemory,
+    learnerProfile
   } = useApp();
 
   // Microphone and Conversation States
@@ -363,7 +365,11 @@ export const TutorScreen: React.FC = () => {
   const handleStartRoleplay = (scenarioId: string) => {
     const scenario = ROLEPLAY_SCENARIOS.find(s => s.id === scenarioId) || ROLEPLAY_SCENARIOS[0];
     roleplayEngine.start(scenario, roleplayImmersion);
-    setRoleplayScenarioId(scenario.id); setRoleplayActive(true); setShowScenariosModal(false); clearConversation(); handleSendMessage('我们开始吧。');
+    setRoleplayScenarioId(scenario.id);
+    setRoleplayActive(true);
+    setShowScenariosModal(false);
+    clearConversation();
+    handleSendMessage('我们开始吧。', true);
   };
 
   const handleChangeImmersion = (level: 'beginner'|'intermediate'|'advanced') => { setRoleplayImmersion(level); roleplayEngine.setImmersion(level); };
@@ -841,7 +847,7 @@ export const TutorScreen: React.FC = () => {
               <div className="flex items-center gap-2">
                 <FlaskConical className="w-4 h-4 text-amber-600" />
                 <h3 className="font-bold text-stone-900 dark:text-stone-100 text-sm">
-                  9 Kịch bản kiểm tra tương tác (Test Scenarios)
+                  15 Kịch bản roleplay tương tác
                 </h3>
               </div>
               <button
@@ -860,29 +866,6 @@ export const TutorScreen: React.FC = () => {
             <div className="space-y-2">
               {ROLEPLAY_SCENARIOS.map((rp) => (
                 <button key={rp.id} type="button" onClick={() => handleStartRoleplay(rp.id)} className="w-full text-left p-3 rounded-2xl bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50 hover:border-amber-400 space-y-1"><div className="flex items-center justify-between"><span className="text-xs font-bold">{rp.scenario}</span><span className="text-[10px] px-2 py-0.5 rounded-md bg-white/70 dark:bg-stone-800">{rp.difficulty}</span></div><div className="text-[11px] text-stone-500">{rp.context} · Vai Lina: {rp.aiRole}</div></button>
-              ))}
-                <div
-                  key={sc.id}
-                  onClick={() => handleApplyScenario(sc)}
-                  className="p-3 rounded-2xl bg-stone-50 dark:bg-stone-800/60 border border-stone-200 dark:border-stone-700 hover:border-amber-400 hover:bg-amber-50/60 dark:hover:bg-amber-950/30 cursor-pointer transition-all space-y-1"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-stone-900 dark:text-stone-100">
-                      {sc.title}
-                    </span>
-                    <span className="text-[10px] px-2 py-0.5 rounded-md bg-stone-200 dark:bg-stone-700 text-stone-700 dark:text-stone-300 font-medium">
-                      {sc.category}
-                    </span>
-                  </div>
-
-                  <div className="font-cjk text-sm font-semibold text-amber-800 dark:text-amber-300">
-                    "{sc.userPrompt}"
-                  </div>
-
-                  <div className="text-[11px] text-stone-500 dark:text-stone-400">
-                    {sc.expectedGoal}
-                  </div>
-                </div>
               ))}
             </div>
           </div>
