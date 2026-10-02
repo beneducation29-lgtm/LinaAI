@@ -55,9 +55,25 @@ export const LinaAvatar: React.FC<LinaAvatarProps> = ({
     return unsubscribe;
   }, []);
 
-  // Procedural motion lifecycle: randomized gaze/blink + subtle head/breathing.\n  // This is intentionally not claimed as real eye tracking.\n  useEffect(() => {\n    const reduced = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;\n    setPrefersReducedMotion(Boolean(reduced));\n    if (reduced || typeof window === 'undefined') return;\n    let frameId = 0;\n    const tick = (now:number) => {\n      const next = avatarAnimationEngine.frame(now);\n      setMotion(next);\n      setIsBlinking(next.blink > 0);\n      frameId = window.requestAnimationFrame(tick);\n    };\n    frameId = window.requestAnimationFrame(tick);\n    return () => window.cancelAnimationFrame(frameId);\n  }, []);
+  // Procedural motion lifecycle: randomized gaze/blink + subtle head/breathing.
+  // This is intentionally not claimed as real eye tracking.
+  useEffect(() => {
+    const reduced = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    setPrefersReducedMotion(Boolean(reduced));
+    if (reduced || typeof window === 'undefined') return;
+    let frameId = 0;
+    const tick = (now:number) => {
+      const next = avatarAnimationEngine.frame(now);
+      setMotion(next);
+      setIsBlinking(next.blink > 0);
+      frameId = window.requestAnimationFrame(tick);
+    };
+    frameId = window.requestAnimationFrame(tick);
+    return () => window.cancelAnimationFrame(frameId);
+  }, []);
 
-  const stateInfo = AVATAR_STATE_DESCRIPTIONS[avatarState] || AVATAR_STATE_DESCRIPTIONS.IDLE;\n  useEffect(() => { avatarAnimationEngine.setState(avatarState); }, [avatarState]);
+  const stateInfo = AVATAR_STATE_DESCRIPTIONS[avatarState] || AVATAR_STATE_DESCRIPTIONS.IDLE;
+  useEffect(() => { avatarAnimationEngine.setState(avatarState); }, [avatarState]);
 
   // State-specific visual styling
   const stateAuraStyles: Record<AvatarState, string> = {
@@ -284,7 +300,8 @@ export const LinaAvatar: React.FC<LinaAvatarProps> = ({
                   avatarState === 'HAPPY' ? 'scale-102' :
                   'scale-100'
                 }`}
-                onError={() => setImageError(true)}\n                style={prefersReducedMotion ? undefined : { transform: 'translate3d(' + (motion.gazeX * 8) + 'px,' + (motion.gazeY * 6) + 'px,0)' }}
+                onError={() => setImageError(true)}
+                style={prefersReducedMotion ? undefined : { transform: 'translate3d(' + (motion.gazeX * 8) + 'px,' + (motion.gazeY * 6) + 'px,0)' }}
               />
             ) : (
               /* Fallback Clean Stylized Vector Avatar (Level 1 Fallback Guarantee) */
