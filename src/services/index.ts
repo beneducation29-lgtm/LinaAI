@@ -16,3 +16,4 @@ export * from './lipSyncEngine';
 export * from './facialAnimationEngine';
 export * from './streamingTTS';
 export * from './realtimeConversationController';
+export * from './avatarStateMachine';

@@ -26,3 +26,8 @@ controller.stop();
 controller.destroy();
 
 console.log('Prompt 14b tests passed');
+
+import { AvatarStateMachine } from '../src/services/avatarStateMachine';
+const machine = new AvatarStateMachine();
+if (!machine.transition('LISTENING') || !machine.transition('THINKING') || !machine.transition('SPEAKING')) throw new Error('Avatar lifecycle transition failed');
+if (machine.transition('IDLE') !== true || machine.getState() !== 'IDLE') throw new Error('Avatar completion transition failed');
