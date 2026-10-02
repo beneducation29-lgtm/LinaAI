@@ -16,14 +16,19 @@ export interface VoiceSettings {
   useGeminiTTS?: boolean;
 }
 
+export type PronunciationAnalysisStatus = 'analyzed' | 'insufficient-data' | 'provider-unavailable';
+
 export interface PronunciationScore {
-  overall: number;
-  tones: number;
-  initials: number;
-  finals: number;
-  fluency: number;
+  overall: number | null;
+  tones: number | null;
+  initials: number | null;
+  finals: number | null;
+  fluency: number | null;
   feedback: string;
   isAcousticAvailable: boolean;
+  status: PronunciationAnalysisStatus;
+  provider?: string;
+  recognizedText?: string;
 }
 
 export interface ToneItem {
@@ -441,71 +446,34 @@ class SpeechService {
 
   // ===================== PRONUNCIATION ANALYSIS =====================
 
-  analyzePronunciation(
-    targetText: string, 
-    recognizedText: string, 
-    _audioData?: Float32Array
-  ): PronunciationScore {
-    const cleanTarget = targetText.replace(/[^\u4e00-\u9fa5]/g, '');
-    const cleanSpoken = recognizedText.replace(/[^\u4e00-\u9fa5]/g, '');
-
+  /**
+   * STT recognition alone cannot measure pitch contour, initials/finals or acoustic quality.
+   * Keep this method for backward compatibility, but never fabricate a score.
+   */
+  analyzePronunciation(targetText: string, recognizedText: string): PronunciationScore {
+    const cleanSpoken = recognizedText.trim();
     if (!cleanSpoken) {
       return {
-        overall: 65,
-        tones: 60,
-        initials: 65,
-        finals: 70,
-        fluency: 65,
-        feedback: 'Phát âm chưa nhận diện trọn vẹn. Hãy nói chậm, mở rộng khẩu hình và nhấn rõ thanh điệu.',
-        isAcousticAvailable: false
+        overall: null, tones: null, initials: null, finals: null, fluency: null,
+        feedback: 'Chưa thể đánh giá chính xác. Cần microphone/audio analysis provider.',
+        isAcousticAvailable: false,
+        status: 'insufficient-data',
+        provider: 'web-speech-stt',
+        recognizedText: ''
       };
     }
-
-    // Levenshtein / character match ratio
-    let matchCount = 0;
-    const minLen = Math.min(cleanTarget.length, cleanSpoken.length);
-    for (let i = 0; i < minLen; i++) {
-      if (cleanTarget[i] === cleanSpoken[i]) {
-        matchCount++;
-      }
-    }
-
-    const accuracy = cleanTarget.length > 0 
-      ? Math.round((matchCount / Math.max(cleanTarget.length, cleanSpoken.length)) * 100)
-      : 80;
-
-    if (accuracy >= 95) {
-      return {
-        overall: 98,
-        tones: 96,
-        initials: 98,
-        finals: 99,
-        fluency: 96,
-        feedback: 'Phát âm xuất sắc! Thanh điệu tròn vành rõ chữ, ngữ điệu tự nhiên chuẩn xác.',
-        isAcousticAvailable: false
-      };
-    } else if (accuracy >= 75) {
-      return {
-        overall: 88,
-        tones: 85,
-        initials: 88,
-        finals: 90,
-        fluency: 87,
-        feedback: 'Rất tốt! Cố gắng chú ý cao độ thanh 1 (kéo dài ngang) và dứt khoát ở thanh 4.',
-        isAcousticAvailable: false
-      };
-    } else {
-      return {
-        overall: 74,
-        tones: 70,
-        initials: 75,
-        finals: 75,
-        fluency: 72,
-        feedback: 'Khá tốt! Bạn hãy nghe lại mẫu chuẩn 0.75x và chú ý các âm bật hơi như q, ch, c.',
-        isAcousticAvailable: false
-      };
-    }
+    return {
+      overall: null, tones: null, initials: null, finals: null, fluency: null,
+      feedback: targetText.replace(/\\s+/g,' ').trim() === cleanSpoken.replace(/\\s+/g,' ').trim()
+        ? 'STT nhận diện đúng nội dung. Tuy nhiên hiện chưa đủ dữ liệu âm thanh để đánh giá cao độ và phát âm.'
+        : 'STT nhận diện khác với mẫu. Bạn hãy nghe lại mẫu và thử nói chậm hơn.',
+      isAcousticAvailable: false,
+      status: 'provider-unavailable',
+      provider: 'web-speech-stt',
+      recognizedText: cleanSpoken
+    };
   }
+
 }
 
 export const speechService = new SpeechService();

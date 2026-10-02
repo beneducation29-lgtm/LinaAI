@@ -1,304 +1,142 @@
-import React, { useState } from 'react';
-import { 
-  speechService, 
-  CHINESE_TONES, 
-  ToneItem, 
-  PronunciationScore 
-} from '../../services/speech';
-import { 
-  Volume2, 
-  Mic, 
-  MicOff, 
-  RotateCcw, 
-  CheckCircle2, 
-  X, 
-  Sparkles,
-  Info
-} from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { speechService, CHINESE_TONES } from '../../services/speech';
+import { pronunciationEngine, PronunciationAnalysis } from '../../services/pronunciationEngine';
+import { useApp } from '../../context/AppContext';
+import { Volume2, Mic, MicOff, RotateCcw, CheckCircle2, X, Sparkles, Info, Play, Square, Headphones, Shuffle } from 'lucide-react';
 
-interface ToneTrainingModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-}
+interface ToneTrainingModalProps { isOpen: boolean; onClose: () => void; }
+type PracticeMode = 'tone' | 'minimal-pair' | 'word' | 'sentence' | 'free-speaking';
 
-export const ToneTrainingModal: React.FC<ToneTrainingModalProps> = ({
-  isOpen,
-  onClose
-}) => {
-  const [selectedToneIndex, setSelectedToneIndex] = useState<number>(0);
-  const [isPlaying, setIsPlaying] = useState<boolean>(false);
-  const [isRecording, setIsRecording] = useState<boolean>(false);
-  const [recordedTranscript, setRecordedTranscript] = useState<string>('');
-  const [scoreResult, setScoreResult] = useState<PronunciationScore | null>(null);
-  const [friendlyError, setFriendlyError] = useState<string | null>(null);
-  const [playSpeed, setPlaySpeed] = useState<number>(1.0);
+const INITIALS=[
+  ['b','p','m','f'],['d','t','n','l'],['g','k','h'],['j','q','x'],['zh','ch','sh','r'],['z','c','s']
+];
+const FINALS=[['a','o','e'],['ai','ei','ao','ou'],['an','en','ang','eng'],['ong'],['iao','ian','iang'],['uang','uai','ui','iu','in','un','ün']];
+const MINIMAL_PAIRS=[
+  {a:'zh',b:'z',exampleA:'知 zhī',exampleB:'资 zī',tip:'zh cong lưỡi hơn; z ngắn và phía trước hơn.'},
+  {a:'ch',b:'c',exampleA:'吃 chī',exampleB:'次 cì',tip:'ch có âm bật hơi và cong lưỡi; c bật hơi phía trước.'},
+  {a:'sh',b:'s',exampleA:'十 shí',exampleB:'四 sì',tip:'sh cong lưỡi; s để lưỡi gần răng hơn.'},
+  {a:'j',b:'z',exampleA:'鸡 jī',exampleB:'资 zī',tip:'j mềm và đưa lưỡi lên gần vòm miệng; z ở phía trước.'}
+];
+const WORDS=[
+  {hanzi:'你好',pinyin:'nǐ hǎo',meaning:'xin chào'},
+  {hanzi:'谢谢',pinyin:'xièxie',meaning:'cảm ơn'},
+  {hanzi:'老师',pinyin:'lǎoshī',meaning:'giáo viên'},
+  {hanzi:'中国',pinyin:'Zhōngguó',meaning:'Trung Quốc'}
+];
+const SENTENCES=[
+  {hanzi:'你好，我叫小林。',pinyin:'Nǐ hǎo, wǒ jiào Xiǎolín.',meaning:'Xin chào, tôi tên là Tiểu Lâm.'},
+  {hanzi:'我是越南人。',pinyin:'Wǒ shì Yuènán rén.',meaning:'Tôi là người Việt Nam.'},
+  {hanzi:'你叫什么名字？',pinyin:'Nǐ jiào shénme míngzi?',meaning:'Bạn tên là gì?'}
+];
 
-  if (!isOpen) return null;
+const friendlyFeedback=(analysis:PronunciationAnalysis)=>analysis.feedback;
 
-  const activeTone: ToneItem = CHINESE_TONES[selectedToneIndex];
+export const ToneTrainingModal: React.FC<ToneTrainingModalProps> = ({isOpen,onClose}) => {
+  const { aiMemory, learnerProfile, addMistake, recordLearningResult } = useApp();
+  const [mode,setMode]=useState<PracticeMode>('tone');
+  const weakTone=useMemo(()=>aiMemory.pronunciationWeaknesses.find(x=>/[12345]/.test(x))?.match(/[12345]/)?.[0]||'3',[aiMemory.pronunciationWeaknesses]);
+  const [toneIndex,setToneIndex]=useState(()=>Math.max(0,CHINESE_TONES.findIndex(t=>String(t.toneNumber)===weakTone)));
+  const [pairIndex,setPairIndex]=useState(()=>Math.max(0,MINIMAL_PAIRS.findIndex(p=>aiMemory.pronunciationWeaknesses.some(x=>x.includes(p.a+' / '+p.b)||x.includes(p.a+' / '+p.b)))));
+  const [wordIndex,setWordIndex]=useState(0);
+  const [sentenceIndex,setSentenceIndex]=useState(0);
+  const [discrimination,setDiscrimination]=useState(()=>Math.floor(Math.random()*4));
+  const [choice,setChoice]=useState<number|null>(null);
+  const [isPlaying,setIsPlaying]=useState(false);
+  const [isRecording,setIsRecording]=useState(false);
+  const [transcript,setTranscript]=useState('');
+  const [analysis,setAnalysis]=useState<PronunciationAnalysis|null>(null);
+  const [friendlyError,setFriendlyError]=useState<string|null>(null);
+  const [recordedUrl,setRecordedUrl]=useState<string|null>(null);
+  const recorderRef=useRef<MediaRecorder|null>(null);
+  const chunksRef=useRef<Blob[]>([]);
 
-  const handlePlayTone = async (slow = false) => {
-    if (isPlaying) return;
+  useEffect(()=>()=>{if(recordedUrl) URL.revokeObjectURL(recordedUrl);},[recordedUrl]);
+  if(!isOpen) return null;
+
+  const activeTone=CHINESE_TONES[toneIndex];
+  const activeWord=WORDS[wordIndex];
+  const activeSentence=SENTENCES[sentenceIndex];
+  const pair=MINIMAL_PAIRS[pairIndex];
+  const pinyinTarget=mode==='word'?activeWord.pinyin:activeSentence.pinyin;
+
+  const play=(text:string,rate:0.75|1=1)=>{
     setIsPlaying(true);
-    const speed = slow ? 0.75 : 1.0;
-    setPlaySpeed(speed);
-    await speechService.speakChinese(activeTone.sampleAudioText, {
-      rate: speed as any,
-      onEnd: () => setIsPlaying(false),
-      onError: () => setIsPlaying(false)
-    });
+    speechService.speakChinese(text,{rate,onEnd:()=>setIsPlaying(false),onError:()=>setIsPlaying(false)});
   };
 
-  const handleToggleRecord = () => {
-    if (isRecording) {
-      speechService.stopListening();
-      setIsRecording(false);
-    } else {
-      setFriendlyError(null);
-      setRecordedTranscript('');
-      setScoreResult(null);
-      setIsRecording(true);
+  const resetAttempt=()=>{setTranscript('');setAnalysis(null);setFriendlyError(null);setChoice(null);if(recordedUrl){URL.revokeObjectURL(recordedUrl);setRecordedUrl(null);}};
 
-      if (!speechService.isSttSupported()) {
-        // Fallback for simulation
-        setTimeout(() => {
-          setIsRecording(false);
-          setRecordedTranscript(activeTone.hanzi);
-          const score = speechService.analyzePronunciation(activeTone.hanzi, activeTone.hanzi);
-          setScoreResult(score);
-        }, 1500);
-        return;
-      }
-
-      speechService.startListening({
-        lang: 'zh-CN',
-        onResult: (res) => {
-          setRecordedTranscript(res.transcript);
-          if (res.isFinal) {
-            setIsRecording(false);
-            const score = speechService.analyzePronunciation(activeTone.hanzi, res.transcript);
-            setScoreResult(score);
+  const startRecording=async()=>{
+    resetAttempt();
+    if(!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder==='undefined'){
+      setFriendlyError('Microphone/thu âm chưa được trình duyệt hỗ trợ. Voice/Text learning vẫn hoạt động bình thường.');
+      return;
+    }
+    try{
+      const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+      const recorder=new MediaRecorder(stream);
+      recorderRef.current=recorder; chunksRef.current=[];
+      recorder.ondataavailable=e=>{if(e.data.size) chunksRef.current.push(e.data);};
+      recorder.onstop=async()=>{
+        stream.getTracks().forEach(t=>t.stop());
+        const blob=new Blob(chunksRef.current,{type:recorder.mimeType||'audio/webm'});
+        const url=URL.createObjectURL(blob); setRecordedUrl(url);
+        try{
+          const stt=await speechService.transcribeAudio(blob);
+          setTranscript(stt);
+          const target=mode==='tone'?activeTone.hanzi:mode==='minimal-pair'?pair.exampleA.split(' ')[0]:mode==='word'?activeWord.hanzi:mode==='sentence'?activeSentence.hanzi:'';
+          const result=await pronunciationEngine.analyzeSentence({targetText:target,recognizedText:stt,audio:blob});
+          setAnalysis(result);
+          if(result.status!=='analyzed' && stt){
+            setFriendlyError('Chưa thể đánh giá chính xác cao độ/phát âm. Hiện chỉ xác nhận được phần nhận diện lời nói.');
           }
-        },
-        onError: (err) => {
-          setIsRecording(false);
-          setFriendlyError(err);
-        },
-        onEnd: () => {
-          setIsRecording(false);
-        }
-      });
+        }catch{setFriendlyError('Cần microphone/audio analysis provider để đánh giá chính xác.');}
+      };
+      recorder.start(); setIsRecording(true);
+      if(speechService.isSttSupported()){
+        speechService.startListening({lang:'zh-CN',onResult:r=>{if(r.isFinal)setTranscript(r.transcript);},onError:msg=>setFriendlyError(msg),onEnd:()=>{}});
+      }
+    }catch{setFriendlyError('Bạn chưa cấp quyền microphone. Bạn có thể tiếp tục luyện nghe và đọc mẫu.');}
+  };
+
+  const stopRecording=()=>{speechService.stopListening();if(recorderRef.current?.state!=='inactive')recorderRef.current?.stop();setIsRecording(false);};
+
+  const answerTone=(index:number)=>{
+    setChoice(index);
+    if(index===discrimination){recordLearningResult('tone-discrimination-'+CHINESE_TONES[index].toneNumber,true,'good');}
+    else{
+      addMistake({type:'tone',original:'Tone discrimination '+(index+1),corrected:'Tone '+(discrimination+1),explanation:'Hãy nghe lại cao độ và đường đi của thanh điệu.',severity:'medium',relatedPronunciation:[CHINESE_TONES[discrimination].pinyin]});
+      recordLearningResult('tone-discrimination-'+CHINESE_TONES[index].toneNumber,false,'again');
     }
   };
 
-  const handleReset = () => {
-    setRecordedTranscript('');
-    setScoreResult(null);
-    setFriendlyError(null);
-  };
+  const next=()=>{resetAttempt();setDiscrimination(Math.floor(Math.random()*4));if(mode==='tone')setToneIndex(i=>(i+1)%CHINESE_TONES.length);if(mode==='minimal-pair')setPairIndex(i=>(i+1)%MINIMAL_PAIRS.length);if(mode==='word')setWordIndex(i=>(i+1)%WORDS.length);if(mode==='sentence')setSentenceIndex(i=>(i+1)%SENTENCES.length);};
 
-  return (
-    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-      <div className="w-full max-w-lg bg-white dark:bg-stone-900 rounded-3xl p-6 border border-stone-200 dark:border-stone-800 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between pb-3 border-b border-stone-100 dark:border-stone-800">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-amber-600" />
-            <h2 className="font-bold text-stone-900 dark:text-stone-100 text-base">
-              Luyện 4 Thanh Điệu Tiếng Trung (Tone Training)
-            </h2>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1.5 text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 rounded-lg min-h-[36px] min-w-[36px] flex items-center justify-center cursor-pointer"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
+  return <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+    <div className="w-full max-w-2xl bg-white dark:bg-stone-900 rounded-3xl p-5 sm:p-6 border border-stone-200 dark:border-stone-800 shadow-2xl space-y-5 max-h-[92vh] overflow-y-auto">
+      <div className="flex items-center justify-between pb-2 border-b border-stone-100 dark:border-stone-800"><div><div className="flex items-center gap-2"><Sparkles className="w-4 h-4 text-amber-600"/><h2 className="font-bold text-stone-900 dark:text-stone-100">Chinese Pronunciation Coach</h2></div><p className="text-xs text-stone-500 mt-1">Pinyin · initials · finals · 4 thanh · thanh nhẹ · nghe và luyện nói</p></div><button type="button" onClick={onClose} className="p-2 rounded-xl text-stone-400 hover:text-stone-700 min-h-[40px] min-w-[40px]"><X className="w-4 h-4"/></button></div>
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5">{([['tone','Tone'],['minimal-pair','Minimal Pair'],['word','Word'],['sentence','Sentence'],['free-speaking','Free Speaking']] as const).map(([id,label])=><button key={id} type="button" onClick={()=>{setMode(id);resetAttempt();}} className={`px-2 py-2 rounded-xl text-[11px] font-bold border ${mode===id?'bg-amber-600 text-white border-amber-600':'bg-stone-50 dark:bg-stone-800 border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-300'}`}>{label}</button>)}</div>
 
-        {/* Tone Selection Tabs */}
-        <div className="grid grid-cols-5 gap-1.5">
-          {CHINESE_TONES.map((t, idx) => (
-            <button
-              key={t.toneNumber}
-              type="button"
-              onClick={() => {
-                setSelectedToneIndex(idx);
-                handleReset();
-              }}
-              className={`p-2 rounded-2xl border text-center transition-all cursor-pointer min-h-[56px] flex flex-col items-center justify-center ${
-                selectedToneIndex === idx
-                  ? 'bg-amber-600 text-white border-amber-600 shadow-xs'
-                  : 'bg-stone-50 dark:bg-stone-800 border-stone-200 dark:border-stone-700 text-stone-700 dark:text-stone-300 hover:bg-stone-100'
-              }`}
-            >
-              <span className="font-bold text-base font-cjk">{t.pinyin}</span>
-              <span className={`text-[10px] ${selectedToneIndex === idx ? 'text-amber-100' : 'text-stone-400'}`}>
-                {t.toneNumber === 5 ? 'Khinh' : `Thanh ${t.toneNumber}`}
-              </span>
-            </button>
-          ))}
-        </div>
+      {mode==='tone' && <>
+        <div className="grid grid-cols-5 gap-1.5">{CHINESE_TONES.map((t,i)=><button key={t.toneNumber} type="button" onClick={()=>{setToneIndex(i);resetAttempt();}} className={`p-2 rounded-xl border text-center min-h-[54px] ${toneIndex===i?'bg-amber-600 text-white border-amber-600':'bg-stone-50 dark:bg-stone-800 border-stone-200 dark:border-stone-700'}`}><span className="font-cjk font-bold">{t.pinyin}</span><span className="block text-[10px] opacity-70">{t.toneNumber===5?'Thanh nhẹ':'Thanh '+t.toneNumber}</span></button>)}</div>
+        <div className="p-5 rounded-3xl bg-amber-50 dark:bg-stone-800 border border-amber-200/70 dark:border-stone-700 text-center space-y-4"><div className="font-cjk text-6xl font-bold">{activeTone.hanzi}</div><div className="text-2xl font-bold text-amber-700 dark:text-amber-400">{activeTone.pinyin}</div><div className="text-xs text-stone-500">{activeTone.meaningVi}</div><div className="mx-auto max-w-[220px] h-16 bg-white/80 dark:bg-stone-900 rounded-xl border flex items-center justify-center"><svg viewBox="0 0 100 70" className="w-full h-full"><line x1="10" y1="35" x2="90" y2="35" className="stroke-stone-200 stroke-1"/><path d={activeTone.pitchContour} className="stroke-amber-600 fill-none stroke-[4]"/></svg></div><div className="flex flex-wrap justify-center gap-2"><button type="button" disabled={isPlaying} onClick={()=>play(activeTone.sampleAudioText)} className="px-4 py-2.5 rounded-xl border text-xs font-bold flex gap-1.5 items-center"><Volume2 className="w-4 h-4"/>Nghe 1x</button><button type="button" disabled={isPlaying} onClick={()=>play(activeTone.sampleAudioText,.75)} className="px-4 py-2.5 rounded-xl bg-stone-100 dark:bg-stone-700 text-xs font-bold">Nghe chậm 0.75x</button><button type="button" onClick={isRecording?stopRecording:startRecording} className={`px-4 py-2.5 rounded-xl text-xs font-bold flex gap-1.5 items-center ${isRecording?'bg-red-600 text-white':'bg-amber-700 text-white'}`}>{isRecording?<MicOff className="w-4 h-4"/>:<Mic className="w-4 h-4"/>}{isRecording?'Dừng thu':'Thu âm'}</button><button type="button" onClick={resetAttempt} className="p-2.5 rounded-xl border"><RotateCcw className="w-4 h-4"/></button></div></div>
+      </>}
 
-        {/* Active Tone Hero Card */}
-        <div className="p-6 rounded-3xl bg-linear-to-br from-amber-50 to-orange-50/60 dark:from-stone-850 dark:to-stone-800 border border-amber-200/80 dark:border-stone-700 text-center space-y-4 shadow-xs">
-          <div className="space-y-1">
-            <span className="text-xs font-bold text-amber-800 dark:text-amber-300 uppercase tracking-wider block">
-              {activeTone.toneNameVi}
-            </span>
+      {mode==='minimal-pair' && <div className="p-5 rounded-3xl bg-stone-50 dark:bg-stone-800 border space-y-4"><div className="flex items-center justify-between"><div><div className="font-bold">Minimal Pair · {pair.a} / {pair.b}</div><p className="text-xs text-stone-500 mt-1">{pair.tip}</p></div><Shuffle className="w-5 h-5 text-amber-600"/></div><div className="grid sm:grid-cols-2 gap-3">{[pair.exampleA,pair.exampleB].map((x,i)=><button key={x} type="button" onClick={()=>play(x.split(' ')[0])} className="p-4 rounded-2xl bg-white dark:bg-stone-900 border text-left"><div className="text-lg font-cjk font-bold">{x}</div><div className="text-[11px] text-stone-500 mt-1">Nhấn để nghe · sau đó thu âm để luyện</div></button>)}</div><button type="button" onClick={isRecording?stopRecording:startRecording} className={`w-full py-3 rounded-xl text-sm font-bold ${isRecording?'bg-red-600 text-white':'bg-amber-700 text-white'}`}>{isRecording?'Dừng thu âm':'Thu âm minimal pair'}</button></div>}
 
-            {/* Giant Chinese Character + Pinyin */}
-            <div className="py-2">
-              <div className="font-cjk text-6xl font-bold text-stone-900 dark:text-stone-50">
-                {activeTone.hanzi}
-              </div>
-              <div className="text-2xl font-bold text-amber-700 dark:text-amber-400 mt-1 font-cjk">
-                {activeTone.pinyin}
-              </div>
-              <div className="text-xs text-stone-500 dark:text-stone-400 italic">
-                Nghĩa: {activeTone.meaningVi}
-              </div>
-            </div>
+      {mode==='word' && <PracticeCard title="Word pronunciation" hanzi={activeWord.hanzi} pinyin={activeWord.pinyin} meaning={activeWord.meaning} isRecording={isRecording} onPlay={()=>play(activeWord.hanzi)} onRecord={isRecording?stopRecording:startRecording} />}
+      {mode==='sentence' && <PracticeCard title="Sentence pronunciation" hanzi={activeSentence.hanzi} pinyin={activeSentence.pinyin} meaning={activeSentence.meaning} isRecording={isRecording} onPlay={()=>play(activeSentence.hanzi)} onRecord={isRecording?stopRecording:startRecording} />}
+      {mode==='free-speaking' && <div className="p-5 rounded-3xl bg-stone-50 dark:bg-stone-800 border space-y-4"><div className="flex items-center gap-2"><Headphones className="w-5 h-5 text-amber-600"/><div><div className="font-bold">Free Speaking</div><div className="text-xs text-stone-500">Nói tự do bằng tiếng Trung. STT có thể xác nhận nội dung; điểm phát âm chỉ xuất hiện khi có acoustic provider.</div></div></div><div className="p-4 rounded-2xl bg-white dark:bg-stone-900 font-cjk text-lg">Gợi ý: 介绍一下你自己。<div className="font-sans text-xs text-stone-500 mt-1">Jièshào yíxià nǐ zìjǐ. · Hãy giới thiệu bản thân.</div></div><button type="button" onClick={isRecording?stopRecording:startRecording} className={`w-full py-3 rounded-xl text-sm font-bold ${isRecording?'bg-red-600 text-white':'bg-amber-700 text-white'}`}>{isRecording?'Dừng thu âm':'Thu âm và nói'}</button></div>}
 
-            {/* Pitch Contour Visualizer */}
-            <div className="w-full max-w-[200px] h-14 mx-auto bg-white/70 dark:bg-stone-900/60 rounded-xl border border-amber-200/60 dark:border-stone-800 flex items-center justify-center p-2">
-              <svg viewBox="0 0 100 70" className="w-full h-full stroke-amber-600 fill-none stroke-[4] stroke-linecap-round">
-                {/* Horizontal reference baseline */}
-                <line x1="10" y1="35" x2="90" y2="35" className="stroke-stone-200 dark:stroke-stone-700 stroke-1 stroke-dasharray-2" />
-                <path d={activeTone.pitchContour} />
-              </svg>
-            </div>
-          </div>
+      {transcript && <div className="p-4 rounded-2xl border bg-white dark:bg-stone-900"><div className="text-xs font-bold text-stone-500">STT nhận diện</div><div className="mt-1 font-cjk text-base">{transcript}</div></div>}
+      {analysis && <div className="p-4 rounded-2xl border bg-white dark:bg-stone-900 space-y-2"><div className="flex items-center gap-2 text-xs font-bold"><CheckCircle2 className="w-4 h-4 text-emerald-600"/>Phản hồi phát âm</div><div className="text-sm">{friendlyFeedback(analysis)}</div>{analysis.status!=='analyzed'&&<div className="text-xs text-amber-700 dark:text-amber-300 flex gap-1"><Info className="w-3.5 h-3.5"/>Chưa thể đánh giá chính xác bằng điểm số.</div>}</div>}
+      {friendlyError && <div className="p-3 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 text-xs text-amber-800 dark:text-amber-200">{friendlyError}</div>}
 
-          {/* Action Row: Play 1.0x, Play 0.75x, Record, Try Again */}
-          <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
-            {/* Play Standard */}
-            <button
-              type="button"
-              onClick={() => handlePlayTone(false)}
-              disabled={isPlaying}
-              className="px-4 py-2.5 rounded-xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 hover:border-amber-400 text-stone-800 dark:text-stone-200 text-xs font-bold flex items-center gap-1.5 transition-all shadow-2xs min-h-[42px] cursor-pointer"
-            >
-              <Volume2 className={`w-4 h-4 ${isPlaying && playSpeed === 1.0 ? 'animate-pulse text-amber-600' : ''}`} />
-              <span>Nghe (1.0x)</span>
-            </button>
+      {mode==='tone' && <div className="p-4 rounded-2xl border bg-white dark:bg-stone-900 space-y-3"><div className="flex items-center justify-between"><div><div className="font-bold text-sm">Tone Discrimination</div><div className="text-xs text-stone-500">Nghe mẫu → chọn thanh điệu</div></div><button type="button" onClick={()=>play('妈')} className="p-2 rounded-xl bg-stone-100 dark:bg-stone-800"><Play className="w-4 h-4"/></button></div><div className="grid grid-cols-4 gap-2">{['mā','má','mǎ','mà'].map((p,i)=><button key={p} type="button" onClick={()=>answerTone(i)} className={`p-3 rounded-xl border text-sm font-cjk ${choice===i?(i===discrimination?'bg-emerald-100 border-emerald-300':'bg-rose-100 border-rose-300'):'bg-stone-50 dark:bg-stone-800'}`}>{String.fromCharCode(65+i)}. {p}</button>)}</div>{choice!==null&&<div className="text-xs font-semibold">{choice===discrimination?'Đúng. Bạn nhận diện đúng đường cao độ.':'Chưa đúng. Hãy nghe lại và chú ý đường đi của thanh.'}</div>}</div>}
 
-            {/* Play Slow 0.75x */}
-            <button
-              type="button"
-              onClick={() => handlePlayTone(true)}
-              disabled={isPlaying}
-              className="px-3.5 py-2.5 rounded-xl bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-300 text-xs font-semibold flex items-center gap-1.5 transition-all min-h-[42px] cursor-pointer"
-            >
-              <span>Nghe chậm (0.75x)</span>
-            </button>
-
-            {/* Record Mic */}
-            <button
-              type="button"
-              onClick={handleToggleRecord}
-              className={`px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm min-h-[42px] cursor-pointer ${
-                isRecording
-                  ? 'bg-red-600 text-white animate-pulse'
-                  : 'bg-amber-700 hover:bg-amber-800 text-white'
-              }`}
-            >
-              {isRecording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-              <span>{isRecording ? 'Đang nghe...' : 'Thu âm'}</span>
-            </button>
-
-            {/* Try Again */}
-            <button
-              type="button"
-              onClick={handleReset}
-              className="p-2.5 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 hover:bg-stone-100 text-stone-600 dark:text-stone-400 min-h-[42px] min-w-[42px] flex items-center justify-center cursor-pointer"
-              title="Thử lại"
-            >
-              <RotateCcw className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-
-        {/* Live Feedback / Result Card */}
-        {friendlyError && (
-          <div className="p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/60 rounded-2xl text-xs text-red-700 dark:text-red-300 text-center">
-            {friendlyError}
-          </div>
-        )}
-
-        {scoreResult && (
-          <div className="p-4 rounded-2xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 space-y-2 shadow-xs">
-            <div className="flex items-center justify-between text-xs font-bold text-stone-900 dark:text-stone-100">
-              <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
-                <CheckCircle2 className="w-4 h-4" />
-                Kết quả phát âm
-              </span>
-              <span className="tabular-nums font-mono text-sm font-bold text-amber-700 dark:text-amber-400">
-                {scoreResult.overall} / 100 điểm
-              </span>
-            </div>
-
-            {recordedTranscript && (
-              <div className="text-xs text-stone-600 dark:text-stone-300">
-                Âm thanh nhận diện: <strong className="font-cjk text-stone-900 dark:text-stone-100">"{recordedTranscript}"</strong>
-              </div>
-            )}
-
-            <p className="text-xs text-stone-600 dark:text-stone-400 leading-relaxed pt-1">
-              💡 {scoreResult.feedback}
-            </p>
-
-            <div className="pt-2 border-t border-stone-100 dark:border-stone-800 flex items-center justify-between text-[11px] text-stone-400">
-              <span className="flex items-center gap-1">
-                <Info className="w-3 h-3" /> Đánh giá dựa trên khớp âm và nhận diện ngữ âm STT
-              </span>
-              <button
-                type="button"
-                onClick={handleReset}
-                className="text-amber-700 dark:text-amber-400 font-semibold hover:underline cursor-pointer"
-              >
-                Luyện lại
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Navigation to next tone */}
-        <div className="pt-2 flex items-center justify-between">
-          <button
-            type="button"
-            onClick={() => {
-              if (selectedToneIndex > 0) {
-                setSelectedToneIndex(prev => prev - 1);
-                handleReset();
-              }
-            }}
-            disabled={selectedToneIndex === 0}
-            className="px-4 py-2 rounded-xl text-xs font-semibold text-stone-600 disabled:opacity-40 hover:bg-stone-100 dark:hover:bg-stone-800 min-h-[38px]"
-          >
-            Thanh trước
-          </button>
-
-          <span className="text-xs text-stone-400">
-            {selectedToneIndex + 1} / 5
-          </span>
-
-          <button
-            type="button"
-            onClick={() => {
-              if (selectedToneIndex < CHINESE_TONES.length - 1) {
-                setSelectedToneIndex(prev => prev + 1);
-                handleReset();
-              }
-            }}
-            disabled={selectedToneIndex === CHINESE_TONES.length - 1}
-            className="px-4 py-2 rounded-xl text-xs font-semibold text-amber-700 disabled:opacity-40 hover:bg-amber-50 dark:hover:bg-amber-950/40 min-h-[38px]"
-          >
-            Thanh tiếp theo
-          </button>
-        </div>
-      </div>
+      <div className="flex items-center justify-between gap-2"><div className="text-[11px] text-stone-400 flex items-center gap-1"><Info className="w-3 h-3"/>Lina không tự tạo điểm khi chưa có dữ liệu âm học đáng tin cậy.</div><button type="button" onClick={next} className="px-4 py-2.5 rounded-xl bg-amber-700 text-white text-xs font-bold">Bài tiếp theo</button></div>
     </div>
-  );
+  </div>;
 };
+
+const PracticeCard: React.FC<{title:string;hanzi:string;pinyin:string;meaning:string;isRecording:boolean;onPlay:()=>void;onRecord:()=>void}> = ({title,hanzi,pinyin,meaning,isRecording,onPlay,onRecord}) => <div className="p-5 rounded-3xl bg-amber-50 dark:bg-stone-800 border border-amber-200/70 dark:border-stone-700 text-center space-y-4"><div className="text-xs font-bold uppercase tracking-wider text-amber-800 dark:text-amber-300">{title}</div><div className="font-cjk text-5xl font-bold">{hanzi}</div><div className="text-xl font-bold text-amber-700 dark:text-amber-400">{pinyin}</div><div className="text-xs text-stone-500">{meaning}</div><div className="flex justify-center gap-2"><button type="button" onClick={onPlay} className="px-4 py-2.5 rounded-xl border text-xs font-bold flex items-center gap-1.5"><Volume2 className="w-4 h-4"/>Nghe</button><button type="button" onClick={onRecord} className={`px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 ${isRecording?'bg-red-600 text-white':'bg-amber-700 text-white'}`}>{isRecording?<Square className="w-4 h-4"/>:<Mic className="w-4 h-4"/>}{isRecording?'Dừng':'Thu âm'}</button></div></div>;
