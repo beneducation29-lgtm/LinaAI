@@ -107,8 +107,8 @@ export const LinaAvatar: React.FC<LinaAvatarProps> = ({
   const stateIcons: Record<AvatarState, React.ReactNode> = {
     IDLE: <Sparkles className="w-3.5 h-3.5 text-amber-600" />,
     LISTENING: <Mic className="w-3.5 h-3.5 text-red-600 animate-pulse" />,
-    THINKING: <BrainCircuit className="w-3.5 h-3.5 text-amber-600 motion-safe:animate-spin" />,
-    SPEAKING: <Volume2 className="w-3.5 h-3.5 text-emerald-600 motion-safe:animate-bounce" />,
+    THINKING: <BrainCircuit className="w-3.5 h-3.5 text-amber-600 motion-safe:animate-pulse" />,
+    SPEAKING: <Volume2 className="w-3.5 h-3.5 text-emerald-600 motion-safe:animate-pulse" />,
     HAPPY: <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500" />,
     ENCOURAGING: <ThumbsUp className="w-3.5 h-3.5 text-amber-600" />,
     CONFUSED: <HelpCircle className="w-3.5 h-3.5 text-purple-600" />,
@@ -293,7 +293,7 @@ export const LinaAvatar: React.FC<LinaAvatarProps> = ({
           )}
 
           {/* Portrait Container */}
-          <div className={`relative w-full max-w-[360px] aspect-[3/4] rounded-[2rem] overflow-hidden border-3 shadow-lg transition-all duration-300 ${stateBorderColors[avatarState]} ${prefersReducedMotion ? '' : 'animate-[avatarBreath_4s_ease-in-out_infinite]'}`}>
+          <div className={`relative w-full max-w-[430px] aspect-[3/4] rounded-[2rem] overflow-hidden border-3 shadow-lg transition-all duration-300 ${stateBorderColors[avatarState]} ${prefersReducedMotion ? '' : 'animate-[avatarBreath_4s_ease-in-out_infinite]'}`}>
             {!imageError ? (
               <img
                 src={linaStylizedAvatarImg}
@@ -348,7 +348,7 @@ export const LinaAvatar: React.FC<LinaAvatarProps> = ({
             {avatarState === 'THINKING' && (
               <div className="absolute inset-0 bg-stone-950/20 backdrop-blur-[0.5px] flex items-center justify-center">
                 <div className="p-2.5 rounded-full bg-white/80 dark:bg-stone-900/80 shadow-md border border-amber-300">
-                  <BrainCircuit className="w-6 h-6 text-amber-600 animate-spin" />
+                  <BrainCircuit className="w-6 h-6 text-amber-600 animate-pulse" />
                 </div>
               </div>
             )}
