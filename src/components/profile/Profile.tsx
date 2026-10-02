@@ -172,6 +172,23 @@ export const Profile: React.FC = () => {
         </div>
       </div>
 
+      {/* 3. AI LEARNING MEMORY */}
+      <div className="grid sm:grid-cols-2 gap-3">
+        <div className="p-5 rounded-3xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800">
+          <div className="text-sm font-bold">Điểm mạnh</div><p className="text-xs text-stone-500 mt-1">Những gì Lina đang thấy bạn làm ổn.</p>
+          <div className="mt-3 flex flex-wrap gap-1.5">{(learnerProfile.strongAreas.length ? learnerProfile.strongAreas : ['Đang thu thập dữ liệu']).map(x=><span key={x} className="text-xs px-2 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-300">{x}</span>)}</div>
+        </div>
+        <div className="p-5 rounded-3xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800">
+          <div className="text-sm font-bold">Cần cải thiện</div><p className="text-xs text-stone-500 mt-1">Ưu tiên cá nhân hóa hiện tại.</p>
+          <div className="mt-3 flex flex-wrap gap-1.5">{(learnerProfile.weakAreas.length ? learnerProfile.weakAreas : ['Chưa có lỗi lặp lại']).map(x=><span key={x} className="text-xs px-2 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300">{x}</span>)}</div>
+        </div>
+      </div>
+      <div className="p-5 rounded-3xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 space-y-3">
+        <div className="flex items-center justify-between"><div><div className="text-sm font-bold">Lỗi thường gặp</div><div className="text-xs text-stone-500">Theo dõi để Lina ưu tiên luyện lại.</div></div><span className="text-xs font-bold">{aiMemory.mistakes.length}</span></div>
+        <div className="space-y-1.5">{aiMemory.mistakes.slice().sort((a,b)=>b.frequency-a.frequency).slice(0,5).map(m=><div key={m.id} className="text-xs flex justify-between gap-3"><span>{m.original} → {m.corrected}</span><span className="text-stone-400">{m.frequency} lần</span></div>)}</div>
+        <div className="flex flex-wrap gap-2 pt-2"><button type="button" onClick={clearLearningMemory} className="px-3 py-2 rounded-xl bg-stone-100 dark:bg-stone-800 text-xs font-semibold">Xóa AI Memory</button><button type="button" onClick={resetProgress} className="px-3 py-2 rounded-xl bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-300 text-xs font-semibold">Reset tiến trình</button></div>
+      </div>
+
       {/* 3. DISPLAY PREFERENCES & SYSTEM SETTINGS */}
       <div className="space-y-3">
         <h2 className="text-xs font-bold uppercase tracking-wider text-stone-400 px-1">

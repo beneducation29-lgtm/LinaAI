@@ -178,6 +178,13 @@ export const TutorScreen: React.FC = () => {
 
     try {
       // 2. Query Centralized Gemini AI Tutor Service
+      const relevantMemory = aiMemory.mistakes.filter(m => !m.resolved).sort((a,b) => b.frequency-a.frequency).slice(0,6).map(m => `${m.type}: ${m.original} → ${m.corrected}`);
+      const memoryContext = [
+        ...learnerMemory,
+        `HSK: ${learnerProfile.hskLevel}`,
+        `Điểm yếu: ${learnerProfile.weakAreas.slice(0,5).join(', ') || 'chưa xác định'}`,
+        `Lỗi cần ưu tiên: ${relevantMemory.join(' | ') || 'chưa có'}`
+      ];
       const structuredRes = await aiTutor.sendMessage({
         conversationId: conversation.id,
         topicTitleVi: conversation.topicTitleVi,
@@ -186,8 +193,14 @@ export const TutorScreen: React.FC = () => {
         userName: user.name,
         history: [...conversation.messages, userMsg],
         mode: tutorMode,
-        memoryFacts: learnerMemory
+        memoryFacts: memoryContext
       }, textToSend);
+
+      if (structuredRes.correction?.hasMistake) {
+        const c = structuredRes.correction;
+        // Persisted by AppContext through addLearnerMemory-compatible learning memory.
+        addLearnerMemory(`Lỗi cần chú ý: ${c.originalSentence} → ${c.correctedSentence}`);
+      }
 
       // Record memory update if returned
       if (structuredRes.memoryUpdate?.learnedFact) {

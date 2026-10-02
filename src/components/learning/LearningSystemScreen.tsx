@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { CheckCircle2, Headphones, Mic, MessageCircle, RotateCcw, Sparkles, Volume2 } from 'lucide-react';
+import { BookOpen, CheckCircle2, ChevronRight, Headphones, Mic, MessageCircle, RotateCcw, Sparkles, Volume2 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { HSK1_LESSONS } from '../../data/hsk1Lessons';
 import { InteractiveChineseSentence } from '../common/InteractiveChineseSentence';

@@ -56,6 +56,10 @@ interface AppContextType {
   addMistake: (input: Omit<MistakeRecord, 'id' | 'frequency' | 'lastSeen'>) => void;
   getDueReviewCount: () => number;
   learnerProfileMemory: () => ReturnType<typeof buildLearnerMemory>;
+  aiMemory: AIStoredMemory;
+  learnerProfile: LearnerProfile;
+  clearLearningMemory: () => void;
+  resetProgress: () => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -130,6 +134,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     try { const saved=localStorage.getItem(STORAGE_KEYS.STRUCTURED_SAVED); if(saved) return JSON.parse(saved); } catch {} return [];
   });
   const [allVocabularies] = useState<Vocabulary[]>(INITIAL_VOCABULARIES);
+  const memoryRepoRef = React.useRef<MemoryRepository | null>(null);
+  if (!memoryRepoRef.current) memoryRepoRef.current = createLocalMemoryRepository();
+  const [aiMemory, setAiMemory] = useState<AIStoredMemory>(() => memoryRepoRef.current!.load());
 
   const [conversation, setConversation] = useState<Conversation>(() => {
     try {
@@ -154,6 +161,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [showOnboarding, setShowOnboarding] = useState<boolean>(() => {
     return !user.onboardingCompleted;
   });
+
+  const learnerProfile: LearnerProfile = {
+    id: user.id, displayName: user.name, nativeLanguage: 'vi', targetLanguage: 'zh-CN', currentLevel: user.currentLevel, hskLevel: user.currentHsk,
+    pinyinLevel: preferences.showPinyin ? 'marks' : 'hidden', learningGoal: user.learningGoal.category, dailyGoalMinutes: user.dailyGoalMinutes, streak: user.streakDays,
+    totalStudyMinutes: user.todayMinutesSpent, vocabularyStats: { learned: user.vocabularyLearnedCount, mastered: user.vocabularyLearnedCount, weak: aiMemory.weakVocabulary.length },
+    grammarStats: { learned: 0, weak: aiMemory.grammarWeaknesses.length }, pronunciationStats: { accuracy: user.pronunciationAccuracy, weakTones: aiMemory.pronunciationWeaknesses },
+    speakingStats: { practiceCount: 0, accuracy: 0 }, listeningStats: { practiceCount: 0, accuracy: 0 }, readingStats: { practiceCount: 0, accuracy: 0 }, writingStats: { practiceCount: 0, accuracy: 0 },
+    weakAreas: [...new Set([...aiMemory.weakVocabulary, ...aiMemory.grammarWeaknesses, ...aiMemory.pronunciationWeaknesses])].slice(0,10), strongAreas: [], recentLessons: aiMemory.learningHistory.map(x=>x.lessonId).slice(-5), recentMistakes: aiMemory.mistakes.map(x=>x.original).slice(-5), preferredTopics: aiMemory.preferences, lastActiveAt: new Date().toISOString()
+  };
+
+  useEffect(() => { memoryRepoRef.current!.save(aiMemory); }, [aiMemory]);
 
   // Sync dark class on document element
   useEffect(() => {
@@ -307,9 +325,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
     if (correct) updateUser({ todayMinutesSpent: Math.min(user.dailyGoalMinutes, user.todayMinutesSpent + 1) });
   };
-  const addMistake = (input: Omit<MistakeRecord, 'id' | 'frequency' | 'lastSeen'>) => setMistakes(prev => recordMistake(prev, input));
+  const addMistake = (input: Omit<MistakeRecord, 'id' | 'frequency' | 'lastSeen'>) => {
+    const created = { ...input, id: 'mistake-' + Date.now(), frequency: 1, firstSeen: new Date().toISOString(), lastSeen: new Date().toISOString() } as MistakeRecord;
+    setMistakes(prev => recordMistake(prev, input as any));
+    setAiMemory(prev => updateMemory(prev, { mistake: created, weakVocabulary: input.type === 'vocabulary' ? input.original : undefined, grammarWeakness: input.type === 'grammar' ? input.corrected : undefined, pronunciationWeakness: input.type === 'tone' || input.type === 'pronunciation' ? input.original : undefined }));
+  };
   const getDueReviewCount = () => Object.values(reviewSchedules).filter(s => isDue(s.nextReview)).length;
-  const learnerProfileMemory = () => buildLearnerMemory({ level: user.currentHsk, goal: 'conversation', dailyMinutes: user.dailyGoalMinutes, weakGrammar: [], weakVocabulary: [], weakTones: [], preferredTopics: [], recentMistakes: [] }, mistakes);
+  const learnerProfileMemory = () => buildLearnerMemory({ level: user.currentHsk, goal: 'conversation', dailyMinutes: user.dailyGoalMinutes, weakGrammar: aiMemory.grammarWeaknesses, weakVocabulary: aiMemory.weakVocabulary, weakTones: aiMemory.pronunciationWeaknesses, preferredTopics: aiMemory.preferences, recentMistakes: aiMemory.mistakes.slice(-5).map(m=>m.original) }, aiMemory.mistakes);
 
   const toggleSaveVocabulary = (vocabId: string) => {
     setUser(prev => {
@@ -381,7 +403,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         recordLearningResult,
         addMistake,
         getDueReviewCount,
-        learnerProfileMemory
+        learnerProfileMemory,
+        aiMemory,
+        learnerProfile,
+        clearLearningMemory: () => { memoryRepoRef.current!.clear(); setAiMemory(emptyMemory()); setMistakes([]); },
+        resetProgress: () => { setStructuredProgress({}); setReviewSchedules({}); setMistakes([]); memoryRepoRef.current!.clear(); setAiMemory(emptyMemory()); }
       }}
     >
       {children}
