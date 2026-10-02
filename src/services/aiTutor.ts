@@ -52,15 +52,22 @@ export const TEST_SCENARIOS: TestScenario[] = [
 ];
 
 class AITutorClientService {
+  private inFlight = new Map<string, Promise<StructuredTutorResponse>>();
+  private controllers = new Map<string, AbortController>();
   /**
    * Send a user turn to Gemini via the server-side proxy
    */
   async sendMessage(options: SendMessageOptions, userText: string): Promise<StructuredTutorResponse> {
+    const requestKey = `${options.conversationId}:${options.mode}:${userText.trim()}`;
+    const existing = this.inFlight.get(requestKey);
+    if (existing) return existing;
+    const controller = new AbortController();
+    this.controllers.set(options.conversationId, controller);
     const requestId = `${options.conversationId}:${Date.now()}`;
     const history = options.history.slice(-6).map(m => ({ sender:m.sender, hanzi:m.hanzi, text:m.hanzi, pinyin:m.pinyin, vietnamese:m.vietnamese }));
     const memoryFacts = (options.memoryFacts || []).slice(-6);
     try {
-      const response = await fetchWithControl('/api/tutor/chat', {
+      const response = await fetchWithControl('/api/tutor/chat',
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -74,7 +81,7 @@ class AITutorClientService {
           topicTitle: options.topicTitleVi,
           memoryFacts
         })
-      }, { timeoutMs: 20000, retries: 1 });
+      }, { timeoutMs: 20000, retries: 1, signal: controller.signal });
 
       if (!response.ok) {
         throw new Error(`Server returned HTTP ${response.status}`);
@@ -87,8 +94,17 @@ class AITutorClientService {
       const cached = readCache<StructuredTutorResponse>(`conversation:${options.conversationId}:last`, 7*86400000);
       if (cached) return cached;
       console.warn('[Lina][AI_ERROR]', { requestId, offline: isOfflineError(err), name: (err as Error)?.name || 'Error' });
+      if ((err as Error)?.name === 'AbortError') throw err;
       return this.getLocalFallbackResponse(userText, options.mode, options.userName);
+    } finally {
+      this.inFlight.delete(requestKey);
+      if (this.controllers.get(options.conversationId) === controller) this.controllers.delete(options.conversationId);
     }
+  }
+
+  cancelConversationRequest(conversationId: string): void {
+    this.controllers.get(conversationId)?.abort();
+    this.controllers.delete(conversationId);
   }
 
   /**

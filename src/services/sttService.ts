@@ -81,6 +81,7 @@ class BrowserSpeechToTextService implements ISpeechToTextService {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       this.recognition.onerror = (event: any) => {
         this.active = false;
+        console.warn('[Lina][STT_ERROR]', { name:event.error || 'speech-recognition-error' });
         onError(event.error || 'Lỗi nhận diện âm thanh.');
       };
 
