@@ -7,7 +7,7 @@ const turns=read('src/services/avatarTurnController.ts');
 const avatar=read('src/services/avatarService.ts');
 const queue=read('src/services/ttsQueue.ts');
 const doc=read('AVATAR_ARCHITECTURE.md');
-assert.match(motion,/gazeX|gazeY/); assert.match(motion,/triggerBlink/); assert.match(motion,/Math\\.random/);
+assert.match(motion,/gazeX|gazeY/); assert.match(motion,/triggerBlink/); assert.match(motion,/Math\.random/);
 assert.match(motion,/LISTENING/); assert.match(motion,/THINKING/); assert.match(motion,/SPEAKING/);
 assert.match(turns,/beginTurn/); assert.match(turns,/nextSentence/); assert.match(turns,/isCurrent/); assert.match(turns,/cancel/);
 assert.match(avatar,/avatarAnimationEngine/); assert.match(avatar,/setEmotion/); assert.match(avatar,/avatarTurnController/);
