@@ -219,6 +219,7 @@ export const TutorScreen: React.FC = () => {
               else if (state === 'IDLE') { setMicState('IDLE'); avatarService.setState('IDLE'); }
               else { setMicState('ERROR'); avatarService.setState('ERROR'); }
             },
+            onResponse: response => { avatarService.setEmotion(response.emotion); },
             onError: () => {}
           },
           voiceSettings.playbackSpeed,
