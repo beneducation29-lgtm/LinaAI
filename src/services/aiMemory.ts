@@ -1,4 +1,4 @@
-import { AIStoredMemory, LearnerProfile, MistakeRecord, TutorContext } from '../types/learning';
+import { AIStoredMemory, LearnerProfile, MistakeRecord, TutorContext, MemoryRepository } from '../types/learning';
 
 const KEY='lina_ai_memory_v2';
 const now=()=>new Date().toISOString();

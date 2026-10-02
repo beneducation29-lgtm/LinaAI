@@ -53,7 +53,7 @@ interface AppContextType {
   toggleSaveStructuredVocabulary: (id: string) => void;
   isStructuredVocabularySaved: (id: string) => boolean;
   recordLearningResult: (itemId: string, correct: boolean, rating?: ReviewRating) => void;
-  addMistake: (input: Omit<MistakeRecord, 'id' | 'frequency' | 'lastSeen'>) => void;
+  addMistake: (input: { type: MistakeType; original: string; corrected: string; explanation: string; mastery?: number; severity?: 'low'|'medium'|'high'; resolved?: boolean; relatedVocabulary?: string[]; relatedGrammar?: string[]; relatedPronunciation?: string[] }) => void;
   getDueReviewCount: () => number;
   learnerProfileMemory: () => ReturnType<typeof buildLearnerMemory>;
   aiMemory: AIStoredMemory;
@@ -325,9 +325,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
     if (correct) updateUser({ todayMinutesSpent: Math.min(user.dailyGoalMinutes, user.todayMinutesSpent + 1) });
   };
-  const addMistake = (input: Omit<MistakeRecord, 'id' | 'frequency' | 'lastSeen'>) => {
+  const addMistake = (input: { type: MistakeType; original: string; corrected: string; explanation: string; mastery?: number; severity?: 'low'|'medium'|'high'; resolved?: boolean; relatedVocabulary?: string[]; relatedGrammar?: string[]; relatedPronunciation?: string[] }) => {
     const created = { ...input, id: 'mistake-' + Date.now(), frequency: 1, firstSeen: new Date().toISOString(), lastSeen: new Date().toISOString() } as MistakeRecord;
-    setMistakes(prev => recordMistake(prev, input as any));
+    setMistakes(prev => recordMistake(prev, input));
     setAiMemory(prev => updateMemory(prev, { mistake: created, weakVocabulary: input.type === 'vocabulary' ? input.original : undefined, grammarWeakness: input.type === 'grammar' ? input.corrected : undefined, pronunciationWeakness: input.type === 'tone' || input.type === 'pronunciation' ? input.original : undefined }));
   };
   const getDueReviewCount = () => Object.values(reviewSchedules).filter(s => isDue(s.nextReview)).length;

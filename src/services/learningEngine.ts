@@ -35,17 +35,25 @@ export function isDue(nextReview: string, now = new Date()): boolean {
   return new Date(nextReview).getTime() <= now.getTime();
 }
 
-export function recordMistake(existing: MistakeRecord[], input: Omit<MistakeRecord, 'id' | 'frequency' | 'lastSeen'>): MistakeRecord[] {
+export function recordMistake(existing: MistakeRecord[], input: Omit<MistakeRecord, 'id' | 'frequency' | 'lastSeen' | 'firstSeen'> & Partial<Pick<MistakeRecord,'severity'|'resolved'|'mastery'|'relatedVocabulary'|'relatedGrammar'|'relatedPronunciation'>>): MistakeRecord[] {
   const match = existing.find(m => m.type === input.type && m.original === input.original && m.corrected === input.corrected);
   if (match) {
     return existing.map(m => m.id === match.id
-      ? { ...m, frequency: m.frequency + 1, lastSeen: new Date().toISOString(), mastery: Math.max(0, m.mastery - 5) }
+      ? { ...m, frequency: m.frequency + 1, lastSeen: new Date().toISOString(), resolved: false, mastery: Math.max(0, m.mastery - 5) }
       : m
     );
   }
-  return [...existing, { ...input, id: 'mistake-' + Date.now(), frequency: 1, lastSeen: new Date().toISOString() }];
+  return [...existing, {
+    ...input,
+    id: 'mistake-' + Date.now(),
+    frequency: 1,
+    firstSeen: new Date().toISOString(),
+    lastSeen: new Date().toISOString(),
+    severity: input.severity || 'medium',
+    resolved: input.resolved ?? false,
+    mastery: input.mastery ?? 0
+  } as MistakeRecord];
 }
-
 export function getWeakAreas(mistakes: MistakeRecord[]) {
   const grammar = mistakes.filter(m => m.type === 'grammar').sort((a,b) => b.frequency - a.frequency);
   const vocabulary = mistakes.filter(m => m.type === 'vocabulary').sort((a,b) => b.frequency - a.frequency);
