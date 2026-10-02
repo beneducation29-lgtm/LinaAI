@@ -5,3 +5,7 @@ export * from './avatarService';
 export * from './speech';
 export * from './aiTutor';
 export * from './roleplayEngine';
+export * from './providers';
+export * from './storage';
+export * from './progressService';
+export * from './inputGuards';

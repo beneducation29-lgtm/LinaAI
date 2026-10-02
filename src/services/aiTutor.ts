@@ -69,6 +69,8 @@ class AITutorClientService implements AITutorProvider {
       const data: StructuredTutorResponse = await response.json();
       return data;
     } catch (err) {
+      if ((err as Error)?.name === 'AbortError' && options.signal?.aborted) throw err;
+
       console.warn('Network call failed, utilizing graceful local fallback:', err);
       return this.getLocalFallbackResponse(userText, options.mode, options.userName);
     }
