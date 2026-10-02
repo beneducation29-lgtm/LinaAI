@@ -6,8 +6,8 @@ Lina currently uses an original local portrait asset with procedural motion laye
 
 - Provider levels remain: static fallback → local interactive → configured realtime adapter.
 - Eye movement and blinking are procedural; this is not real eye tracking.
-- Lip sync is audio-driven from Web Audio metrics when a playable media element is available.
-- Timing/viseme data can be represented by the existing lip-sync contracts, but no phoneme/viseme provider is claimed unless the provider supplies trusted timing data.
+- Lip sync mode: **AUDIO_DRIVEN** from Web Audio metrics when a playable media element is available.
+- Optional **VISEME_TIMELINE** mode is supported by the existing lip-sync contracts, but no phoneme/viseme provider is claimed unless the provider supplies trusted timing data.
 - Emotion is structured metadata mapped to predefined expressions; this is not emotion recognition.
 
 ## Pipeline
