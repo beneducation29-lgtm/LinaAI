@@ -17,7 +17,7 @@ Audit baseline: commit 1750f2aa79aa6146121053627303994ff98f0d0a.
 ### MEDIUM
 - Application rate limiting remains process-local; multi-instance deployments need a shared limiter for strict distributed enforcement.
 - Supabase service-role access is server-only; deployment must verify it never enters Vite/public env.
-- AI prompt-injection defenses are layered validation/orchestration controls and cannot guarantee resistance to every adversarial prompt.
+- AI prompt injection defenses are layered validation/orchestration controls and cannot guarantee resistance to every adversarial prompt.
 - Existing password reset/email verification remains delegated to Supabase Auth; this pass does not replace the identity provider.
 
 ### LOW
