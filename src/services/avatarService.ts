@@ -151,6 +151,7 @@ export class Level1FallbackAvatarProvider implements AvatarProvider {
 
   destroy(): void {
     this.stop();
+    this.ready = false;
   }
 
   isReady(): boolean {

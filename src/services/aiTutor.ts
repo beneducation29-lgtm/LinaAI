@@ -3,6 +3,7 @@
  * Handles structured conversation, progressive hints, grammar analysis, and test scenarios.
  */
 
+import { fetchWithControl, isOfflineError, readCache, writeCache } from './requestControl';
 import { 
   ConversationMessage, 
   HSKLevel, 
@@ -55,36 +56,37 @@ class AITutorClientService {
    * Send a user turn to Gemini via the server-side proxy
    */
   async sendMessage(options: SendMessageOptions, userText: string): Promise<StructuredTutorResponse> {
+    const requestId = `${options.conversationId}:${Date.now()}`;
+    const history = options.history.slice(-6).map(m => ({ sender:m.sender, hanzi:m.hanzi, text:m.hanzi, pinyin:m.pinyin, vietnamese:m.vietnamese }));
+    const memoryFacts = (options.memoryFacts || []).slice(-6);
     try {
-      const response = await fetch('/api/tutor/chat', {
+      const response = await fetchWithControl('/api/tutor/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: userText,
-          history: options.history.map(m => ({
-            sender: m.sender,
-            hanzi: m.hanzi,
-            text: m.hanzi,
-            pinyin: m.pinyin,
-            vietnamese: m.vietnamese
-          })),
+          history,
+
           mode: options.mode,
           hskLevel: options.hskLevel,
           userLevel: options.userLevel || 'Cơ bản',
           userName: options.userName,
           topicTitle: options.topicTitleVi,
-          memoryFacts: options.memoryFacts || []
+          memoryFacts
         })
-      });
+      }, { timeoutMs: 20000, retries: 1 });
 
       if (!response.ok) {
         throw new Error(`Server returned HTTP ${response.status}`);
       }
 
       const data: StructuredTutorResponse = await response.json();
+      writeCache(`conversation:${options.conversationId}:last`,data);
       return data;
     } catch (err) {
-      console.warn('Network call failed, utilizing graceful local fallback:', err);
+      const cached = readCache<StructuredTutorResponse>(`conversation:${options.conversationId}:last`, 7*86400000);
+      if (cached) return cached;
+      console.warn('[Lina][AI_ERROR]', { requestId, offline: isOfflineError(err), name: (err as Error)?.name || 'Error' });
       return this.getLocalFallbackResponse(userText, options.mode, options.userName);
     }
   }
@@ -94,7 +96,7 @@ class AITutorClientService {
    */
   async getProgressiveHints(contextSentence: string, topicTitle: string, hskLevel: HSKLevel): Promise<ProgressiveHints> {
     try {
-      const response = await fetch('/api/tutor/hints', {
+      const response = await fetchWithControl('/api/tutor/hints', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -102,7 +104,7 @@ class AITutorClientService {
           topicTitle,
           hskLevel
         })
-      });
+      }, { timeoutMs: 12000, retries: 1 });
 
       if (!response.ok) throw new Error('Hints fetch failed');
       return await response.json();
@@ -121,11 +123,11 @@ class AITutorClientService {
    */
   async explainSentence(sentence: string, hskLevel: HSKLevel) {
     try {
-      const response = await fetch('/api/tutor/explain', {
+      const response = await fetchWithControl('/api/tutor/explain', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sentence, hskLevel })
-      });
+      }, { timeoutMs: 12000, retries: 1 });
       if (!response.ok) throw new Error('Explain fetch failed');
       return await response.json();
     } catch {

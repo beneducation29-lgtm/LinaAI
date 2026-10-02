@@ -89,6 +89,8 @@ export const CHINESE_TONES: ToneItem[] = [
   }
 ];
 
+import { fetchWithControl, isOfflineError } from './requestControl';
+
 class SpeechService {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private recognition: any = null;
@@ -225,18 +227,18 @@ class SpeechService {
         });
       }
 
-      const res = await fetch('/api/stt/transcribe', {
+      const res = await fetchWithControl('/api/stt/transcribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ audioBase64, mimeType }),
-      });
+      }, { timeoutMs: 30000, retries: 1 });
 
       if (res.ok) {
         const data = await res.json();
         return data.transcript || '';
       }
     } catch (err) {
-      console.warn('Gemini transcribe failed, falling back:', err);
+      console.warn('[Lina][STT_ERROR]', { offline:isOfflineError(err), name:(err as Error)?.name || 'Error' });
     }
     return '';
   }

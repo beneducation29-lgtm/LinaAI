@@ -49,8 +49,9 @@ class BrowserTextToSpeechService implements ITextToSpeechService {
         resolve();
       };
 
-      utterance.onerror = () => {
+      utterance.onerror = (event) => {
         this.currentUtterance = null;
+        console.warn('[Lina][TTS_ERROR]', { name: event.error || 'speech-synthesis-error' });
         onEnd?.();
         resolve();
       };

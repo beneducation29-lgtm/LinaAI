@@ -6,11 +6,10 @@
 import React from 'react';
 import { AppProvider } from './context/AppContext';
 import { AppShell } from './components/layout/AppShell';
+import { AppErrorBoundary } from './components/common/AppErrorBoundary';
 
 export default function App() {
   return (
-    <AppProvider>
-      <AppShell />
-    </AppProvider>
+    <AppErrorBoundary><AppProvider><AppShell /></AppProvider></AppErrorBoundary>
   );
 }
