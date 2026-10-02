@@ -19,6 +19,7 @@ import {
 import linaAvatarImg from '../../assets/images/tutor_lina_avatar_1790861417833.jpg';
 import { AccountSyncCard } from './AccountSyncCard';
 import { analytics } from '../../services/analytics';
+import { PrivacySecurityPanel } from './PrivacySecurityPanel';
 
 export const Profile: React.FC = () => {
   const { 
@@ -238,6 +239,8 @@ export const Profile: React.FC = () => {
           <button type="button" onClick={() => { window.location.href='/analytics'; }} className="px-3 py-2 rounded-xl bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900 text-xs font-semibold">Xem Analytics của tôi</button>
         </div>
       </div>
+
+      <PrivacySecurityPanel signedIn={Boolean(authUser)} />
 
       {/* 3. DISPLAY PREFERENCES & SYSTEM SETTINGS */}
       <div className="space-y-3">
