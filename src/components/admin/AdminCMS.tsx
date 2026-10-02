@@ -14,6 +14,7 @@ import {
   saveCMSContent,
 } from '../../services/adminCMS';
 import { validateCMSItem } from '../../services/cmsValidation';
+import { fetchAdminCosts, type AdminCostSummary } from '../../services/adminCosts';
 
 const labels: Record<CMSContentType, string> = {
   hsk_level: 'HSK levels',
@@ -87,6 +88,10 @@ export const AdminCMS: React.FC = () => {
   const [selected, setSelected] = React.useState<CMSContentItem | null>(null);
   const [issues, setIssues] = React.useState<Array<{ field: string; message: string; severity: string }>>([]);
   const [message, setMessage] = React.useState('');
+  const [showCosts, setShowCosts] = React.useState(false);
+  const [costs, setCosts] = React.useState<AdminCostSummary | null>(null);
+  const [costError, setCostError] = React.useState('');
+  React.useEffect(() => { if (showCosts) void fetchAdminCosts(30).then(setCosts).catch((e) => setCostError(e instanceof Error ? e.message : 'Cost dashboard error')); }, [showCosts]);
 
   const load = React.useCallback(async () => {
     try {
@@ -166,6 +171,7 @@ export const AdminCMS: React.FC = () => {
         <b>Lina CMS</b>
         <p className="text-xs text-slate-500">Content Operations</p>
         <div className="mt-5 space-y-1">
+          <button onClick={() => setShowCosts(true)} className={`w-full text-left p-2 rounded-lg text-sm ${showCosts ? 'bg-amber-400 text-slate-950' : ''}`}>AI Cost Dashboard</button>
           {CMS_TYPES.map((itemType) => (
             <button
               key={itemType}
@@ -204,6 +210,15 @@ export const AdminCMS: React.FC = () => {
         </header>
 
         <div className="p-5 grid xl:grid-cols-[320px_1fr] gap-5">
+          {showCosts && <section className="xl:col-span-2 border border-slate-800 rounded-2xl p-5">
+            <div className="flex items-center justify-between gap-3"><div><h2 className="text-lg font-bold">AI Cost Dashboard</h2><p className="text-xs text-slate-500">30 ngày gần nhất · dữ liệu từ backend usage events</p></div><button onClick={() => setShowCosts(false)} className="text-xs border border-slate-700 rounded-lg px-3 py-2">Quay lại CMS</button></div>
+            {costError && <div className="mt-3 text-xs text-rose-300">{costError}</div>}
+            {costs && <>
+              <div className="grid sm:grid-cols-4 gap-3 mt-4">{[['Monthly AI cost', costs.monthlyAICost.toFixed(6)],['Gemini requests', costs.totals.geminiRequests],['Input tokens', costs.totals.inputTokens],['Output tokens', costs.totals.outputTokens]].map(([label,value]) => <div key={String(label)} className="rounded-xl bg-slate-900 p-4"><div className="text-lg font-bold">{value}</div><div className="text-[11px] text-slate-500">{label}</div></div>)}</div>
+              <div className="grid lg:grid-cols-3 gap-4 mt-4">{[['Daily AI cost',costs.dailyAICost],['Cost per feature',costs.costPerFeature],['Top expensive operations',costs.topExpensiveOperations]].map(([title,items]) => <div key={String(title)} className="rounded-xl border border-slate-800 p-4"><h3 className="text-sm font-semibold">{title}</h3><div className="mt-2 space-y-2">{(items as Array<{key:string;cost:number}>).map(x => <div key={x.key} className="flex justify-between gap-3 text-xs"><span className="truncate">{x.key}</span><b>{x.cost.toFixed(6)}</b></div>)}</div></div>)}</div>
+            </>}
+          </section>}
+
           <section className="border border-slate-800 rounded-2xl p-3">
             <select
               value={status}
