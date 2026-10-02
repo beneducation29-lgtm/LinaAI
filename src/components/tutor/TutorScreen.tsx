@@ -154,7 +154,7 @@ export const TutorScreen: React.FC = () => {
   /**
    * Primary voice / text conversation sender
    */
-  const handleSendMessage = async (textToSend: string) => {
+  const handleSendMessage = async (textToSend: string, forceRoleplay = false) => {
     if (!textToSend.trim()) return;
 
     setErrorMessage(null);
@@ -162,6 +162,7 @@ export const TutorScreen: React.FC = () => {
     setLiveTranscript('');
     setRecognizedReview(null);
     setIsEditingRecognized(false);
+    const useRoleplay = roleplayActive || forceRoleplay;
 
     // 1. Add user message
     const userMsg: ConversationMessage = {
@@ -192,7 +193,7 @@ export const TutorScreen: React.FC = () => {
         `Điểm yếu: ${learnerProfile.weakAreas.slice(0,5).join(', ') || 'chưa xác định'}`,
         `Lỗi cần ưu tiên: ${relevantMemory.join(' | ') || 'chưa có'}`
       ];
-      const structuredRes = roleplayActive
+      const structuredRes = useRoleplay
         ? await roleplayEngine.sendTurn({ conversationId: conversation.id, hskLevel: conversation.hskLevel, userLevel: user.currentLevel, userName: user.name, history: [...conversation.messages, userMsg] }, textToSend)
         : await aiTutor.sendMessage({ conversationId: conversation.id, topicTitleVi: conversation.topicTitleVi, hskLevel: conversation.hskLevel, userLevel: user.currentLevel, userName: user.name, history: [...conversation.messages, userMsg], mode: tutorMode, memoryFacts: memoryContext }, textToSend);
 
@@ -220,8 +221,8 @@ export const TutorScreen: React.FC = () => {
         id: `tutor-${Date.now()}`,
         sender: 'ai',
         hanzi: structuredRes.chinese,
-        pinyin: structuredRes.pinyin,
-        vietnamese: structuredRes.vietnamese,
+        pinyin: useRoleplay && roleplayImmersion === 'advanced' ? '' : structuredRes.pinyin,
+        vietnamese: useRoleplay && roleplayImmersion !== 'beginner' ? '' : structuredRes.vietnamese,
         timestamp: new Date().toISOString(),
         emotion: structuredRes.emotion,
         correction: structuredRes.correction,
