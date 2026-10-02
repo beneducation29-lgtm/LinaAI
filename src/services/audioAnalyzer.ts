@@ -12,11 +12,13 @@ export class AudioAnalyzer {
   private element: HTMLAudioElement | null = null;
 
   attachMediaElement(element: HTMLAudioElement): boolean {
-    if (typeof window === 'undefined' || typeof AudioContext === 'undefined') return false;
+    if (typeof window === 'undefined') return false;
+    const AudioContextCtor = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AudioContextCtor) return false;
     if (this.element === element && this.analyser) return true;
     this.detach();
     try {
-      this.context = new AudioContext();
+      this.context = new AudioContextCtor();
       this.analyser = this.context.createAnalyser();
       this.analyser.fftSize = 512;
       this.analyser.smoothingTimeConstant = 0.72;

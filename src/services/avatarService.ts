@@ -172,7 +172,7 @@ export class Level1FallbackAvatarProvider implements AvatarProvider {
 export class Level2InteractiveAvatarProvider implements AvatarProvider {
   readonly level: AvatarProviderLevel = 'level2_interactive';
   readonly name = 'Cấp 2: Tương tác thời gian thực (Interactive Canvas)';
-  readonly descriptionVi = 'Đồng bộ khẩu hình môi (visemes), nháy mắt tự nhiên và nhịp thở 60 FPS mà không cần phụ thuộc bên ngoài.';
+  readonly descriptionVi = 'Nhịp thở và biểu cảm cục bộ; khẩu hình chỉ chuyển động khi có audio metrics thật hoặc timing data từ provider.';
 
   private ready = false;
   private currentState: AvatarState = 'IDLE';
@@ -184,10 +184,6 @@ export class Level2InteractiveAvatarProvider implements AvatarProvider {
 
   setState(state: AvatarState): void {
     this.currentState = state;
-    if (state !== 'SPEAKING' && this.speechInterval) {
-      clearInterval(this.speechInterval);
-      this.speechInterval = null;
-    }
   }
 
   async speak(text: string, options?: SpeakOptions): Promise<void> {
@@ -404,6 +400,16 @@ class AvatarSystemManager {
     this.setState('IDLE');
     this.currentViseme = { viseme: 'sil', amplitude: 0 };
     this.notify();
+  }
+
+  destroy(): void {
+    this.providers[this.activeLevel].destroy();
+    this.unsubscribeAudio?.();
+    this.unsubscribeMetrics?.();
+    this.unsubscribeAudio = null;
+    this.unsubscribeMetrics = null;
+    audioAnalyzer.destroy();
+    this.listeners.clear();
   }
 
   subscribe(listener: AvatarListener): () => void {

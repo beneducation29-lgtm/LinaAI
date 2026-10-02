@@ -79,7 +79,7 @@ export class AudioStreamController {
 
       const appendNext = () => {
         if (sourceBuffer.updating || queue.length === 0) return;
-        sourceBuffer.appendBuffer(queue.shift()!);
+        sourceBuffer.appendBuffer(new Uint8Array(queue.shift()!).buffer as ArrayBuffer);
       };
 
       sourceBuffer.addEventListener('updateend', appendNext);
