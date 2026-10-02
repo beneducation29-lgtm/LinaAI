@@ -26,7 +26,17 @@ export const Profile: React.FC = () => {
     preferences, 
     toggleTheme, 
     toggleDisplayOption,
-    setShowOnboarding 
+    setShowOnboarding,
+    learnerProfile,
+    aiMemory,
+    clearLearningMemory,
+    resetProgress,
+    authUser,
+    syncState,
+    loginAccount,
+    signupAccount,
+    logoutAccount,
+    syncNow
   } = useApp();
 
   const [accountOpen, setAccountOpen] = useState(false);
