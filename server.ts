@@ -319,7 +319,6 @@ async function requireSyncUser(req:Request){return await supabaseUser(getCookie(
 
 // Prompt 21-23 privacy API. Identity is always derived from the authenticated session.
 const privacyTable='lina_privacy_preferences';
-const privacyDefaults=()=>({user_id:'',...DEFAULT_PRIVACY_PREFERENCES});
 async function privacyFetch(userId:string){
   if(!SUPABASE_URL||!SUPABASE_SERVICE_ROLE_KEY)return DEFAULT_PRIVACY_PREFERENCES;
   const url=new URL(SUPABASE_URL+'/rest/v1/'+privacyTable);url.searchParams.set('select','ai_memory_enabled,conversation_history_enabled,analytics_enabled,voice_data_enabled,personalization_enabled');url.searchParams.set('user_id','eq.'+userId);url.searchParams.set('limit','1');
