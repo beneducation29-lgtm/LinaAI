@@ -45,6 +45,7 @@ import {
   Edit2
 } from 'lucide-react';
 import linaAvatarImg from '../../assets/images/tutor_lina_avatar_1790861417833.jpg';
+import { analytics } from '../../services/analytics';
 
 export const TutorScreen: React.FC = () => {
   const { 
@@ -171,6 +172,7 @@ export const TutorScreen: React.FC = () => {
     setRecognizedReview(null);
     setIsEditingRecognized(false);
     const useRoleplay = roleplayActive || forceRoleplay;
+    analytics.track(useRoleplay ? 'roleplay_start' : 'speaking_start', { mode: tutorMode, ai: true });
 
     // 1. Add user message
     const userMsg: ConversationMessage = {
@@ -224,6 +226,7 @@ export const TutorScreen: React.FC = () => {
 
       if (structuredRes.correction?.hasMistake) {
         const c = structuredRes.correction;
+        analytics.track('correction', { category: 'grammar', mode: tutorMode });
         // Persisted by AppContext through addLearnerMemory-compatible learning memory.
         addLearnerMemory(`Lỗi cần chú ý: ${c.originalSentence} → ${c.correctedSentence}`);
       }
@@ -260,6 +263,7 @@ export const TutorScreen: React.FC = () => {
 
       addMessage(aiMsg);
       recordMotivationActivity({ id: `conversation:${aiMsg.id}`, type: useRoleplay ? 'speaking' : 'conversation', minutes: 1, metadata: { roleplay: useRoleplay } });
+      analytics.track(useRoleplay ? 'roleplay_complete' : 'speaking_complete', { ai: true, minutes: 1, corrected: Boolean(structuredRes.correction?.hasMistake) });
       avatarService.setState(mappedEmotion);
 
       // Normal conversation audio is owned by RealtimeSpeechOrchestrator.

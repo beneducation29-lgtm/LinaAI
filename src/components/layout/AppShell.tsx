@@ -11,12 +11,22 @@ import { Onboarding } from '../onboarding/Onboarding';
 import { Flame, Moon, Sun } from 'lucide-react';
 import linaAvatarImg from '../../assets/images/tutor_lina_avatar_1790861417833.jpg';
 
+const AnalyticsDashboard = React.lazy(() => import('../analytics/AnalyticsDashboard').then(module => ({ default: module.AnalyticsDashboard })));
+
 const AdminCMS = React.lazy(() =>
   import('../admin/AdminCMS').then((module) => ({ default: module.AdminCMS })),
 );
 
 export const AppShell: React.FC = () => {
   const { currentTab, setCurrentTab, user, preferences, toggleTheme, showOnboarding } = useApp();
+
+  if (window.location.pathname === '/analytics') {
+    return <React.Suspense fallback={<div className="min-h-screen grid place-items-center">Đang tải Analytics…</div>}><AnalyticsDashboard mode="learner" /></React.Suspense>;
+  }
+
+  if (window.location.pathname === '/admin/analytics') {
+    return <React.Suspense fallback={<div className="min-h-screen grid place-items-center bg-slate-950 text-white">Đang tải Admin Analytics…</div>}><AnalyticsDashboard mode="admin" /></React.Suspense>;
+  }
 
   if (window.location.pathname.startsWith('/admin')) {
     return (

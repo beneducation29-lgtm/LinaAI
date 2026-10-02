@@ -6,6 +6,7 @@ import { InteractiveChineseSentence } from '../common/InteractiveChineseSentence
 import { LayerToggles } from '../common/LayerToggles';
 import { speechService } from '../../services/speech';
 import { aiTutor } from '../../services/aiTutor';
+import { analytics } from '../../services/analytics';
 
 type Section = 'learn' | 'listen' | 'speak' | 'roleplay' | 'review';
 
@@ -23,22 +24,30 @@ export const LearningSystemScreen: React.FC = () => {
   const [pinyinMode,setPinyinMode] = useState<'marks'|'numbers'|'hidden'>('marks');
 
   const lesson = useMemo(() => HSK1_LESSONS.find(l => l.id === lessonId) || HSK1_LESSONS[0], [lessonId]);
+  React.useEffect(() => {
+    lessonStartedAt.current[lesson.id] = Date.now();
+    analytics.track('lesson_start', { lessonId: lesson.id, hskLevel: lesson.hskLevel });
+  }, [lesson.id]);
   const currentReview = lesson.review[reviewIndex];
 
   const speak = (text:string) => speechService.speakChinese(text,{useGeminiTTS:true});
   const pinyinFor = (marked:string, numbered:string) => pinyinMode === 'hidden' ? '' : pinyinMode === 'numbers' ? numbered : marked;
 
   const evaluateSpeech = () => {
+    analytics.track('speaking_start', { lessonId: lesson.id, source: 'lesson' });
     const target = lesson.speaking[0].prompt.chinese;
     const result = speechService.analyzePronunciation(target,speechText);
     setFeedback(result.feedback + ' Điểm phản hồi: ' + result.overall + '/100.');
     recordLearningResult(lesson.speaking[0].id,result.overall >= 80);
     recordMotivationActivity({ id: `pronunciation:learning:${lesson.id}:${Date.now()}`, type: 'pronunciation', minutes: 1, lessonId: lesson.id, metadata: { score: result.overall } });
+    analytics.track('pronunciation_practice', { lessonId: lesson.id, score: result.overall });
+    analytics.track('speaking_complete', { lessonId: lesson.id, score: result.overall, minutes: 1 });
     if(result.overall < 80) addMistake({type:'pronunciation',original:speechText || '(chưa nhận diện)',corrected:target,explanation:result.feedback,mastery:0});
   };
 
   const startRoleplay = async () => {
     if(!roleplayInput.trim()) return;
+    analytics.track('roleplay_start', { lessonId: lesson.id, roleplayId: lesson.roleplay.id });
     setBusy(true);
     try {
       const result = await aiTutor.sendMessage({
@@ -56,14 +65,16 @@ export const LearningSystemScreen: React.FC = () => {
         addMistake({type:'grammar',original:result.correction.originalSentence,corrected:result.correction.correctedSentence,explanation:result.correction.explanationVi,mastery:0});
       }
       recordLearningResult(lesson.roleplay.id, !result.correction?.hasMistake);
+      analytics.track('roleplay_complete', { lessonId: lesson.id, roleplayId: lesson.roleplay.id, ai: true, minutes: 1 });
     } finally { setBusy(false); }
   };
 
   const finishReview = (correct:boolean) => {
+    analytics.track('quiz_answer', { lessonId: lesson.id, questionType: currentReview.type, correct });
     if(correct) recordLearningResult(currentReview.vocabularyId || lesson.id,true);
     else addMistake({type:'vocabulary',original:currentReview.prompt,corrected:currentReview.answer,explanation:'Ôn lại mục này trong lượt review tiếp theo.',mastery:0});
     recordLearningResult(currentReview.vocabularyId || lesson.id,correct);
-    if(reviewIndex + 1 < lesson.review.length) setReviewIndex(reviewIndex + 1); else setReviewDone(true);
+    if(reviewIndex + 1 < lesson.review.length) setReviewIndex(reviewIndex + 1); else { setReviewDone(true); analytics.track('quiz_complete', { lessonId: lesson.id, score: correct ? 100 : 0, minutes: 1 }); }
   };
 
   return (
@@ -89,7 +100,7 @@ export const LearningSystemScreen: React.FC = () => {
         <aside className="space-y-2">
           <div className="p-4 rounded-2xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800">
             <div className="text-xs font-bold uppercase tracking-wider text-stone-500 mb-2">10 bài HSK 1</div>
-            <div className="space-y-1.5">{HSK1_LESSONS.map(l => <button key={l.id} type="button" onClick={() => {setLessonId(l.id);setSection('learn');setReviewIndex(0);setReviewDone(false);}} className={'w-full text-left p-2.5 rounded-xl text-xs ' + (lesson.id === l.id ? 'bg-amber-100 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 font-bold' : 'hover:bg-stone-100 dark:hover:bg-stone-800')}><span className="font-bold mr-1">{l.lessonNumber}.</span>{l.titleVi}</button>)}</div>
+            <div className="space-y-1.5">{HSK1_LESSONS.map(l => <button key={l.id} type="button" onClick={() => {setLessonId(l.id);setSection('learn');setReviewIndex(0);setReviewDone(false); analytics.track('lesson_start', { lessonId: l.id, hskLevel: l.hskLevel, source: 'lesson_selector' });}} className={'w-full text-left p-2.5 rounded-xl text-xs ' + (lesson.id === l.id ? 'bg-amber-100 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 font-bold' : 'hover:bg-stone-100 dark:hover:bg-stone-800')}><span className="font-bold mr-1">{l.lessonNumber}.</span>{l.titleVi}</button>)}</div>
           </div>
           <div className="p-4 rounded-2xl bg-stone-900 text-white">
             <div className="text-xs text-amber-300 font-bold">TODAY · {user.dailyGoalMinutes} phút</div>

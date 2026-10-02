@@ -1,0 +1,10 @@
+import assert from 'node:assert/strict';
+import { ANALYTICS_EVENTS } from '../src/types/analytics';
+import { analytics } from '../src/services/analytics';
+assert.equal(ANALYTICS_EVENTS.length, 16);
+assert.ok(ANALYTICS_EVENTS.includes('app_open'));
+assert.ok(ANALYTICS_EVENTS.includes('subscription_cancel'));
+assert.equal(typeof analytics.track, 'function');
+assert.equal(typeof analytics.setEnabled, 'function');
+assert.equal(typeof analytics.clearLocalData, 'function');
+console.log('Prompt 17 analytics schema tests passed');

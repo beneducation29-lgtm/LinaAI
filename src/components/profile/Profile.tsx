@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import linaAvatarImg from '../../assets/images/tutor_lina_avatar_1790861417833.jpg';
 import { AccountSyncCard } from './AccountSyncCard';
+import { analytics } from '../../services/analytics';
 
 export const Profile: React.FC = () => {
   const { 
@@ -45,6 +46,7 @@ export const Profile: React.FC = () => {
   const [accountPassword, setAccountPassword] = useState('');
   const [accountName, setAccountName] = useState('');
   const [accountError, setAccountError] = useState('');
+  const [analyticsEnabled, setAnalyticsEnabled] = useState(() => analytics.getPreferences().enabled);
 
   const handleAccountSubmit = async (event: React.FormEvent) => { event.preventDefault(); setAccountError(''); try { if(accountMode==='login') await loginAccount(accountEmail,accountPassword); else await signupAccount(accountEmail,accountPassword,accountName); setAccountOpen(false); setAccountPassword(''); } catch(e) { setAccountError(e instanceof Error ? e.message : 'Không thể kết nối tài khoản.'); } };
 
@@ -220,6 +222,21 @@ export const Profile: React.FC = () => {
         <div className="flex items-center justify-between"><div><div className="text-sm font-bold">Lỗi thường gặp</div><div className="text-xs text-stone-500">Theo dõi để Lina ưu tiên luyện lại.</div></div><span className="text-xs font-bold">{aiMemory.mistakes.length}</span></div>
         <div className="space-y-1.5">{aiMemory.mistakes.slice().sort((a,b)=>b.frequency-a.frequency).slice(0,5).map(m=><div key={m.id} className="text-xs flex justify-between gap-3"><span>{m.original} → {m.corrected}</span><span className="text-stone-400">{m.frequency} lần</span></div>)}</div>
         <div className="flex flex-wrap gap-2 pt-2"><button type="button" onClick={clearLearningMemory} className="px-3 py-2 rounded-xl bg-stone-100 dark:bg-stone-800 text-xs font-semibold">Xóa AI Memory</button><button type="button" onClick={() => { if (window.confirm('Reset toàn bộ tiến trình học tập trên thiết bị này? Hành động này không thể hoàn tác. Dữ liệu cloud chỉ được thay đổi khi bạn xác nhận đồng bộ lại.')) resetProgress(); }} className="px-3 py-2 rounded-xl bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-300 text-xs font-semibold">Reset tiến trình</button></div>
+      </div>
+
+      <div className="p-5 rounded-3xl bg-white dark:bg-stone-900 border border-stone-200/90 dark:border-stone-800 space-y-3">
+        <div>
+          <div className="text-sm font-bold">Quyền riêng tư & Analytics</div>
+          <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">Lina chỉ ghi nhận hành vi học tập dạng sự kiện. Không gửi email, tên, transcript hoặc raw audio tới analytics.</p>
+        </div>
+        <div className="flex items-center justify-between gap-3">
+          <div className="text-xs font-semibold">Cho phép analytics</div>
+          <button type="button" onClick={() => { const next=!analyticsEnabled; setAnalyticsEnabled(next); analytics.setEnabled(next); }} className="px-3 py-2 rounded-xl bg-stone-100 dark:bg-stone-800 text-xs font-semibold">{analyticsEnabled ? 'Đang bật' : 'Đang tắt'}</button>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" onClick={() => { analytics.clearLocalData(); }} className="px-3 py-2 rounded-xl border border-stone-200 dark:border-stone-700 text-xs font-semibold">Xóa analytics trên thiết bị</button>
+          <button type="button" onClick={() => { window.location.href='/analytics'; }} className="px-3 py-2 rounded-xl bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900 text-xs font-semibold">Xem Analytics của tôi</button>
+        </div>
       </div>
 
       {/* 3. DISPLAY PREFERENCES & SYSTEM SETTINGS */}

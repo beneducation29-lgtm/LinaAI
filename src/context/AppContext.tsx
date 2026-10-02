@@ -13,6 +13,7 @@ import {
 import { ReviewSchedule, MistakeRecord, MistakeType, AIStoredMemory, LearnerProfile } from '../types/learning';
 import { LessonEngineLesson, LessonQuizResult, LessonCompletionResult } from '../types/lessonEngine';
 import { syncEngine } from '../services/syncEngine';
+import { analytics } from '../services/analytics';
 import { getCurrentUser, login as loginAccountRequest, signup as signupAccountRequest, logout as logoutAccountRequest } from '../services/authService';
 import type { AuthUser } from '../services/authService';
 import type { SyncState, SyncRecord } from '../types/sync';
@@ -190,6 +191,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   });
 
   useEffect(() => syncEngine.subscribe(setSyncState), []);
+  useEffect(() => {
+    analytics.track('app_open', { hskLevel: user.currentHsk });
+  }, []);
   useEffect(() => {
     let mounted = true;
     void getCurrentUser().then(account => { if (mounted) setAuthUser(account); });
@@ -415,6 +419,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }));
 
     recordMotivationActivity({ id: `review:${cardId}:${Date.now()}`, type: 'review', minutes: 1, vocabularyCount: 1, metadata: { cardId } });
+    analytics.track('vocabulary_review', { cardId, rating });
+    if (rating === 'easy') analytics.track('vocabulary_mastered', { cardId });
   };
 
   const toggleSaveStructuredVocabulary = (id: string) => {
@@ -431,6 +437,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
   const addMistake = (input: { type: MistakeType; original: string; corrected: string; explanation: string; mastery?: number; severity?: 'low'|'medium'|'high'; resolved?: boolean; relatedVocabulary?: string[]; relatedGrammar?: string[]; relatedPronunciation?: string[] }) => {
     const created = { ...input, id: 'mistake-' + Date.now(), frequency: 1, firstSeen: new Date().toISOString(), lastSeen: new Date().toISOString() } as MistakeRecord;
+    analytics.track('mistake', { category: input.type, severity: input.severity || 'medium' });
     setMistakes(prev => recordMistake(prev, input));
     setAiMemory(prev => updateMemory(prev, { mistake: created, weakVocabulary: input.type === 'vocabulary' ? input.original : undefined, grammarWeakness: input.type === 'grammar' ? input.corrected : undefined, pronunciationWeakness: input.type === 'tone' || input.type === 'pronunciation' ? input.original : undefined }));
   };
@@ -454,6 +461,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return next;
     });
     setUser(prev => ({ ...prev, lessonsCompletedCount: prev.lessonsCompletedCount + 1 }));
+    analytics.track('lesson_complete', { lessonId: lesson.id, hskLevel: lesson.hskLevel, minutes: lesson.estimatedMinutes });
     recordMotivationActivity({ id: `lesson:${lesson.id}:${outcome.completion.completedAt}`, type: 'lesson', minutes: Math.max(1, lesson.estimatedMinutes), lessonId: lesson.id, metadata: { hskLevel: lesson.hskLevel, lessonNumber: lesson.id.match(/(?:lesson-|hsk1-lesson-)(\d+)/)?.[1] || '', source: lesson.source } });
     setStructuredProgress(prev => {
       const current = prev[lesson.id] || { mastery: 0, speaking: 0, listening: 0, grammar: 0 };
