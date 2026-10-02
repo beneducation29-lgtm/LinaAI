@@ -2,7 +2,7 @@ import { StructuredVocabulary } from '../types/learning';
 
 const v = (id:string, hanzi:string, pinyin:string, pinyinNumbered:string, vietnamese:string, partOfSpeech:string, exampleChinese:string, examplePinyin:string, exampleVietnamese:string, category:string, difficulty:1|2|3=1):StructuredVocabulary => ({
   id, hanzi, pinyin, pinyinNumbered, vietnamese, partOfSpeech, exampleChinese, examplePinyin, exampleVietnamese,
-  hskLevel:'HSK 1', category, difficulty
+  hskLevel:'HSK 1', category, audio:'', difficulty
 });
 
 export const HSK1_VOCABULARY: StructuredVocabulary[] = [

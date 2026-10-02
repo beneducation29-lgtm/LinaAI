@@ -15,7 +15,7 @@ export interface StructuredVocabulary {
   exampleVietnamese: string;
   hskLevel: HSKLevel;
   category: string;
-  audio?: string;
+  audio: string;
   difficulty: 1 | 2 | 3;
 }
 
