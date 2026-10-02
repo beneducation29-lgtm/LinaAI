@@ -11,7 +11,6 @@ import { TutorMessage } from './TutorMessage';
 import { LayerToggles } from '../common/LayerToggles';
 import { VoiceSettingsModal } from '../voice/VoiceSettingsModal';
 import { ToneTrainingModal } from '../voice/ToneTrainingModal';
-import { LinaAvatar } from '../avatar/LinaAvatar';
 import { AvatarStage } from '../avatar/AvatarStage';
 import { CharacterDesignModal } from '../avatar/CharacterDesignModal';
 import { 
@@ -238,14 +237,6 @@ export const TutorScreen: React.FC = () => {
       if (structuredRes.memoryUpdate?.learnedFact) {
         addLearnerMemory(structuredRes.memoryUpdate.learnedFact);
       }
-
-      // Map emotion from AI to Avatar State
-      const mappedEmotion: AvatarState = 
-        structuredRes.emotion === 'encouraging' ? 'ENCOURAGING' :
-        structuredRes.emotion === 'happy' ? 'HAPPY' :
-        structuredRes.emotion === 'confused' ? 'CONFUSED' :
-        structuredRes.correction?.hasMistake ? 'ENCOURAGING' :
-        'HAPPY';
 
       // 3. Assemble AI Message
       const aiMsg: ConversationMessage = {
