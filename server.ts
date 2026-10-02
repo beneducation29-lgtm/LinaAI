@@ -498,24 +498,43 @@ app.post('/api/tutor/chat/stream', async (req: Request, res: Response) => {
     });
 
     let fullText = '';
-    let speechSent = false;
+    let spokenChinese = '';
+    let speechBuffer = '';
+    const emitCompleteSpeech = (flush = false) => {
+      const chunks: string[] = [];
+      const re = /[^。！？!?；;]+[。！？!?；;]+/g;
+      let match: RegExpExecArray | null;
+      while ((match = re.exec(speechBuffer))) chunks.push(match[0]);
+      const consumed = chunks.join('');
+      if (consumed) {
+        speechBuffer = speechBuffer.slice(consumed.length);
+        for (const sentence of chunks) send({ type: 'speech', text: sentence });
+      }
+      if (flush && speechBuffer.trim()) {
+        send({ type: 'speech', text: speechBuffer.trim() });
+        speechBuffer = '';
+      }
+    };
     for await (const chunk of stream) {
       const text = chunk.text || '';
       if (!text) continue;
       fullText += text;
       send({ type: 'text', text });
 
-      if (!speechSent) {
-        const match = fullText.match(/"chinese"\\s*:\\s*"((?:\\\\.|[^"\\\\])*)"/);
-        if (match) {
-          try {
-            const chinese = JSON.parse(`"${match[1]}"`);
-            if (chinese.trim()) { send({ type: 'speech', text: chinese }); speechSent = true; }
-          } catch { /* wait for next chunk */ }
+      const match = fullText.match(/"chinese"\s*:\s*"((?:\\.|[^"\\])*)/);
+      if (match) {
+        let chinese = match[1];
+        try { chinese = JSON.parse(`"${chinese}"`); }
+        catch { chinese = chinese.replace(/\\(["\\])/g, '$1').replace(/\\n/g, ' '); }
+        if (chinese.length > spokenChinese.length) {
+          const delta = chinese.slice(spokenChinese.length);
+          spokenChinese = chinese;
+          speechBuffer += delta;
+          emitCompleteSpeech(false);
         }
       }
     }
-
+    emitCompleteSpeech(true);
     try {
       const parsed = JSON.parse(fullText.trim());
       send({ type: 'response', response: parsed });
@@ -591,6 +610,59 @@ app.post('/api/tts/speak', async (req: Request, res: Response) => {
 });
 
 // 5. API: Speech-to-Text Transcription via Gemini Transcribe
+app.post('/api/tts/elevenlabs/stream', async (req: Request, res: Response) => {
+  const apiKey = process.env.ELEVENLABS_API_KEY || '';
+  const voiceId = process.env.ELEVENLABS_VOICE_ID || '';
+  const modelId = process.env.ELEVENLABS_MODEL_ID || 'eleven_flash_v2_5';
+  const outputFormat = process.env.ELEVENLABS_OUTPUT_FORMAT || 'mp3_44100_128';
+  try {
+    const { text, lang = 'zh-CN', rate = 1 } = req.body;
+    if (!apiKey || !voiceId) { res.status(503).json({ error: 'ElevenLabs streaming TTS is not configured.' }); return; }
+    if (typeof text !== 'string' || !text.trim() || text.length > 1000) { res.status(400).json({ error: 'TTS text is required and must be <= 1000 characters.' }); return; }
+    const safeRate = typeof rate === 'number' && rate >= 0.7 && rate <= 1.2 ? rate : 1;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30000);
+    const url = new URL(`https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(voiceId)}/stream`);
+    url.searchParams.set('output_format', outputFormat);
+    const upstream = await fetch(url, {
+      method: 'POST',
+      headers: { 'xi-api-key': apiKey, 'Content-Type': 'application/json', 'Accept': 'audio/mpeg' },
+      body: JSON.stringify({
+        text: text.trim(),
+        model_id: modelId,
+        language_code: lang === 'zh-CN' ? 'zh' : undefined,
+        voice_settings: { stability: 0.5, similarity_boost: 0.75, speed: safeRate }
+      }),
+      signal: controller.signal
+    });
+    clearTimeout(timeout);
+    if (!upstream.ok || !upstream.body) {
+      console.error('[Lina][ELEVENLABS_TTS_ERROR]', { status: upstream.status });
+      res.status(502).json({ error: 'Streaming TTS provider unavailable.' });
+      return;
+    }
+    res.status(200);
+    res.setHeader('Content-Type', upstream.headers.get('content-type') || 'audio/mpeg');
+    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader('Transfer-Encoding', 'chunked');
+    const reader = upstream.body.getReader();
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done || res.writableEnded) break;
+        if (value?.byteLength) res.write(Buffer.from(value));
+      }
+    } finally {
+      try { reader.releaseLock(); } catch {}
+      if (!res.writableEnded) res.end();
+    }
+  } catch (err: any) {
+    console.error('[Lina][ELEVENLABS_TTS_ERROR]', { name: err?.name || 'Error' });
+    if (!res.headersSent) res.status(502).json({ error: 'Streaming TTS provider unavailable.' });
+    else if (!res.writableEnded) res.end();
+  }
+});
+
 app.post('/api/stt/transcribe', async (req: Request, res: Response) => {
   try {
     const { audioBase64, mimeType = 'audio/webm' } = req.body;

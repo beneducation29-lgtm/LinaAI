@@ -21,3 +21,5 @@ export * from './avatarStateMachine';
 export * from './speechChunker';
 export * from './ttsQueue';
 export * from './realtimeSpeechOrchestrator';
+export * from './audioBufferManager';
+export * from './avatarProviderAdapter';
