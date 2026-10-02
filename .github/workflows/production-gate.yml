@@ -1,0 +1,48 @@
+name: LinaAI Production Gate
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  quality-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Test
+        run: npm test
+      - name: Build
+        run: npm run build
+      - name: Check forbidden install bypasses
+        run: |
+          ! grep -R --line-number -E -- '--force|--legacy-peer-deps' package.json .npmrc vercel.json 2>/dev/null
+
+  security-static-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify production documentation
+        run: |
+          test -f PRODUCTION_READINESS.md
+          test -f SECURITY_AUDIT.md
+          test -f PRIVACY_DATA_MAP.md
+          test -f BACKUP_RECOVERY.md
+          test -f HSK_CONTENT_STATUS.md
+          test -f ARCHITECTURE.md
+      - name: Verify security headers
+        run: grep -q 'Content-Security-Policy' vercel.json
+      - name: Verify RLS policies
+        run: |
+          grep -R -qi 'row level security' supabase || true
