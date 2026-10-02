@@ -84,7 +84,7 @@ export async function generateLesson(parameters: LessonGenerationParameters): Pr
   const response = await fetch('/api/lesson/generate', {
     method: 'POST',
     headers: {'Content-Type':'application/json'},
-    body: JSON.stringify(parameters)
+    body: JSON.stringify({ ...parameters, verifiedVocabulary: parameters.hskLevel === 'HSK 1' ? HSK1_VOCABULARY.filter(v => (parameters.targetVocabulary || []).includes(v.hanzi)) : [] })
   });
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(payload?.error || `Lesson generation failed: HTTP ${response.status}`);
