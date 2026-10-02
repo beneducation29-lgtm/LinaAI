@@ -63,7 +63,7 @@ class AITutorClientService {
     if (existing) return existing;
     const promise = this.sendMessageInternal(options, userText);
     this.inFlight.set(requestKey, promise);
-    void promise.finally(() => this.inFlight.delete(requestKey));
+    void promise.then(() => this.inFlight.delete(requestKey), () => this.inFlight.delete(requestKey));
     return promise;
   }
 
