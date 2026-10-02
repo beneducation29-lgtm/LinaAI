@@ -856,6 +856,8 @@ app.post('/api/tts/speak', async (req: Request, res: Response) => {
 
 // 5. API: Speech-to-Text Transcription via Gemini Transcribe
 app.post('/api/tts/elevenlabs/stream', async (req: Request, res: Response) => {
+  const aiAccess = await requireAIEntitlement(req, 'voice', 1);
+  if ('error' in aiAccess) { res.status(aiAccess.status).json({ error: aiAccess.error, ...(aiAccess.error === 'LIMIT_REACHED' ? { code: 'LIMIT_REACHED' } : {}) }); return; }
   const apiKey = process.env.ELEVENLABS_API_KEY || '';
   const voiceId = process.env.ELEVENLABS_VOICE_ID || '';
   const modelId = process.env.ELEVENLABS_MODEL_ID || 'eleven_flash_v2_5';
@@ -886,6 +888,7 @@ app.post('/api/tts/elevenlabs/stream', async (req: Request, res: Response) => {
       res.status(502).json({ error: 'Streaming TTS provider unavailable.' });
       return;
     }
+    await recordAIUsage(aiAccess.user.id, 'elevenlabs:' + modelId, 'tts_external', { usageMetadata: {} }, { ttsUsage: 1, voiceMinutes: 1 });
     res.status(200);
     res.setHeader('Content-Type', upstream.headers.get('content-type') || 'audio/mpeg');
     res.setHeader('Cache-Control', 'no-store');
