@@ -19,8 +19,8 @@ function bandFor(mastery:number,confidence:number,due:boolean,attempts:number):M
 
 export function buildKnowledgeProfile(profile:LearnerProfile,memory:AIStoredMemory,schedules:Record<string,{mastery:number;correctCount:number;incorrectCount:number;lastReviewed:string|null;nextReview:string}>,progress:Record<string,{mastery:number;speaking:number;listening:number;grammar:number}>):LearnerKnowledgeProfile{
  const scheduleEntries=Object.entries(schedules);
+ const vocabularyItems=scheduleEntries.slice(-50).map(([id,s])=>({id,mastery:clamp(s.mastery),confidence:buildMetric(s).confidence,band:bandFor(s.mastery,buildMetric(s).confidence,new Date(s.nextReview).getTime()<=Date.now(),s.correctCount+s.incorrectCount),attempts:s.correctCount+s.incorrectCount,correct:s.correctCount,incorrect:s.incorrectCount,lastPracticed:s.lastReviewed,reviewDueAt:s.nextReview}));
  const dueReviewCount=scheduleEntries.filter(([,s])=>new Date(s.nextReview).getTime()<=Date.now()).length;
- const vocab=scheduleEntries.slice(-50).map(([id,s])=>({id,mastery:clamp(s.mastery),confidence:buildMetric(s).confidence,band:bandFor(s.mastery,buildMetric(s).confidence,new Date(s.nextReview).getTime()<=Date.now(),s.correctCount+s.incorrectCount),attempts:s.correctCount+s.incorrectCount,correct:s.correctCount,incorrect:s.incorrectCount,lastPracticed:s.lastReviewed,reviewDueAt:s.nextReview}));
  const values=Object.values(progress);
  const avg=(key:keyof typeof values[number])=>values.length?values.reduce((n,p)=>n+p[key],0)/values.length:0;
  const scheduleMastery=scheduleEntries.length?scheduleEntries.reduce((n,[,s])=>n+s.mastery,0)/scheduleEntries.length:profile.vocabularyStats.learned?45:0;
@@ -37,7 +37,7 @@ export function buildKnowledgeProfile(profile:LearnerProfile,memory:AIStoredMemo
  const weak=[...memory.grammarWeaknesses,...memory.pronunciationWeaknesses,...memory.weakVocabulary].slice(-8);
  const mastered=Object.entries(skills).filter(([,s])=>s.mastery>=80).map(([k])=>k);
  const adaptiveDifficulty=getAdaptiveDifficulty(profile,memory,{overallMastery:overall,skills});
- return {generatedAt:new Date().toISOString(),overallMastery:clamp(overall),confidence:clamp(Object.values(skills).reduce((n,s)=>n+s.confidence,0)/Object.values(skills).length),skills,vocabulary,grammarWeaknesses:memory.grammarWeaknesses.slice(-8),pronunciationWeaknesses:memory.pronunciationWeaknesses.slice(-8),preferredTopics:memory.preferences.slice(-5),dueReviewCount,strugglingAreas:weak,masteredAreas:mastered,adaptiveDifficulty};
+ return {generatedAt:new Date().toISOString(),overallMastery:clamp(overall),confidence:clamp(Object.values(skills).reduce((n,s)=>n+s.confidence,0)/Object.values(skills).length),skills,vocabulary:vocabularyItems,grammarWeaknesses:memory.grammarWeaknesses.slice(-8),pronunciationWeaknesses:memory.pronunciationWeaknesses.slice(-8),preferredTopics:memory.preferences.slice(-5),dueReviewCount,strugglingAreas:weak,masteredAreas:mastered,adaptiveDifficulty};
 }
 
 export function getAdaptiveDifficulty(profile:LearnerProfile,memory:AIStoredMemory,knowledge?:Pick<LearnerKnowledgeProfile,'overallMastery'|'skills'>):PersonalizedDifficulty{
