@@ -22,8 +22,6 @@ Rules:
 6. Personalize from learnerWeaknesses and goal without creating a second content system.
 Parameters:
 ${JSON.stringify(p)} 
-Verified vocabulary records for HSK 1:
-${JSON.stringify(require('../../src/data/hsk1Structured'))}
 Schema:
 ${JSON.stringify(jsonSchema)}
 `;
