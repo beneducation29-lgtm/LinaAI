@@ -1,0 +1,30 @@
+import fs from 'node:fs';
+import assert from 'node:assert/strict';
+
+const server=fs.readFileSync('server.ts','utf8');
+const security=fs.readFileSync('src/services/security.ts','utf8');
+const privacy=fs.readFileSync('src/services/privacy.ts','utf8');
+const audit=fs.readFileSync('SECURITY_AUDIT.md','utf8');
+const map=fs.readFileSync('PRIVACY_DATA_MAP.md','utf8');
+const sql=fs.readFileSync('supabase/privacy.sql','utf8');
+
+assert.match(server,/express\.json\(\{[^}]*limit:\s*['"]1mb['"]/s);
+assert.match(server,/req\.ip/);
+assert.match(server,/SECURITY_LIMITS\.auth/);
+assert.match(server,/\/api\/privacy\/export/);
+assert.match(server,/\/api\/privacy\/delete-learning-data/);
+assert.match(server,/\/api\/privacy\/delete-account/);
+assert.match(server,/\/api\/privacy\/preferences/);
+assert.match(server,/Origin|origin/);
+assert.match(server,/HttpOnly/);
+assert.doesNotMatch(server,/VITE_GEMINI_API_KEY/);
+assert.match(security,/DataClassification/);
+assert.match(security,/rateLimit/);
+assert.match(privacy,/DEFAULT_PRIVACY_PREFERENCES/);
+assert.match(audit,/CRITICAL|HIGH|MEDIUM|LOW/);
+assert.match(audit,/prompt injection/i);
+assert.match(map,/conversation.*PRIVATE/is);
+assert.match(map,/API key.*SECURITY-SENSITIVE/is);
+assert.match(sql,/lina_privacy_preferences/);
+assert.match(sql,/enable row level security/i);
+console.log('Prompt 21-23 security/privacy checks passed.');
