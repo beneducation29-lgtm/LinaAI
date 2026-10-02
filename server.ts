@@ -1,6 +1,7 @@
 import express, { Request, Response } from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { createHash, randomBytes } from 'node:crypto';
 import dotenv from 'dotenv';
 import { GoogleGenAI, Type } from '@google/genai';
 import { sanitizeTutorPayload, looksLikePromptInjection } from './src/services/inputGuards';
@@ -308,7 +309,64 @@ const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const getCookie=(req:Request,name:string)=>{const raw=req.headers.cookie||'';const match=raw.split(';').map(x=>x.trim()).find(x=>x.startsWith(name+'='));return match?decodeURIComponent(match.slice(name.length+1)):'';};
 const setAuthCookies=(res:Response,access:string,refresh:string)=>{const secure=process.env.NODE_ENV==='production'?'; Secure':'';res.setHeader('Set-Cookie',[`lina_access=${encodeURIComponent(access)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=3600${secure}`,`lina_refresh=${encodeURIComponent(refresh)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=2592000${secure}`]);};
 const clearAuthCookies=(res:Response)=>res.setHeader('Set-Cookie',['lina_access=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0','lina_refresh=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0']);
+const oauthCookie=(name:string,value:string,maxAge:number)=>name+'='+encodeURIComponent(value)+'; HttpOnly; SameSite=Lax; Path=/; Max-Age='+maxAge+(process.env.NODE_ENV==='production'?'; Secure':'');
+const appOrigin=(req:Request)=>{
+  const configured=process.env.APP_URL?.trim().replace(/\/$/,'');
+  if(configured)return configured;
+  const forwarded=req.get('x-forwarded-proto')?.split(',')[0]?.trim()||req.protocol;
+  const host=req.get('x-forwarded-host')?.split(',')[0]?.trim()||req.get('host');
+  return host?forwarded+'://'+host:'';
+};
+const pkceVerifier=()=>randomBytes(48).toString('base64url');
+const pkceChallenge=(verifier:string)=>createHash('sha256').update(verifier).digest('base64url');
+const oauthErrorRedirect=(req:Request,res:Response,reason:string)=>{
+  const safe=encodeURIComponent(reason.slice(0,120));
+  return res.redirect('/?auth=google-error&reason='+safe);
+};
+
 async function supabaseUser(access:string){if(!access||!SUPABASE_URL||!SUPABASE_ANON_KEY)return null;const r=await fetch(`${SUPABASE_URL}/auth/v1/user`,{headers:{apikey:SUPABASE_ANON_KEY,Authorization:`Bearer ${access}`}});if(!r.ok)return null;return await r.json();}
+app.get('/api/auth/google/start',async(req:Request,res:Response)=>{
+  if(!SUPABASE_URL||!SUPABASE_ANON_KEY)return res.status(503).send('Google Sign-In chưa được cấu hình.');
+  const redirectUri=appOrigin(req)+'/api/auth/google/callback';
+  if(!redirectUri.startsWith('http'))return res.status(500).send('APP_URL chưa được cấu hình.');
+  const state=randomBytes(32).toString('base64url');
+  const verifier=pkceVerifier();
+  res.setHeader('Set-Cookie',[oauthCookie('lina_oauth_state',state,600),oauthCookie('lina_oauth_verifier',verifier,600)]);
+  const authorize=new URL(SUPABASE_URL+'/auth/v1/authorize');
+  authorize.searchParams.set('provider','google');
+  authorize.searchParams.set('redirect_to',redirectUri);
+  authorize.searchParams.set('response_type','code');
+  authorize.searchParams.set('state',state);
+  authorize.searchParams.set('code_challenge',pkceChallenge(verifier));
+  authorize.searchParams.set('code_challenge_method','S256');
+  authorize.searchParams.set('scope','openid email profile');
+  return res.redirect(authorize.toString());
+});
+app.get('/api/auth/google/callback',async(req:Request,res:Response)=>{
+  try{
+    if(!SUPABASE_URL||!SUPABASE_ANON_KEY)return oauthErrorRedirect(req,res,'Google Sign-In chưa được cấu hình.');
+    const code=String(req.query.code||'');
+    const state=String(req.query.state||'');
+    const savedState=getCookie(req,'lina_oauth_state');
+    const verifier=getCookie(req,'lina_oauth_verifier');
+    if(!code||!state||!savedState||state!==savedState||!verifier)return oauthErrorRedirect(req,res,'Phiên Google không hợp lệ hoặc đã hết hạn.');
+    const token=await fetch(SUPABASE_URL+'/auth/v1/token?grant_type=pkce',{
+      method:'POST',
+      headers:{apikey:SUPABASE_ANON_KEY,Authorization:'Bearer '+SUPABASE_ANON_KEY,'Content-Type':'application/json'},
+      body:JSON.stringify({auth_code:code,code_verifier:verifier})
+    });
+    const data=await token.json().catch(()=>({}));
+    if(!token.ok||!data.access_token||!data.refresh_token)return oauthErrorRedirect(req,res,'Không thể hoàn tất đăng nhập Google.');
+    setAuthCookies(res,data.access_token,data.refresh_token);
+    res.append('Set-Cookie',oauthCookie('lina_oauth_state','',0));
+    res.append('Set-Cookie',oauthCookie('lina_oauth_verifier','',0));
+    if(data.user?.id)await ensureFreeSubscription(data.user.id);
+    return res.redirect('/?auth=google-success');
+  }catch{
+    return oauthErrorRedirect(req,res,'Đăng nhập Google thất bại.');
+  }
+});
+
 app.post('/api/auth/signup',async(req:Request,res:Response)=>{try{if(!SUPABASE_URL||!SUPABASE_ANON_KEY){res.status(503).json({error:'Cloud account chưa được cấu hình.'});return;}const {email,password,name}=req.body;if(typeof email!=='string'||typeof password!=='string'||password.length<8){res.status(400).json({error:'Email và mật khẩu tối thiểu 8 ký tự là bắt buộc.'});return;}const r=await fetch(`${SUPABASE_URL}/auth/v1/signup`,{method:'POST',headers:{apikey:SUPABASE_ANON_KEY,'Content-Type':'application/json'},body:JSON.stringify({email,password,data:{name:typeof name==='string'?name.slice(0,80):undefined}})});const d=await r.json();if(!r.ok){res.status(r.status).json({error:d.msg||d.message||'Đăng ký thất bại.'});return;}if(d.access_token&&d.refresh_token)setAuthCookies(res,d.access_token,d.refresh_token);if(d.user?.id)await ensureFreeSubscription(d.user.id);res.json({user:d.user?{id:d.user.id,email:d.user.email,name:d.user.user_metadata?.name}:null,requiresEmailConfirmation:!d.access_token});}catch{res.status(500).json({error:'Đăng ký thất bại.'});}});
 app.post('/api/auth/login',async(req:Request,res:Response)=>{try{if(!SUPABASE_URL||!SUPABASE_ANON_KEY){res.status(503).json({error:'Cloud account chưa được cấu hình.'});return;}const {email,password}=req.body;if(typeof email!=='string'||typeof password!=='string'){res.status(400).json({error:'Email và mật khẩu là bắt buộc.'});return;}const r=await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`,{method:'POST',headers:{apikey:SUPABASE_ANON_KEY,'Content-Type':'application/json'},body:JSON.stringify({email,password})});const d=await r.json();if(!r.ok){res.status(401).json({error:d.error_description||d.msg||'Email hoặc mật khẩu không đúng.'});return;}setAuthCookies(res,d.access_token,d.refresh_token);await ensureFreeSubscription(d.user.id);res.json({user:{id:d.user.id,email:d.user.email,name:d.user.user_metadata?.name}});}catch{res.status(500).json({error:'Đăng nhập thất bại.'});}});
 app.post('/api/auth/refresh',async(req:Request,res:Response)=>{try{if(!SUPABASE_URL||!SUPABASE_ANON_KEY){res.status(503).json({error:'Cloud account chưa được cấu hình.'});return;}const refresh=getCookie(req,'lina_refresh');if(!refresh){res.status(401).json({error:'No refresh session'});return;}const r=await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`,{method:'POST',headers:{apikey:SUPABASE_ANON_KEY,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:refresh})});const d=await r.json();if(!r.ok){clearAuthCookies(res);res.status(401).json({error:'Phiên đăng nhập đã hết hạn.'});return;}setAuthCookies(res,d.access_token,d.refresh_token);res.json({user:{id:d.user.id,email:d.user.email,name:d.user.user_metadata?.name}});}catch{res.status(401).json({error:'Không thể làm mới phiên đăng nhập.'});}});
