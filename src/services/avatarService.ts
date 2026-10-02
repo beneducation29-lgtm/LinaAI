@@ -11,6 +11,7 @@ import { speechService } from './speech';
 import { audioStreamController } from './audioStreamController';
 import { audioAnalyzer } from './audioAnalyzer';
 import { lipSyncEngine } from './lipSyncEngine';
+import { AvatarStateMachine } from './avatarStateMachine';
 
 export type VisemeEvent = {
   viseme: 'sil' | 'aa' | 'ee' | 'oo' | 'mm' | 'oh' | 'f' | 's';
@@ -277,6 +278,7 @@ export class Level3RealtimeAvatarProvider implements AvatarProvider {
 // =========================================================================
 class AvatarSystemManager {
   private currentState: AvatarState = 'IDLE';
+  private readonly stateMachine = new AvatarStateMachine('IDLE');
   private currentViseme: VisemeEvent = { viseme: 'sil', amplitude: 0 };
   private activeLevel: AvatarProviderLevel = 'level2_interactive';
   private externalRealtimeProviderConfigured = false;
@@ -356,6 +358,7 @@ class AvatarSystemManager {
 
   setState(state: AvatarState): void {
     if (this.currentState === state) return;
+    if (!this.stateMachine.transition(state)) return;
     this.currentState = state;
     this.providers[this.activeLevel].setState(state);
     this.notify();
@@ -388,6 +391,8 @@ class AvatarSystemManager {
     } catch {
       // Never claim realtime avatar when no provider is configured. Use the local animated fallback.
       this.activeLevel = 'level2_interactive';
+      this.stateMachine.force('IDLE');
+      this.currentState = 'IDLE';
       this.providers.level2_interactive.initialize().then(() => this.providers.level2_interactive.speak(text, options)).catch(() => {
         this.activeLevel = 'level1_fallback';
         void this.providers.level1_fallback.speak(text, options);
