@@ -191,6 +191,26 @@ Add a dedicated error tracking provider only after selecting one and configuring
 - [ ] Backups/restore process is verified.
 - [ ] Rollback procedure is documented and tested.
 
+## Prompt 27–29 gate status
+
+**Status: BLOCKED pending live verification.** Source-level gates and tests are present, but this document deliberately does not mark the product production-ready. Live verification is still required for authentication/data isolation, production API runtime, database migration state, Gemini/TTS, monitoring and backup/restore.
+
+### Automated gate
+- `npm ci`
+- `npm run typecheck`
+- `npm test`
+- `npm run build`
+- security-header/static checks in `.github/workflows/production-gate.yml`
+
+### Product gate
+- User journey and progress persistence
+- personalization after repeated sessions
+- HSK 1–6 coverage with explicit CONTENT GAP status
+- cross-user and learner/admin authorization
+- privacy export/delete/memory controls
+- AI duplicate-request/quota controls
+- mobile/accessibility/error recovery
+
 ## Known limitations
 
 1. The AI orchestrator rate limiter is process-local, not distributed.
