@@ -1,3 +1,4 @@
+import { createHmac, timingSafeEqual } from 'node:crypto';
 import type { PlanId, SubscriptionStatus } from '../types/subscription';
 
 export interface PaymentProvider {
@@ -16,8 +17,10 @@ export class GenericHmacPaymentProvider implements PaymentProvider {
   }
   verifyWebhook(rawBody: string, signature: string | undefined): boolean {
     if (!this.secret || !signature) return false;
-    // Verification is performed server-side; this generic adapter expects a provider-supplied HMAC SHA-256 signature.
-    return signature.length >= 32 && rawBody.length >= 0;
+    const expected = createHmac('sha256', this.secret).update(rawBody, 'utf8').digest('hex');
+    const provided = signature.replace(/^sha256=/i, '').trim();
+    if (!/^[a-f0-9]{64}$/i.test(provided)) return false;
+    return timingSafeEqual(Buffer.from(expected, 'hex'), Buffer.from(provided, 'hex'));
   }
   mapSubscriptionStatus(value: string): SubscriptionStatus {
     if (value === 'active' || value === 'trial' || value === 'past_due' || value === 'cancelled' || value === 'expired') return value;
