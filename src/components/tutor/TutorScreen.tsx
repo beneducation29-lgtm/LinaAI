@@ -253,7 +253,8 @@ export const TutorScreen: React.FC = () => {
         });
       } else {
         setMicState('IDLE');
-        setTimeout(() => avatarService.setState('IDLE'), 2500);
+        const resetTimer = window.setTimeout(() => avatarService.setState('IDLE'), 2500);
+        return () => window.clearTimeout(resetTimer);
       }
     } catch {
       setMicState('ERROR');

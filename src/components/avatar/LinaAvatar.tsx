@@ -40,6 +40,8 @@ export const LinaAvatar: React.FC<LinaAvatarProps> = ({
   const [imageError, setImageError] = useState(false);
   const [isBlinking, setIsBlinking] = useState(false);
   const [showTestControls, setShowTestControls] = useState(false);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  const hasRealtimeProvider = avatarService.hasRealtimeProvider();
 
   // Subscribe to central Avatar Manager updates
   useEffect(() => {
@@ -51,8 +53,12 @@ export const LinaAvatar: React.FC<LinaAvatarProps> = ({
     return unsubscribe;
   }, []);
 
-  // Natural Eye-Blink Loop for Level 2 & 3 (every 3 to 6 seconds)
+  // Natural Eye-Blink Loop, disabled when the user requests reduced motion.
   useEffect(() => {
+    if (typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+      setPrefersReducedMotion(true);
+      return;
+    }
     let blinkTimeout: any = null;
     const scheduleNextBlink = () => {
       const delay = Math.random() * 3000 + 2500;
@@ -76,7 +82,7 @@ export const LinaAvatar: React.FC<LinaAvatarProps> = ({
   // State-specific visual styling
   const stateAuraStyles: Record<AvatarState, string> = {
     IDLE: 'from-amber-500/10 via-orange-500/5 to-emerald-500/5',
-    LISTENING: 'from-red-500/25 via-rose-500/15 to-amber-500/10 animate-pulse',
+    LISTENING: 'from-red-500/25 via-rose-500/15 to-amber-500/10 motion-safe:animate-pulse',
     THINKING: 'from-amber-500/25 via-indigo-500/20 to-purple-500/15',
     SPEAKING: 'from-emerald-500/25 via-teal-500/15 to-amber-500/10',
     HAPPY: 'from-amber-400/30 via-yellow-400/20 to-orange-400/15',
@@ -99,8 +105,8 @@ export const LinaAvatar: React.FC<LinaAvatarProps> = ({
   const stateIcons: Record<AvatarState, React.ReactNode> = {
     IDLE: <Sparkles className="w-3.5 h-3.5 text-amber-600" />,
     LISTENING: <Mic className="w-3.5 h-3.5 text-red-600 animate-pulse" />,
-    THINKING: <BrainCircuit className="w-3.5 h-3.5 text-amber-600 animate-spin" />,
-    SPEAKING: <Volume2 className="w-3.5 h-3.5 text-emerald-600 animate-bounce" />,
+    THINKING: <BrainCircuit className="w-3.5 h-3.5 text-amber-600 motion-safe:animate-spin" />,
+    SPEAKING: <Volume2 className="w-3.5 h-3.5 text-emerald-600 motion-safe:animate-bounce" />,
     HAPPY: <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500" />,
     ENCOURAGING: <ThumbsUp className="w-3.5 h-3.5 text-amber-600" />,
     CONFUSED: <HelpCircle className="w-3.5 h-3.5 text-purple-600" />,
@@ -286,12 +292,12 @@ export const LinaAvatar: React.FC<LinaAvatarProps> = ({
           )}
 
           {/* Portrait Container */}
-          <div className={`relative w-44 h-44 sm:w-52 sm:h-52 md:w-56 md:h-56 rounded-3xl overflow-hidden border-3 shadow-lg transition-all duration-300 ${stateBorderColors[avatarState]}`}>
+          <div className={`relative w-full max-w-[360px] aspect-[3/4] rounded-[2rem] overflow-hidden border-3 shadow-lg transition-all duration-300 ${stateBorderColors[avatarState]} ${prefersReducedMotion ? '' : 'animate-[avatarBreath_4s_ease-in-out_infinite]'}`}>
             {!imageError ? (
               <img
                 src={linaStylizedAvatarImg}
-                alt="Lina AI Mandarin Tutor"
-                className={`w-full h-full object-cover transition-transform duration-700 ${
+                alt="Lina 林娜 — gia sư tiếng Trung AI hư cấu"
+                className={`w-full h-full object-cover object-[50%_35%] transition-transform duration-700 ${
                   avatarState === 'THINKING' ? 'scale-105 rotate-1' :
                   avatarState === 'CONFUSED' ? '-rotate-2' :
                   avatarState === 'HAPPY' ? 'scale-102' :
@@ -378,10 +384,10 @@ export const LinaAvatar: React.FC<LinaAvatarProps> = ({
       </div>
 
       {/* Provider Level Footnote */}
-      <div className="relative z-10 pt-2 border-t border-stone-200/60 dark:border-stone-800 flex items-center justify-between text-[11px] text-stone-500">
+      <div className="relative z-10 pt-2 border-t border-stone-200/60 dark:border-stone-800 flex items-center justify-between text-[11px] text-stone-500" role="status" aria-live="polite">
         <span className="flex items-center gap-1">
           <Layers className="w-3.5 h-3.5 text-amber-600" />
-          <span>Hệ thống Avatar: <strong>{providerLevel === 'level2_interactive' ? 'Cấp 2 (Interactive 60fps)' : providerLevel === 'level3_realtime' ? 'Cấp 3 (Real-time Stream)' : 'Cấp 1 (Fallback)'}</strong></span>
+          <span>Avatar: <strong>{providerLevel === 'level3_realtime' ? (hasRealtimeProvider ? 'Live provider' : 'Animated fallback') : providerLevel === 'level2_interactive' ? 'Animated interactive' : 'Accessible fallback'}</strong></span>
         </span>
         <button
           type="button"

@@ -254,7 +254,7 @@ export class Level2InteractiveAvatarProvider implements AvatarProvider {
 export class Level3RealtimeAvatarProvider implements AvatarProvider {
   readonly level: AvatarProviderLevel = 'level3_realtime';
   readonly name = 'Cấp 3: Luồng truyền hình ảnh thời gian thực (Live Stream)';
-  readonly descriptionVi = 'Kết nối luồng stream thời gian thực độ phân giải cao; tự động chuyển về Cấp 2 khi ngoại tuyến.';
+  readonly descriptionVi = 'Provider contract sẵn sàng cho live avatar; hiện dùng animated fallback an toàn vì chưa có realtime provider.';
 
   private ready = false;
   private currentState: AvatarState = 'IDLE';
@@ -262,7 +262,7 @@ export class Level3RealtimeAvatarProvider implements AvatarProvider {
 
   async initialize(): Promise<boolean> {
     try {
-      // Initialize Level 3 engine; simulate verification of streaming endpoint
+      // No external realtime provider is configured yet. Keep Level 3 provider-safe by delegating to the local animated fallback.
       await this.fallbackLevel2.initialize();
       this.ready = true;
       return true;
@@ -278,7 +278,7 @@ export class Level3RealtimeAvatarProvider implements AvatarProvider {
   }
 
   async speak(text: string, options?: SpeakOptions): Promise<void> {
-    // Utilize high-fidelity interactive engine with streaming synchronization
+    // Explicitly use the local animated fallback until a real streaming avatar provider is configured.
     return this.fallbackLevel2.speak(text, options);
   }
 
@@ -303,6 +303,7 @@ class AvatarSystemManager {
   private currentState: AvatarState = 'IDLE';
   private currentViseme: VisemeEvent = { viseme: 'sil', amplitude: 0 };
   private activeLevel: AvatarProviderLevel = 'level2_interactive';
+  private externalRealtimeProviderConfigured = false;
   private providers: Record<AvatarProviderLevel, AvatarProvider>;
   private listeners: Set<AvatarListener> = new Set();
   private characterConfig: CharacterDesignConfig = DEFAULT_LINA_CHARACTER_CONFIG;
@@ -324,6 +325,10 @@ class AvatarSystemManager {
 
   getLevel(): AvatarProviderLevel {
     return this.activeLevel;
+  }
+
+  hasRealtimeProvider(): boolean {
+    return this.externalRealtimeProviderConfigured;
   }
 
   getCharacterConfig(): CharacterDesignConfig {
@@ -381,9 +386,12 @@ class AvatarSystemManager {
         },
       });
     } catch {
-      // Auto fallback to Level 1
-      this.activeLevel = 'level1_fallback';
-      this.providers.level1_fallback.speak(text, options);
+      // Never claim realtime avatar when no provider is configured. Use the local animated fallback.
+      this.activeLevel = 'level2_interactive';
+      this.providers.level2_interactive.initialize().then(() => this.providers.level2_interactive.speak(text, options)).catch(() => {
+        this.activeLevel = 'level1_fallback';
+        void this.providers.level1_fallback.speak(text, options);
+      });
     }
   }
 

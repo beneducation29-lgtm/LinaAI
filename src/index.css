@@ -29,3 +29,6 @@
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(156, 163, 175, 0.5);
 }
+
+@keyframes avatarBreath{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-2px) scale(1.006)}}
+@media (prefers-reduced-motion:reduce){.animate-\[avatarBreath_4s_ease-in-out_infinite\]{animation:none!important}}
