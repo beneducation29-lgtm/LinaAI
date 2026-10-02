@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
 import { 
   TutorState, 
@@ -20,7 +20,9 @@ import {
   speechService, 
   MicrophoneState, 
   VoiceSettings,
-  avatarService 
+  avatarService,
+  createRoleplayEngine,
+  ROLEPLAY_SCENARIOS
 } from '../../services';
 import { getQuickPinyin, getQuickVietnamese } from '../../utils/chinesePinyinMap';
 import { 
@@ -90,6 +92,10 @@ export const TutorScreen: React.FC = () => {
 
   // Test Scenarios Modal
   const [showScenariosModal, setShowScenariosModal] = useState(false);
+  const [roleplayActive, setRoleplayActive] = useState(false);
+  const [roleplayScenarioId, setRoleplayScenarioId] = useState('rp-new-person');
+  const [roleplayImmersion, setRoleplayImmersion] = useState<'beginner'|'intermediate'|'advanced'>('beginner');
+  const [showRoleplaySummary, setShowRoleplaySummary] = useState(false);
 
   // Live Speech Recognition & Preview State
   const [liveTranscript, setLiveTranscript] = useState('');
@@ -103,6 +109,7 @@ export const TutorScreen: React.FC = () => {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const holdTimeoutRef = useRef<any>(null);
+  const roleplayEngine = useMemo(() => createRoleplayEngine(), []);
 
   // Save voice settings to localStorage
   useEffect(() => {
@@ -164,7 +171,7 @@ export const TutorScreen: React.FC = () => {
       pinyin: getQuickPinyin(textToSend),
       vietnamese: getQuickVietnamese(textToSend),
       timestamp: new Date().toISOString(),
-      pronunciationScore: 92
+      pronunciationScore: undefined
     };
 
     addMessage(userMsg);
@@ -185,16 +192,9 @@ export const TutorScreen: React.FC = () => {
         `Điểm yếu: ${learnerProfile.weakAreas.slice(0,5).join(', ') || 'chưa xác định'}`,
         `Lỗi cần ưu tiên: ${relevantMemory.join(' | ') || 'chưa có'}`
       ];
-      const structuredRes = await aiTutor.sendMessage({
-        conversationId: conversation.id,
-        topicTitleVi: conversation.topicTitleVi,
-        hskLevel: conversation.hskLevel,
-        userLevel: user.currentLevel,
-        userName: user.name,
-        history: [...conversation.messages, userMsg],
-        mode: tutorMode,
-        memoryFacts: memoryContext
-      }, textToSend);
+      const structuredRes = roleplayActive
+        ? await roleplayEngine.sendTurn({ conversationId: conversation.id, hskLevel: conversation.hskLevel, userLevel: user.currentLevel, userName: user.name, history: [...conversation.messages, userMsg] }, textToSend)
+        : await aiTutor.sendMessage({ conversationId: conversation.id, topicTitleVi: conversation.topicTitleVi, hskLevel: conversation.hskLevel, userLevel: user.currentLevel, userName: user.name, history: [...conversation.messages, userMsg], mode: tutorMode, memoryFacts: memoryContext }, textToSend);
 
       if (structuredRes.correction?.hasMistake) {
         const c = structuredRes.correction;
@@ -361,13 +361,20 @@ export const TutorScreen: React.FC = () => {
     });
   };
 
+  const handleStartRoleplay = (scenarioId: string) => {
+    const scenario = ROLEPLAY_SCENARIOS.find(s => s.id === scenarioId) || ROLEPLAY_SCENARIOS[0];
+    roleplayEngine.start(scenario, roleplayImmersion);
+    setRoleplayScenarioId(scenario.id); setRoleplayActive(true); setShowScenariosModal(false); clearConversation(); handleSendMessage('我们开始吧。');
+  };
+
   const handleApplyScenario = (scenario: TestScenario) => {
     setShowScenariosModal(false);
-    if (scenario.recommendedMode === 'teacher' && tutorMode !== 'teacher') {
-      setTutorMode('teacher');
-    }
+    if (scenario.recommendedMode === 'teacher' && tutorMode !== 'teacher') setTutorMode('teacher');
     handleSendMessage(scenario.userPrompt);
   };
+
+  const handleChangeImmersion = (level: 'beginner'|'intermediate'|'advanced') => { setRoleplayImmersion(level); roleplayEngine.setImmersion(level); };
+  const handleEndRoleplay = () => setShowRoleplaySummary(true);
 
   // State Visual Indicators
   const stateLabels: Record<MicrophoneState, { text: string; badgeColor: string }> = {
@@ -477,6 +484,13 @@ export const TutorScreen: React.FC = () => {
             </button>
           </div>
         </div>
+
+        {roleplayActive && (
+          <div className="px-2 py-2 rounded-2xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/60 space-y-2 shrink-0">
+            <div className="flex items-center justify-between gap-2"><div><div className="text-xs font-bold text-amber-900 dark:text-amber-200">🎭 Roleplay · {ROLEPLAY_SCENARIOS.find(s=>s.id===roleplayScenarioId)?.scenario}</div><div className="text-[10px] text-stone-500">Lina nhớ thông tin bạn vừa nói trong tình huống này.</div></div><button type="button" onClick={handleEndRoleplay} className="text-[10px] font-bold px-2 py-1 rounded-lg border border-amber-200 dark:border-amber-800">Tổng kết</button></div>
+            <div className="flex flex-wrap gap-1.5">{([['beginner','Beginner · 中+拼音+Vi'],['intermediate','Intermediate · 中+拼音'],['advanced','Advanced · 中文']] as const).map(([id,label])=><button key={id} type="button" onClick={()=>handleChangeImmersion(id)} className={'px-2 py-1 rounded-lg text-[10px] font-bold border '+(roleplayImmersion===id?'bg-amber-600 text-white border-amber-600':'bg-white/70 dark:bg-stone-900 border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-300')}>{label}</button>)}</div>
+          </div>
+        )}
 
         {/* MOBILE COMPACT AVATAR BANNER (visible only on mobile) */}
         <div className="md:hidden py-1 shrink-0">
@@ -851,7 +865,9 @@ export const TutorScreen: React.FC = () => {
             </p>
 
             <div className="space-y-2">
-              {TEST_SCENARIOS.map((sc) => (
+              {ROLEPLAY_SCENARIOS.map((rp) => (
+                <button key={rp.id} type="button" onClick={() => handleStartRoleplay(rp.id)} className="w-full text-left p-3 rounded-2xl bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50 hover:border-amber-400 space-y-1"><div className="flex items-center justify-between"><span className="text-xs font-bold">{rp.scenario}</span><span className="text-[10px] px-2 py-0.5 rounded-md bg-white/70 dark:bg-stone-800">{rp.difficulty}</span></div><div className="text-[11px] text-stone-500">{rp.context} · Vai Lina: {rp.aiRole}</div></button>
+              ))}
                 <div
                   key={sc.id}
                   onClick={() => handleApplyScenario(sc)}
@@ -880,6 +896,10 @@ export const TutorScreen: React.FC = () => {
         </div>
       )}
 
+      {showRoleplaySummary && (
+        <div className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-xs flex items-center justify-center p-4"><div className="w-full max-w-2xl max-h-[88vh] overflow-y-auto bg-white dark:bg-stone-900 rounded-3xl p-5 border border-stone-200 dark:border-stone-800 shadow-2xl space-y-4">{(() => { const s=roleplayEngine.summarize(conversation.messages); return <><div className="flex items-center justify-between"><div><h3 className="font-bold">Tổng kết roleplay</h3><p className="text-xs text-stone-500 mt-1">{s.summary}</p></div><button type="button" onClick={()=>setShowRoleplaySummary(false)} className="p-2 rounded-xl"><X className="w-4 h-4"/></button></div><SummaryList title="Từ vựng đã dùng/học" items={s.vocabularyLearned}/><SummaryList title="Ngữ pháp" items={s.grammarLearned}/><SummaryList title="Lỗi cần xem lại" items={s.mistakes}/><SummaryList title="Cụm câu hữu ích" items={s.usefulExpressions}/><SummaryList title="Phát âm" items={s.pronunciationIssues}/><SummaryList title="Gợi ý ôn tập" items={s.suggestedReview}/><div className="flex justify-end"><button type="button" onClick={()=>{setShowRoleplaySummary(false);setRoleplayActive(false);}} className="px-4 py-2 rounded-xl bg-amber-700 text-white text-xs font-bold">Kết thúc roleplay</button></div></>; })()}</div></div>
+      )}
+
       {/* Character Design System Modal */}
       <CharacterDesignModal
         isOpen={showCharacterDesign}
@@ -888,3 +908,5 @@ export const TutorScreen: React.FC = () => {
     </div>
   );
 };
+const SummaryList: React.FC<{title:string;items:string[]}> = ({title,items}) => <div className="space-y-1.5"><div className="text-xs font-bold">{title}</div>{items.length ? <ul className="space-y-1">{items.map((x,i)=><li key={i} className="text-[11px] text-stone-600 dark:text-stone-300 p-2 rounded-xl bg-stone-50 dark:bg-stone-800">{x}</li>)}</ul> : <div className="text-[11px] text-stone-400">Chưa có dữ liệu.</div>}</div>;
+
