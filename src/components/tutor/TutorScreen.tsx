@@ -368,12 +368,6 @@ export const TutorScreen: React.FC = () => {
     setRoleplayScenarioId(scenario.id); setRoleplayActive(true); setShowScenariosModal(false); clearConversation(); handleSendMessage('我们开始吧。');
   };
 
-  const handleApplyScenario = (scenario: TestScenario) => {
-    setShowScenariosModal(false);
-    if (scenario.recommendedMode === 'teacher' && tutorMode !== 'teacher') setTutorMode('teacher');
-    handleSendMessage(scenario.userPrompt);
-  };
-
   const handleChangeImmersion = (level: 'beginner'|'intermediate'|'advanced') => { setRoleplayImmersion(level); roleplayEngine.setImmersion(level); };
   const handleEndRoleplay = () => setShowRoleplaySummary(true);
 
