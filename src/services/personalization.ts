@@ -35,8 +35,8 @@ export function buildKnowledgeProfile(profile:LearnerProfile,memory:AIStoredMemo
  const skills={vocabulary,grammar,listening,speaking,reading,writing,pronunciation,tone};
  const overall=Object.values(skills).reduce((n,s)=>n+s.mastery,0)/Object.values(skills).length;
  const weak=[...memory.grammarWeaknesses,...memory.pronunciationWeaknesses,...memory.weakVocabulary].slice(-8);
- const mastered=Object.entries(skills).filter(([,s])=>s.mastery>=80).map(([k])=>k);
- return {generatedAt:new Date().toISOString(),overallMastery:clamp(overall),confidence:clamp(Object.values(skills).reduce((n,s)=>n+s.confidence,0)/Object.values(skills).length),skills,vocabulary,grammarWeaknesses:memory.grammarWeaknesses.slice(-8),pronunciationWeaknesses:memory.pronunciationWeaknesses.slice(-8),preferredTopics:memory.preferences.slice(-5),dueReviewCount,strugglingAreas:weak,masteredAreas:mastered,adaptiveDifficulty:getAdaptiveDifficulty(profile,memory,{overallMastery:overall,skills})};
+ const mastered=Object.entries(skills).filter(([,s])=>s.mastery>=80).map(([k])=>k);\n const adaptiveDifficulty=getAdaptiveDifficulty(profile,memory,{overallMastery:overall,skills});
+ return {generatedAt:new Date().toISOString(),overallMastery:clamp(overall),confidence:clamp(Object.values(skills).reduce((n,s)=>n+s.confidence,0)/Object.values(skills).length),skills,vocabulary,grammarWeaknesses:memory.grammarWeaknesses.slice(-8),pronunciationWeaknesses:memory.pronunciationWeaknesses.slice(-8),preferredTopics:memory.preferences.slice(-5),dueReviewCount,strugglingAreas:weak,masteredAreas:mastered,adaptiveDifficulty};
 }
 
 export function getAdaptiveDifficulty(profile:LearnerProfile,memory:AIStoredMemory,knowledge?:Pick<LearnerKnowledgeProfile,'overallMastery'|'skills'>):PersonalizedDifficulty{
