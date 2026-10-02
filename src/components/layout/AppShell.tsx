@@ -7,14 +7,14 @@ import { TutorScreen } from '../tutor/TutorScreen';
 import { LearningSystemScreen } from '../learning/LearningSystemScreen';
 import { ReviewScreen } from '../review/ReviewScreen';
 import { Profile } from '../profile/Profile';
-import { Onboarding } from '../onboarding/Onboarding';
+import { Onboarding } from '../onboarding/Onboarding';\nimport { AdminCMS } from '../admin/AdminCMS';
 import { Flame, Moon, Sun } from 'lucide-react';
 import linaAvatarImg from '../../assets/images/tutor_lina_avatar_1790861417833.jpg';
 
 export const AppShell: React.FC = () => {
   const { currentTab, setCurrentTab, user, preferences, toggleTheme, showOnboarding } = useApp();
 
-  const renderActiveScreen = () => {
+  if (window.location.pathname.startsWith('/admin')) return <AdminCMS />;\n\n  const renderActiveScreen = () => {
     switch (currentTab) {
       case 'home':
         return <HomeDashboard />;

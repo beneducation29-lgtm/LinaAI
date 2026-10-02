@@ -567,7 +567,7 @@ app.post('/api/tutor/chat/stream', async (req: Request, res: Response) => {
   }
 });
 
-// Health check
+const ADMIN_EMAILS=new Set((process.env.LINA_ADMIN_EMAILS||'').split(',').map(x=>x.trim().toLowerCase()).filter(Boolean));async function requireAdmin(req:Request){const u=await requireSyncUser(req);return u&&ADMIN_EMAILS.has(String(u.email||'').toLowerCase())?u:null}async function cmsRows(){const r=await fetch(SUPABASE_URL+'/rest/v1/lina_cms_content?select=id,type,slug,title,status,payload,content_version,updated_by,updated_at,created_at&order=updated_at.desc',{headers:{apikey:SUPABASE_SERVICE_ROLE_KEY,Authorization:'Bearer '+SUPABASE_SERVICE_ROLE_KEY}});if(!r.ok)throw new Error('CMS database unavailable');return await r.json()}app.get('/api/admin/me',async(req,res)=>{const u=await requireAdmin(req);if(!u)return res.status(403).json({admin:false});res.json({admin:true,user:{id:u.id,email:u.email}})});app.get('/api/admin/content',async(req,res)=>{try{if(!await requireAdmin(req))return res.status(403).json({error:'Admin access required'});let rows=await cmsRows();if(typeof req.query.type==='string')rows=rows.filter((x:any)=>x.type===req.query.type);if(typeof req.query.status==='string')rows=rows.filter((x:any)=>x.status===req.query.status);res.json({items:rows.map((x:any)=>({id:x.id,type:x.type,slug:x.slug,title:x.title,status:x.status,data:x.payload,contentVersion:x.content_version,updatedBy:x.updated_by,updatedAt:x.updated_at,createdAt:x.created_at}))})}catch(e){res.status(503).json({error:e instanceof Error?e.message:'CMS unavailable'})}});\n// Health check
 app.get('/api/health', (_req: Request, res: Response) => {
   res.json({ status: 'ok', hasGeminiKey: Boolean(apiKey), model: 'gemini-3.8-flash' });
 });

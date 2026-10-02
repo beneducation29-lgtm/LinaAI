@@ -1,6 +1,0 @@
-{
-  "name": "Lina AI Chinese",
-  "description": "Ứng dụng học tiếng Trung hiện đại cho người Việt với gia sư AI Lina, bài học HSK, luyện nói và phản xạ giao tiếp.",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
-}
