@@ -4,7 +4,7 @@ import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import { GoogleGenAI, Type } from '@google/genai';
 import { sanitizeTutorPayload, looksLikePromptInjection } from './src/services/inputGuards';
-import { getEntitlements, isSubscriptionEntitled } from './src/services/entitlementService';
+import { getEntitlements } from './src/services/entitlementService';
 import { buildAIUsageRecord, estimateTokenCost } from './src/services/usageService';
 import { checkQuota } from './src/services/quotaService';
 import { GenericHmacPaymentProvider } from './src/services/billingService';
