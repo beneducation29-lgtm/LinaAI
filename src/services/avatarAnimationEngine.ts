@@ -43,9 +43,11 @@ export class AvatarAnimationEngine {
       headTilt:e.headTilt+(listening?.012:0)+(speaking?.006*Math.sin(this.phase):0),
       headX:thinking?.006*Math.sin(this.phase*.55):0,
       headY:(listening?.008:0)+(speaking?.004*Math.sin(this.phase*.8):0),
-      smile:clamp(e.smile+(listening?.03:0)),eyebrowLift:clamp(e.eyebrowLift+(thinking?.04:0),
+      smile:clamp(e.smile+(listening?.03:0)),
+      eyebrowLift:clamp(e.eyebrowLift+(thinking?.04:0)),
       nod:clamp((e.nod*.12*Math.max(0,Math.sin(this.phase*.9)))+(listening?.12:0)),
-      breathing:.5+.5*Math.sin(this.phase*.75),blink:now<this.blinkUntil?1:0,
+      breathing:.5+.5*Math.sin(this.phase*.75),
+      blink:now<this.blinkUntil?1:0,
     };
   }
 }
