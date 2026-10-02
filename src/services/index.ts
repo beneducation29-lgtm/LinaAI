@@ -4,3 +4,4 @@ export * from './aiTutorService';
 export * from './avatarService';
 export * from './speech';
 export * from './aiTutor';
+export * from './roleplayEngine';

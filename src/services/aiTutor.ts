@@ -33,78 +33,21 @@ export interface TestScenario {
 }
 
 export const TEST_SCENARIOS: TestScenario[] = [
-  {
-    id: 'sc-1',
-    title: '1. Chào hỏi sơ cấp (Beginner greeting)',
-    category: 'Chào hỏi',
-    userPrompt: '你好！',
-    expectedGoal: 'Lina đáp lại thân thiện bằng chữ Hán, Pinyin và tiếng Việt.',
-    recommendedMode: 'conversation'
-  },
-  {
-    id: 'sc-2',
-    title: '2. Tự giới thiệu (Self introduction)',
-    category: 'Làm quen',
-    userPrompt: '我叫 Nam，我是越南人。',
-    expectedGoal: 'Lina ghi nhớ tên Nam và tương tác về Việt Nam.',
-    recommendedMode: 'conversation'
-  },
-  {
-    id: 'sc-3',
-    title: '3. Hỏi tuổi tác (Asking age)',
-    category: 'Giao tiếp',
-    userPrompt: '你今年多大了？',
-    expectedGoal: 'Lina trả lời tuổi tự nhiên và hỏi lại tuổi của người học.',
-    recommendedMode: 'conversation'
-  },
-  {
-    id: 'sc-4',
-    title: '4. Gọi món ăn (Ordering food)',
-    category: 'Đời sống',
-    userPrompt: '服务员，我想点一份宫保鸡丁和米饭。',
-    expectedGoal: 'Đóng vai nhân viên nhà hàng, xác nhận món và hỏi thức uống.',
-    recommendedMode: 'roleplay' as any
-  },
-  {
-    id: 'sc-5',
-    title: '5. Hỏi đường (Asking directions)',
-    category: 'Du lịch',
-    userPrompt: '请问，去地铁站怎么走？',
-    expectedGoal: 'Chỉ đường rõ ràng với từ vựng phương hướng cơ bản.',
-    recommendedMode: 'conversation'
-  },
-  {
-    id: 'sc-6',
-    title: '6. Sửa lỗi ngữ pháp (Grammar correction)',
-    category: 'Sửa lỗi',
-    userPrompt: '我昨天去北京吗？',
-    expectedGoal: 'Lina sửa thành "我昨天去北京了吗？", động viên và giải thích từ "了".',
-    recommendedMode: 'teacher'
-  },
-  {
-    id: 'sc-7',
-    title: '7. Giải thích từ vựng (Vocabulary explanation)',
-    category: 'Từ vựng',
-    userPrompt: '"随便" 这个词在中文里是什么意思？',
-    expectedGoal: 'Giải thích nghĩa của "随便" (suíbiàn - tùy ý/sao cũng được) và ví dụ.',
-    recommendedMode: 'teacher'
-  },
-  {
-    id: 'sc-8',
-    title: '8. Tạo gợi ý tiến bộ (Hint generation)',
-    category: 'Gợi ý',
-    userPrompt: '我不知道该怎么回答。',
-    expectedGoal: 'Cung cấp 4 tầng gợi ý: Nghĩa -> Từ khóa -> Cấu trúc -> Câu mẫu.',
-    recommendedMode: 'teacher'
-  },
-  {
-    id: 'sc-9',
-    title: '9. Đóng vai đối thoại (Roleplay)',
-    category: 'Tình huống',
-    userPrompt: '莉娜，我们开始模拟在中国超市买东西的对话吧！',
-    expectedGoal: 'Đóng vai thu ngân siêu thị đón chào khách mua hàng.',
-    recommendedMode: 'roleplay' as any
-  }
+  {id:'sc-1',title:'1. Gặp người mới',category:'Roleplay',userPrompt:'你好！我们第一次见面。',expectedGoal:'Giới thiệu và hỏi tên tự nhiên.',recommendedMode:'conversation'},
+  {id:'sc-2',title:'2. Gọi món',category:'Nhà hàng',userPrompt:'服务员，我想点菜。',expectedGoal:'Đóng vai nhân viên nhà hàng.',recommendedMode:'conversation'},
+  {id:'sc-3',title:'3. Mua đồ',category:'Mua sắm',userPrompt:'你好，我想买这个。',expectedGoal:'Tương tác như nhân viên bán hàng.',recommendedMode:'conversation'},
+  {id:'sc-4',title:'4. Hỏi giá',category:'Mua sắm',userPrompt:'这个多少钱？',expectedGoal:'Hỏi giá và xử lý phản hồi về giá.',recommendedMode:'conversation'},
+  {id:'sc-5',title:'5. Hỏi đường',category:'Du lịch',userPrompt:'请问，去地铁站怎么走？',expectedGoal:'Chỉ đường và xác nhận lại.',recommendedMode:'conversation'},
+  {id:'sc-6',title:'6. Đi taxi',category:'Du lịch',userPrompt:'师傅，请到火车站。',expectedGoal:'Tài xế hỏi và xác nhận điểm đến.',recommendedMode:'conversation'},
+  {id:'sc-7',title:'7. Khách sạn',category:'Du lịch',userPrompt:'你好，我预订了一个房间。',expectedGoal:'Nhận phòng và hỏi tiện nghi.',recommendedMode:'conversation'},
+  {id:'sc-8',title:'8. Sân bay',category:'Du lịch',userPrompt:'请问，登机口在哪里？',expectedGoal:'Trao đổi với nhân viên sân bay.',recommendedMode:'conversation'},
+  {id:'sc-9',title:'9. Trường học',category:'Học tập',userPrompt:'你好，你是我们班的同学吗？',expectedGoal:'Trò chuyện với bạn cùng lớp.',recommendedMode:'conversation'},
+  {id:'sc-10',title:'10. Công việc',category:'Công việc',userPrompt:'我们今天有什么工作？',expectedGoal:'Trao đổi nhiệm vụ với đồng nghiệp.',recommendedMode:'conversation'},
+  {id:'sc-11',title:'11. Gọi điện',category:'Đời sống',userPrompt:'喂，现在方便说话吗？',expectedGoal:'Hẹn lịch qua điện thoại.',recommendedMode:'conversation'},
+  {id:'sc-12',title:'12. Đi khám',category:'Đời sống',userPrompt:'医生，我今天不太舒服。',expectedGoal:'Mô tả triệu chứng đơn giản.',recommendedMode:'conversation'},
+  {id:'sc-13',title:'13. Giới thiệu bản thân',category:'Giao tiếp',userPrompt:'大家好，我叫 Minh。',expectedGoal:'Giới thiệu tên, nơi đến và sở thích.',recommendedMode:'conversation'},
+  {id:'sc-14',title:'14. Nói về gia đình',category:'Giao tiếp',userPrompt:'我家有四个人。',expectedGoal:'Nói thêm về các thành viên.',recommendedMode:'conversation'},
+  {id:'sc-15',title:'15. Nói về sở thích',category:'Giao tiếp',userPrompt:'我喜欢听音乐。',expectedGoal:'Hỏi đáp tự nhiên về sở thích.',recommendedMode:'conversation'}
 ];
 
 class AITutorClientService {

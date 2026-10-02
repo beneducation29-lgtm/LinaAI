@@ -206,6 +206,12 @@ export interface ConversationMessage {
 
 export type TutorMode = 'conversation' | 'teacher';
 
+export type RoleplayDifficulty = 'beginner' | 'intermediate' | 'advanced';
+export type ImmersionLevel = 'beginner' | 'intermediate' | 'advanced';
+export interface RoleplayScenario { id:string; scenario:string; context:string; character:string; learnerRole:string; aiRole:string; difficulty:RoleplayDifficulty; targetVocabulary:string[]; targetGrammar:string[]; successCriteria:string[]; }
+export interface RoleplaySessionState { scenario:RoleplayScenario; immersion:ImmersionLevel; learnerFacts:string[]; choices:string[]; turnCount:number; startedAt:string; }
+export interface RoleplaySummary { summary:string; vocabularyLearned:string[]; grammarLearned:string[]; mistakes:string[]; pronunciationIssues:string[]; usefulExpressions:string[]; suggestedReview:string[]; metrics?:{accuracy?:number;fluency?:number;vocabularyUsage?:number;grammarConsistency?:number}; }
+
 export interface CorrectionDetails {
   hasMistake: boolean;
   originalSentence: string;
