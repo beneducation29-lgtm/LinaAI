@@ -1,0 +1,29 @@
+import React,{useEffect,useState} from 'react';
+import {ShieldCheck,Download,Trash2,LogOut,Brain,BarChart3,MessageSquare,Mic,UserRound} from 'lucide-react';
+import {DEFAULT_PRIVACY_PREFERENCES,PrivacyPreferences,normalizePrivacyPreferences,clearLearningDataLocally} from '../../services/privacy';
+
+export const PrivacySecurityPanel:React.FC<{signedIn:boolean}>=({signedIn})=>{
+ const [preferences,setPreferences]=useState<PrivacyPreferences>(DEFAULT_PRIVACY_PREFERENCES);
+ const [loading,setLoading]=useState(false);
+ const [message,setMessage]=useState('');
+ const load=async()=>{if(!signedIn)return;try{const r=await fetch('/api/privacy/preferences',{credentials:'include'});if(r.ok){const d=await r.json();setPreferences(normalizePrivacyPreferences(d.preferences));}}catch{}};
+ useEffect(()=>{void load();},[signedIn]);
+ const save=async(next:PrivacyPreferences)=>{setPreferences(next);setMessage('');try{const r=await fetch('/api/privacy/preferences',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({preferences:next})});if(!r.ok)throw new Error();setMessage('Đã lưu quyền riêng tư.');}catch{setMessage('Không thể lưu cài đặt lúc này.');}};
+ const toggle=(key:keyof PrivacyPreferences)=>void save({...preferences,[key]:!preferences[key]});
+ const exportData=async()=>{setLoading(true);setMessage('');try{const r=await fetch('/api/privacy/export',{credentials:'include'});if(!r.ok)throw new Error();const blob=await r.blob();const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='lina-learning-export.json';a.click();URL.revokeObjectURL(url);setMessage('Đã tạo bản xuất dữ liệu học tập.');}catch{setMessage('Không thể xuất dữ liệu lúc này.');}finally{setLoading(false);}};
+ const deleteLearning=async()=>{if(!window.confirm('Xóa toàn bộ tiến trình, SRS, lỗi, hội thoại và AI Memory? Hành động này không thể hoàn tác.'))return;setLoading(true);try{const r=await fetch('/api/privacy/delete-learning-data',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:'{}'});if(!r.ok)throw new Error();clearLearningDataLocally();setMessage('Đã xóa dữ liệu học tập. Hãy bắt đầu lại từ trạng thái sạch.');window.setTimeout(()=>window.location.reload(),700);}catch{setMessage('Không thể hoàn tất xóa dữ liệu.');}finally{setLoading(false);}};
+ const deleteAccount=async()=>{const confirmation=window.prompt('Để xóa tài khoản vĩnh viễn, hãy nhập DELETE');if(confirmation!=='DELETE')return;setLoading(true);try{const r=await fetch('/api/privacy/delete-account',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({confirmation:'DELETE'})});if(!r.ok)throw new Error();window.location.reload();}catch{setMessage('Không thể xóa tài khoản lúc này.');}finally{setLoading(false);}};
+ const rows:[keyof PrivacyPreferences,string,string,React.ReactNode][]=[
+  ['aiMemoryEnabled','AI Memory','Cho phép Lina nhớ thông tin học tập giữa các buổi.',<Brain className="w-4 h-4"/>],
+  ['conversationHistoryEnabled','Lịch sử hội thoại','Giữ hội thoại để tiếp tục ngữ cảnh học.',<MessageSquare className="w-4 h-4"/>],
+  ['analyticsEnabled','Analytics','Chỉ ghi metadata sự kiện học tập đã được lọc.',<BarChart3 className="w-4 h-4"/>],
+  ['voiceDataEnabled','Lưu dữ liệu giọng nói','Mặc định tắt; không lưu raw microphone audio.',<Mic className="w-4 h-4"/>],
+  ['personalizationEnabled','Cá nhân hóa','Cho phép dùng dữ liệu học tập liên quan để cá nhân hóa.',<UserRound className="w-4 h-4"/>],
+ ];
+ return <section className="p-5 rounded-3xl bg-white dark:bg-stone-900 border border-stone-200/90 dark:border-stone-800 space-y-4">
+  <div className="flex items-start gap-3"><div className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700"><ShieldCheck className="w-5 h-5"/></div><div><h2 className="text-sm font-bold">Privacy & Security</h2><p className="text-xs text-stone-500 mt-1">Bạn kiểm soát AI Memory, hội thoại, analytics và dữ liệu giọng nói.</p></div></div>
+  {!signedIn?<p className="text-xs text-stone-500">Đăng nhập để quản lý dữ liệu đồng bộ và quyền riêng tư trên tài khoản.</p>:<><div className="space-y-1.5">{rows.map(([key,title,desc,icon])=><div key={key} className="flex items-center justify-between gap-3 py-2"><div className="flex items-center gap-2 min-w-0"><span className="text-stone-500">{icon}</span><div><div className="text-xs font-semibold">{title}</div><div className="text-[11px] text-stone-400">{desc}</div></div></div><button type="button" aria-label={`${title}: ${preferences[key]?'Bật':'Tắt'}`} onClick={()=>toggle(key)} className={`shrink-0 px-3 py-1.5 rounded-full text-[11px] font-bold ${preferences[key]?'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300':'bg-stone-100 text-stone-500 dark:bg-stone-800'}`}>{preferences[key]?'Bật':'Tắt'}</button></div>)}</div>
+  <div className="flex flex-wrap gap-2 pt-1"><button type="button" disabled={loading} onClick={()=>void exportData()} className="px-3 py-2 rounded-xl bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900 text-xs font-semibold inline-flex items-center gap-1.5"><Download className="w-3.5 h-3.5"/>Xuất dữ liệu</button><button type="button" disabled={loading} onClick={()=>void deleteLearning()} className="px-3 py-2 rounded-xl bg-amber-50 text-amber-800 dark:bg-amber-950/30 dark:text-amber-300 text-xs font-semibold inline-flex items-center gap-1.5"><Trash2 className="w-3.5 h-3.5"/>Xóa dữ liệu học</button><button type="button" disabled={loading} onClick={()=>void deleteAccount()} className="px-3 py-2 rounded-xl bg-rose-50 text-rose-700 dark:bg-rose-950/30 dark:text-rose-300 text-xs font-semibold inline-flex items-center gap-1.5"><LogOut className="w-3.5 h-3.5"/>Xóa tài khoản</button></div>
+  {message&&<p role="status" className="text-xs text-stone-500">{message}</p>}</>}
+ </section>;
+};
