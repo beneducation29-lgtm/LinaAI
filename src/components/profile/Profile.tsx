@@ -59,7 +59,7 @@ export const Profile: React.FC = () => {
           <button type="submit" className="w-full py-2.5 rounded-xl bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900 text-sm font-semibold">{accountMode==='login'?'Đăng nhập':'Tạo tài khoản'}</button>
         </form>
         <button onClick={()=>setAccountMode(accountMode==='login'?'signup':'login')} className="mt-2 text-xs text-amber-700 dark:text-amber-400 hover:underline">{accountMode==='login'?'Chưa có tài khoản? Tạo tài khoản':'Đã có tài khoản? Đăng nhập'}</button>
-      </div>
+      </div>}
 
       {/* 1. PROFILE HEADER CARD */
       <div className="p-6 rounded-3xl bg-white dark:bg-stone-900 border border-stone-200/90 dark:border-stone-800 shadow-xs flex flex-col sm:flex-row items-center sm:items-start gap-5 text-center sm:text-left">
