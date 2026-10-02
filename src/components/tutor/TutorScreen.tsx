@@ -12,6 +12,7 @@ import { LayerToggles } from '../common/LayerToggles';
 import { VoiceSettingsModal } from '../voice/VoiceSettingsModal';
 import { ToneTrainingModal } from '../voice/ToneTrainingModal';
 import { LinaAvatar } from '../avatar/LinaAvatar';
+import { AvatarStage } from '../avatar/AvatarStage';
 import { CharacterDesignModal } from '../avatar/CharacterDesignModal';
 import { 
   aiTutor, 
@@ -110,6 +111,8 @@ export const TutorScreen: React.FC = () => {
   } | null>(null);
   const [isEditingRecognized, setIsEditingRecognized] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [sentenceExplanation, setSentenceExplanation] = useState<Awaited<ReturnType<typeof aiTutor.explainSentence>> | null>(null);
+  const [isExplaining, setIsExplaining] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const holdTimeoutRef = useRef<any>(null);
@@ -264,9 +267,9 @@ export const TutorScreen: React.FC = () => {
       addMessage(aiMsg);
       recordMotivationActivity({ id: `conversation:${aiMsg.id}`, type: useRoleplay ? 'speaking' : 'conversation', minutes: 1, metadata: { roleplay: useRoleplay } });
       analytics.track(useRoleplay ? 'roleplay_complete' : 'speaking_complete', { ai: true, minutes: 1, corrected: Boolean(structuredRes.correction?.hasMistake) });
-      avatarService.setState(mappedEmotion);
-
       // Normal conversation audio is owned by RealtimeSpeechOrchestrator.
+      // The orchestrator owns the speaking lifecycle and returns the avatar to IDLE after audio ends.
+
       // Roleplay keeps the established centralized speech lifecycle.
       if (useRoleplay && voiceSettings.autoPlayAiResponse) {
         setMicState('AI_SPEAKING');
@@ -284,7 +287,7 @@ export const TutorScreen: React.FC = () => {
         }, voiceSettings.playbackSpeed);
       } else if (useRoleplay) {
         setMicState('IDLE');
-        avatarService.setState(mappedEmotion);
+        avatarService.setState('IDLE');
       }
     } catch {
       setMicState('ERROR');
@@ -373,14 +376,14 @@ export const TutorScreen: React.FC = () => {
     }
   };
 
-  const handleRepeatLastMessage = async () => {
+  const handleSpeakLastMessage = async (rate = voiceSettings.playbackSpeed) => {
     const lastAiMsg = [...conversation.messages].reverse().find(m => m.sender === 'ai');
     if (!lastAiMsg) return;
 
     setMicState('AI_SPEAKING');
     avatarService.setState('SPEAKING');
     await avatarService.speak(lastAiMsg.hanzi, {
-      rate: voiceSettings.playbackSpeed,
+      rate,
       useGeminiTTS: voiceSettings.useGeminiTTS,
       onEnd: () => {
         setMicState('IDLE');
@@ -391,6 +394,20 @@ export const TutorScreen: React.FC = () => {
         avatarService.setState('IDLE');
       }
     });
+  };
+
+  const handleRepeatLastMessage = () => handleSpeakLastMessage(voiceSettings.playbackSpeed);
+
+  const handleExplainLastMessage = async () => {
+    const lastAiMsg = [...conversation.messages].reverse().find(m => m.sender === 'ai');
+    if (!lastAiMsg) return;
+    setIsExplaining(true);
+    try {
+      const explanation = await aiTutor.explainSentence(lastAiMsg.hanzi, conversation.hskLevel);
+      setSentenceExplanation(explanation);
+    } finally {
+      setIsExplaining(false);
+    }
   };
 
   const handleStartRoleplay = (scenarioId: string) => {
@@ -418,10 +435,20 @@ export const TutorScreen: React.FC = () => {
   return (
     <div className="flex flex-col md:flex-row h-[calc(100vh-4rem)] md:h-screen max-w-6xl mx-auto w-full px-2 sm:px-4 py-2 gap-3 md:gap-4 overflow-hidden">
       {/* 1. DESKTOP DEDICATED AVATAR STUDIO (38-40% width, hidden on mobile) */}
-      <div className="hidden md:flex md:w-[38%] lg:w-[40%] flex-col h-full shrink-0">
-        <LinaAvatar
-          mode="studio"
-          className="h-full"
+      <div className="md:hidden h-[38vh] min-h-[270px] max-h-[410px] shrink-0 pb-1">
+        <AvatarStage
+          hskLevel={conversation.hskLevel}
+          topicTitle={conversation.topicTitleVi}
+          className="h-full w-full"
+          onOpenCharacterDesign={() => setShowCharacterDesign(true)}
+        />
+      </div>
+
+      <div className="hidden md:flex md:w-[42%] lg:w-[44%] h-full shrink-0">
+        <AvatarStage
+          hskLevel={conversation.hskLevel}
+          topicTitle={conversation.topicTitleVi}
+          className="h-full w-full"
           onOpenCharacterDesign={() => setShowCharacterDesign(true)}
         />
       </div>
@@ -522,16 +549,19 @@ export const TutorScreen: React.FC = () => {
           </div>
         )}
 
-        {/* MOBILE COMPACT AVATAR BANNER (visible only on mobile) */}
-        <div className="md:hidden py-1 shrink-0">
-          <LinaAvatar
-            mode="compact"
-            onOpenCharacterDesign={() => setShowCharacterDesign(true)}
-          />
-        </div>
-
       {/* 3. CONVERSATION MESSAGES AREA */}
       <div className="flex-1 overflow-y-auto px-1 py-2 space-y-3 min-h-0">
+        {conversation.messages.length === 0 && (
+          <div className="rounded-3xl border border-amber-200/70 bg-linear-to-br from-white via-amber-50/70 to-stone-50 p-5 shadow-sm dark:border-amber-900/50 dark:from-stone-900 dark:via-amber-950/20 dark:to-stone-900">
+            <p className="font-cjk text-xl font-bold text-stone-900 dark:text-stone-100">你好，我是 Lina。</p>
+            <p className="mt-1 text-sm font-semibold text-amber-800 dark:text-amber-300">Nǐ hǎo, wǒ shì Lina.</p>
+            <p className="mt-1 text-sm text-stone-600 dark:text-stone-300">Xin chào! Mình sẽ cùng bạn luyện tiếng Trung, từng câu một và không áp lực.</p>
+            <button type="button" onClick={() => handleSendMessage('你好，我想练习中文。')} className="mt-4 inline-flex min-h-[42px] items-center justify-center rounded-xl bg-amber-700 px-4 text-xs font-bold text-white shadow-sm transition hover:bg-amber-800 active:scale-95">
+              Bắt đầu nói chuyện
+            </button>
+          </div>
+        )}
+
         {conversation.messages.map((msg) => (
           <TutorMessage
             key={msg.id}
@@ -639,6 +669,27 @@ export const TutorScreen: React.FC = () => {
           </div>
         )}
 
+        {sentenceExplanation && (
+          <div className="mb-2 rounded-2xl border border-blue-200 bg-blue-50/80 p-3 dark:border-blue-900/50 dark:bg-blue-950/20">
+            <div className="flex items-center justify-between gap-2">
+              <div className="text-xs font-bold text-blue-900 dark:text-blue-200">📖 Giải thích câu của Lina</div>
+              <button type="button" onClick={() => setSentenceExplanation(null)} className="min-h-[32px] min-w-[32px] rounded-lg text-xs text-stone-500 hover:bg-white/60 dark:hover:bg-stone-900/50" aria-label="Đóng giải thích">✕</button>
+            </div>
+            <div className="mt-2 font-cjk text-base font-bold text-stone-900 dark:text-stone-100">{sentenceExplanation.sentence}</div>
+            {sentenceExplanation.meaningVi && <div className="mt-1 text-xs text-stone-600 dark:text-stone-300">{sentenceExplanation.meaningVi}</div>}
+            {sentenceExplanation.grammarBreakdown?.length > 0 && (
+              <div className="mt-2 space-y-1">
+                {sentenceExplanation.grammarBreakdown.slice(0, 4).map((item, index) => (
+                  <div key={`${item.part}-${index}`} className="rounded-lg bg-white/70 px-2.5 py-2 text-[11px] dark:bg-stone-900/50">
+                    <span className="font-cjk font-bold">{item.part}</span> · {item.role}
+                  </div>
+                ))}
+              </div>
+            )}
+            {sentenceExplanation.culturalTipVi && <div className="mt-2 text-[11px] italic text-blue-800 dark:text-blue-300">{sentenceExplanation.culturalTipVi}</div>}
+          </div>
+        )}
+
         {errorMessage && (
           <div className="p-3 text-xs text-amber-900 dark:text-amber-200 bg-amber-50 dark:bg-amber-950/40 rounded-xl border border-amber-200 dark:border-amber-900 text-center">
             {errorMessage}
@@ -676,46 +727,23 @@ export const TutorScreen: React.FC = () => {
           </button>
         </div>
 
-        {/* 3 Main Action Buttons: 💡 Gợi ý, 🎙 Nói (Large Push-to-Talk Mic), 🔊 Nghe lại */}
-        <div className="grid grid-cols-3 gap-2 items-center">
-          <button
-            type="button"
-            onClick={handleOpenHints}
-            className="flex flex-col items-center justify-center py-2 px-1 min-h-[52px] rounded-2xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 hover:border-amber-400 text-stone-700 dark:text-stone-200 transition-all text-center shadow-2xs cursor-pointer active:scale-95"
-          >
-            <Lightbulb className="w-4 h-4 text-amber-600 mb-0.5" />
-            <span className="text-xs font-semibold">💡 Gợi ý (4 tầng)</span>
+        {/* Primary voice loop + real quick actions */}
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          <button type="button" onClick={handleToggleMic} className={`flex min-w-[104px] flex-1 flex-col items-center justify-center rounded-2xl py-2 px-2 min-h-[58px] text-center shadow-md transition-all cursor-pointer select-none active:scale-95 ${micState === 'LISTENING' ? 'bg-red-600 text-white animate-pulse shadow-red-500/30' : 'bg-amber-700 hover:bg-amber-800 text-white shadow-amber-700/25'}`} aria-label={micState === 'LISTENING' ? 'Dừng thu âm' : 'Bấm mic để nói tiếng Trung'}>
+            {micState === 'LISTENING' ? <MicOff className="w-5 h-5 mb-0.5" /> : <Mic className="w-5 h-5 mb-0.5 stroke-[2.4]" />}
+            <span className="text-xs font-bold">{micState === 'LISTENING' ? 'Đang nghe...' : '🎙 Nói'}</span>
           </button>
-
-          {/* Core Push-to-Talk Primary Microphone Button */}
-          <button
-            type="button"
-            onClick={handleToggleMic}
-            className={`flex flex-col items-center justify-center py-2 px-1 min-h-[56px] rounded-2xl transition-all text-center shadow-md cursor-pointer select-none active:scale-95 ${
-              micState === 'LISTENING'
-                ? 'bg-red-600 text-white animate-pulse shadow-red-500/30'
-                : 'bg-amber-700 hover:bg-amber-800 text-white shadow-amber-700/25'
-            }`}
-            aria-label={micState === 'LISTENING' ? 'Dừng thu âm' : 'Bấm mic để nói tiếng Trung'}
-          >
-            {micState === 'LISTENING' ? (
-              <MicOff className="w-5 h-5 mb-0.5" />
-            ) : (
-              <Mic className="w-5 h-5 mb-0.5 stroke-[2.4]" />
-            )}
-            <span className="text-xs font-bold tracking-tight">
-              {micState === 'LISTENING' ? 'Đang nghe...' : '🎙 Nói tiếng Trung'}
-            </span>
+          <button type="button" onClick={handleOpenHints} className="flex min-w-[88px] flex-1 flex-col items-center justify-center rounded-2xl border border-stone-200 bg-white py-2 px-2 min-h-[58px] text-center text-stone-700 shadow-2xs transition-all hover:border-amber-400 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-200" aria-label="Mở gợi ý">
+            <Lightbulb className="w-4 h-4 text-amber-600 mb-0.5" /><span className="text-xs font-semibold">💡 Gợi ý</span>
           </button>
-
-          <button
-            type="button"
-            onClick={handleRepeatLastMessage}
-            className="flex flex-col items-center justify-center py-2 px-1 min-h-[52px] rounded-2xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 hover:border-amber-400 text-stone-700 dark:text-stone-200 transition-all text-center shadow-2xs cursor-pointer active:scale-95"
-            aria-label="Nghe lại câu vừa rồi"
-          >
-            <Volume2 className="w-4 h-4 text-stone-600 dark:text-stone-300 mb-0.5" />
-            <span className="text-xs font-semibold">🔊 Nghe lại</span>
+          <button type="button" onClick={handleRepeatLastMessage} className="flex min-w-[88px] flex-1 flex-col items-center justify-center rounded-2xl border border-stone-200 bg-white py-2 px-2 min-h-[58px] text-center text-stone-700 shadow-2xs transition-all hover:border-amber-400 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-200" aria-label="Nghe lại câu vừa rồi">
+            <Volume2 className="w-4 h-4 text-stone-600 dark:text-stone-300 mb-0.5" /><span className="text-xs font-semibold">🔊 Nghe lại</span>
+          </button>
+          <button type="button" onClick={() => handleSpeakLastMessage(0.75)} className="flex min-w-[88px] flex-1 flex-col items-center justify-center rounded-2xl border border-stone-200 bg-white py-2 px-2 min-h-[58px] text-center text-stone-700 shadow-2xs transition-all hover:border-amber-400 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-200" aria-label="Nghe chậm câu vừa rồi">
+            <span className="text-base leading-none mb-0.5">🐢</span><span className="text-xs font-semibold">Nói chậm</span>
+          </button>
+          <button type="button" onClick={handleExplainLastMessage} disabled={isExplaining} className="flex min-w-[88px] flex-1 flex-col items-center justify-center rounded-2xl border border-stone-200 bg-white py-2 px-2 min-h-[58px] text-center text-stone-700 shadow-2xs transition-all hover:border-amber-400 disabled:opacity-50 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-200" aria-label="Giải thích câu vừa rồi">
+            <GraduationCap className="w-4 h-4 text-amber-600 mb-0.5" /><span className="text-xs font-semibold">{isExplaining ? 'Đang giải thích…' : '📖 Giải thích'}</span>
           </button>
         </div>
       </div>
