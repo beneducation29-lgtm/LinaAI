@@ -4,6 +4,11 @@ import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import { GoogleGenAI, Type } from '@google/genai';
 import { sanitizeTutorPayload, looksLikePromptInjection } from './src/services/inputGuards';
+import { getEntitlements, isSubscriptionEntitled } from './src/services/entitlementService';
+import { buildAIUsageRecord, estimateTokenCost } from './src/services/usageService';
+import { checkQuota } from './src/services/quotaService';
+import { GenericHmacPaymentProvider } from './src/services/billingService';
+import type { Entitlements, SubscriptionRecord, PlanId, SubscriptionStatus } from './src/types/subscription';
 
 dotenv.config();
 
@@ -13,7 +18,7 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
 
-app.use(express.json());
+app.use(express.json({ verify: (req, _res, buf) => { (req as any).rawBody = buf.toString('utf8'); } }));
 
 // Initialize GoogleGenAI server-side with User-Agent header
 const apiKey = process.env.GEMINI_API_KEY || '';
@@ -271,12 +276,207 @@ const getCookie=(req:Request,name:string)=>{const raw=req.headers.cookie||'';con
 const setAuthCookies=(res:Response,access:string,refresh:string)=>{const secure=process.env.NODE_ENV==='production'?'; Secure':'';res.setHeader('Set-Cookie',[`lina_access=${encodeURIComponent(access)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=3600${secure}`,`lina_refresh=${encodeURIComponent(refresh)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=2592000${secure}`]);};
 const clearAuthCookies=(res:Response)=>res.setHeader('Set-Cookie',['lina_access=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0','lina_refresh=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0']);
 async function supabaseUser(access:string){if(!access||!SUPABASE_URL||!SUPABASE_ANON_KEY)return null;const r=await fetch(`${SUPABASE_URL}/auth/v1/user`,{headers:{apikey:SUPABASE_ANON_KEY,Authorization:`Bearer ${access}`}});if(!r.ok)return null;return await r.json();}
-app.post('/api/auth/signup',async(req:Request,res:Response)=>{try{if(!SUPABASE_URL||!SUPABASE_ANON_KEY){res.status(503).json({error:'Cloud account chưa được cấu hình.'});return;}const {email,password,name}=req.body;if(typeof email!=='string'||typeof password!=='string'||password.length<8){res.status(400).json({error:'Email và mật khẩu tối thiểu 8 ký tự là bắt buộc.'});return;}const r=await fetch(`${SUPABASE_URL}/auth/v1/signup`,{method:'POST',headers:{apikey:SUPABASE_ANON_KEY,'Content-Type':'application/json'},body:JSON.stringify({email,password,data:{name:typeof name==='string'?name.slice(0,80):undefined}})});const d=await r.json();if(!r.ok){res.status(r.status).json({error:d.msg||d.message||'Đăng ký thất bại.'});return;}if(d.access_token&&d.refresh_token)setAuthCookies(res,d.access_token,d.refresh_token);res.json({user:d.user?{id:d.user.id,email:d.user.email,name:d.user.user_metadata?.name}:null,requiresEmailConfirmation:!d.access_token});}catch{res.status(500).json({error:'Đăng ký thất bại.'});}});
-app.post('/api/auth/login',async(req:Request,res:Response)=>{try{if(!SUPABASE_URL||!SUPABASE_ANON_KEY){res.status(503).json({error:'Cloud account chưa được cấu hình.'});return;}const {email,password}=req.body;if(typeof email!=='string'||typeof password!=='string'){res.status(400).json({error:'Email và mật khẩu là bắt buộc.'});return;}const r=await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`,{method:'POST',headers:{apikey:SUPABASE_ANON_KEY,'Content-Type':'application/json'},body:JSON.stringify({email,password})});const d=await r.json();if(!r.ok){res.status(401).json({error:d.error_description||d.msg||'Email hoặc mật khẩu không đúng.'});return;}setAuthCookies(res,d.access_token,d.refresh_token);res.json({user:{id:d.user.id,email:d.user.email,name:d.user.user_metadata?.name}});}catch{res.status(500).json({error:'Đăng nhập thất bại.'});}});
+app.post('/api/auth/signup',async(req:Request,res:Response)=>{try{if(!SUPABASE_URL||!SUPABASE_ANON_KEY){res.status(503).json({error:'Cloud account chưa được cấu hình.'});return;}const {email,password,name}=req.body;if(typeof email!=='string'||typeof password!=='string'||password.length<8){res.status(400).json({error:'Email và mật khẩu tối thiểu 8 ký tự là bắt buộc.'});return;}const r=await fetch(`${SUPABASE_URL}/auth/v1/signup`,{method:'POST',headers:{apikey:SUPABASE_ANON_KEY,'Content-Type':'application/json'},body:JSON.stringify({email,password,data:{name:typeof name==='string'?name.slice(0,80):undefined}})});const d=await r.json();if(!r.ok){res.status(r.status).json({error:d.msg||d.message||'Đăng ký thất bại.'});return;}if(d.access_token&&d.refresh_token)setAuthCookies(res,d.access_token,d.refresh_token);if(d.user?.id)await ensureFreeSubscription(d.user.id);res.json({user:d.user?{id:d.user.id,email:d.user.email,name:d.user.user_metadata?.name}:null,requiresEmailConfirmation:!d.access_token});}catch{res.status(500).json({error:'Đăng ký thất bại.'});}});
+app.post('/api/auth/login',async(req:Request,res:Response)=>{try{if(!SUPABASE_URL||!SUPABASE_ANON_KEY){res.status(503).json({error:'Cloud account chưa được cấu hình.'});return;}const {email,password}=req.body;if(typeof email!=='string'||typeof password!=='string'){res.status(400).json({error:'Email và mật khẩu là bắt buộc.'});return;}const r=await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`,{method:'POST',headers:{apikey:SUPABASE_ANON_KEY,'Content-Type':'application/json'},body:JSON.stringify({email,password})});const d=await r.json();if(!r.ok){res.status(401).json({error:d.error_description||d.msg||'Email hoặc mật khẩu không đúng.'});return;}setAuthCookies(res,d.access_token,d.refresh_token);await ensureFreeSubscription(d.user.id);res.json({user:{id:d.user.id,email:d.user.email,name:d.user.user_metadata?.name}});}catch{res.status(500).json({error:'Đăng nhập thất bại.'});}});
 app.post('/api/auth/refresh',async(req:Request,res:Response)=>{try{if(!SUPABASE_URL||!SUPABASE_ANON_KEY){res.status(503).json({error:'Cloud account chưa được cấu hình.'});return;}const refresh=getCookie(req,'lina_refresh');if(!refresh){res.status(401).json({error:'No refresh session'});return;}const r=await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`,{method:'POST',headers:{apikey:SUPABASE_ANON_KEY,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:refresh})});const d=await r.json();if(!r.ok){clearAuthCookies(res);res.status(401).json({error:'Phiên đăng nhập đã hết hạn.'});return;}setAuthCookies(res,d.access_token,d.refresh_token);res.json({user:{id:d.user.id,email:d.user.email,name:d.user.user_metadata?.name}});}catch{res.status(401).json({error:'Không thể làm mới phiên đăng nhập.'});}});
 app.get('/api/auth/me',async(req:Request,res:Response)=>{const user=await supabaseUser(getCookie(req,'lina_access'));if(!user){res.status(401).json({user:null});return;}res.json({user:{id:user.id,email:user.email,name:user.user_metadata?.name}});});
 app.post('/api/auth/logout',async(_req:Request,res:Response)=>{clearAuthCookies(res);res.json({ok:true});});
 async function requireSyncUser(req:Request){return await supabaseUser(getCookie(req,'lina_access'));}
+
+
+const subscriptionProvider = new GenericHmacPaymentProvider(
+  process.env.PAYMENT_PROVIDER_NAME || 'generic',
+  process.env.PAYMENT_WEBHOOK_SECRET || ''
+);
+const aiInputRate = Number(process.env.GEMINI_INPUT_COST_PER_MILLION || 0);
+const aiOutputRate = Number(process.env.GEMINI_OUTPUT_COST_PER_MILLION || 0);
+
+async function ensureFreeSubscription(userId: string) {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY || !userId) return;
+  await fetch(SUPABASE_URL + '/rest/v1/lina_subscriptions?on_conflict=user_id', {
+    method: 'POST',
+    headers: { apikey: SUPABASE_SERVICE_ROLE_KEY, Authorization: 'Bearer ' + SUPABASE_SERVICE_ROLE_KEY, 'Content-Type': 'application/json', Prefer: 'resolution=ignore-duplicates,return=minimal' },
+    body: JSON.stringify({ user_id: userId, plan: 'FREE', status: 'trial' })
+  });
+}
+
+async function getSubscriptionRecord(userId: string): Promise<SubscriptionRecord | null> {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY || !userId) return null;
+  const url = new URL(SUPABASE_URL + '/rest/v1/lina_subscriptions');
+  url.searchParams.set('select', 'user_id,plan,status,provider,provider_customer_id,provider_subscription_id,trial_ends_at,current_period_start,current_period_end,cancel_at_period_end');
+  url.searchParams.set('user_id', 'eq.' + userId);
+  url.searchParams.set('limit', '1');
+  const r = await fetch(url, { headers: { apikey: SUPABASE_SERVICE_ROLE_KEY, Authorization: 'Bearer ' + SUPABASE_SERVICE_ROLE_KEY } });
+  if (!r.ok) throw new Error('Subscription lookup failed');
+  const x = (await r.json())[0];
+  return x ? {
+    userId: x.user_id, plan: x.plan, status: x.status, provider: x.provider || null,
+    providerCustomerId: x.provider_customer_id || null, providerSubscriptionId: x.provider_subscription_id || null,
+    trialEndsAt: x.trial_ends_at || null, currentPeriodStart: x.current_period_start || null,
+    currentPeriodEnd: x.current_period_end || null, cancelAtPeriodEnd: Boolean(x.cancel_at_period_end)
+  } : null;
+}
+
+async function getUsageSnapshot(userId: string) {
+  const fallback = { dailyRequests: 0, monthlyMinutes: 0 };
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) return fallback;
+  const day = new Date().toISOString().slice(0, 10);
+  const month = day.slice(0, 7) + '-01';
+  const dayUrl = new URL(SUPABASE_URL + '/rest/v1/lina_usage_counters');
+  dayUrl.searchParams.set('select', 'daily_requests,monthly_minutes');
+  dayUrl.searchParams.set('user_id', 'eq.' + userId);
+  dayUrl.searchParams.set('period_day', 'eq.' + day);
+  const monthUrl = new URL(SUPABASE_URL + '/rest/v1/lina_usage_counters');
+  monthUrl.searchParams.set('select', 'monthly_minutes');
+  monthUrl.searchParams.set('user_id', 'eq.' + userId);
+  monthUrl.searchParams.set('period_month', 'eq.' + month);
+  const headers = { apikey: SUPABASE_SERVICE_ROLE_KEY, Authorization: 'Bearer ' + SUPABASE_SERVICE_ROLE_KEY };
+  const [d, m] = await Promise.all([fetch(dayUrl, { headers }), fetch(monthUrl, { headers })]);
+  const dayRows = d.ok ? await d.json() : [];
+  const monthRows = m.ok ? await m.json() : [];
+  return {
+    dailyRequests: Number(dayRows[0]?.daily_requests || 0),
+    monthlyMinutes: monthRows.reduce((sum: number, row: any) => sum + Number(row.monthly_minutes || 0), 0)
+  };
+}
+
+async function reserveAIQuota(userId: string, entitlements: Entitlements, requestedMinutes = 0) {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) throw new Error('Subscription database is not configured');
+  const usage = await getUsageSnapshot(userId);
+  const localDecision = checkQuota({
+    ...entitlements,
+    plan: entitlements.plan
+  }, {
+    ...usage, geminiRequests: 0, inputTokens: 0, outputTokens: 0, voiceMinutes: 0, ttsUsage: 0, sttUsage: 0, avatarUsage: 0
+  }, requestedMinutes);
+  if (!localDecision.allowed) return localDecision;
+  const rpc = await fetch(SUPABASE_URL + '/rest/v1/rpc/lina_reserve_ai_quota', {
+    method: 'POST',
+    headers: { apikey: SUPABASE_SERVICE_ROLE_KEY, Authorization: 'Bearer ' + SUPABASE_SERVICE_ROLE_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      p_user_id: userId,
+      p_daily_limit: entitlements.dailyRequests,
+      p_monthly_minutes: entitlements.monthlyMinutes,
+      p_requested_minutes: Math.max(0, requestedMinutes)
+    })
+  });
+  if (!rpc.ok) throw new Error('Quota service unavailable');
+  const result = await rpc.json();
+  return result?.allowed ? { allowed: true as const } : { allowed: false as const, code: 'LIMIT_REACHED' as const, reason: String(result?.reason || 'QUOTA') };
+}
+
+async function requireAIEntitlement(req: Request, feature: 'ai' | 'voice' | 'advancedRoleplay' = 'ai', requestedMinutes = 0) {
+  const user = await requireSyncUser(req);
+  if (!user) return { error: 'UNAUTHORIZED', status: 401 as const };
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) return { error: 'SUBSCRIPTION_UNAVAILABLE', status: 503 as const };
+  await ensureFreeSubscription(user.id);
+  const subscription = await getSubscriptionRecord(user.id);
+  const entitlements = getEntitlements(subscription);
+  if (feature === 'voice' && !entitlements.canUseVoice) return { error: 'ENTITLEMENT_REQUIRED', status: 403 as const, user, entitlements };
+  if (feature === 'advancedRoleplay' && !entitlements.canUseAdvancedRoleplay) return { error: 'ENTITLEMENT_REQUIRED', status: 403 as const, user, entitlements };
+  if (feature === 'ai' && !entitlements.canUseAI) return { error: 'ENTITLEMENT_REQUIRED', status: 403 as const, user, entitlements };
+  const quota = await reserveAIQuota(user.id, entitlements, requestedMinutes);
+  if (!quota.allowed) return { error: 'LIMIT_REACHED', status: 429 as const, user, entitlements, quota };
+  return { user, entitlements };
+}
+
+async function recordAIUsage(userId: string, model: string, purpose: string, response: any, extra: Record<string, number> = {}) {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) return;
+  const meta = response?.usageMetadata || {};
+  const inputTokens = Number(meta.promptTokenCount || 0);
+  const outputTokens = Number(meta.candidatesTokenCount || 0) + Number(meta.thoughtsTokenCount || 0);
+  const record = buildAIUsageRecord({
+    userId, model, purpose, inputTokens, outputTokens,
+    estimatedCost: estimateTokenCost(inputTokens, outputTokens, { inputPerMillion: aiInputRate, outputPerMillion: aiOutputRate })
+  });
+  const row = { user_id: record.userId, model: record.model, purpose: record.purpose, estimated_cost: record.estimatedCost, input_tokens: record.inputTokens, output_tokens: record.outputTokens, voice_minutes: Number(extra.voiceMinutes || 0), tts_usage: Number(extra.ttsUsage || 0), stt_usage: Number(extra.sttUsage || 0), avatar_usage: Number(extra.avatarUsage || 0), occurred_at: record.timestamp };
+  try {
+    await fetch(SUPABASE_URL + '/rest/v1/lina_usage_events', {
+      method: 'POST',
+      headers: { apikey: SUPABASE_SERVICE_ROLE_KEY, Authorization: 'Bearer ' + SUPABASE_SERVICE_ROLE_KEY, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+      body: JSON.stringify(row)
+    });
+  } catch (err) { console.error('[Lina][USAGE_RECORD_ERROR]', { name: (err as any)?.name || 'Error' }); }
+}
+
+app.get('/api/subscription/me', async (req, res) => {
+  try {
+    const user = await requireSyncUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+    await ensureFreeSubscription(user.id);
+    const subscription = await getSubscriptionRecord(user.id);
+    const entitlements = getEntitlements(subscription);
+    const usage = await getUsageSnapshot(user.id);
+    res.json({ subscription, entitlements, usage });
+  } catch (err) {
+    console.error('[Lina][SUBSCRIPTION_ERROR]', { name: (err as any)?.name || 'Error' });
+    res.status(503).json({ error: 'Subscription service unavailable' });
+  }
+});
+
+app.post('/api/billing/checkout', async (req, res) => {
+  try {
+    const user = await requireSyncUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+    const plan = req.body?.plan === 'PRO' ? 'PRO' : req.body?.plan === 'PREMIUM' ? 'PREMIUM' : 'FREE';
+    if (plan === 'FREE') return res.status(400).json({ error: 'Paid plan required' });
+    const checkout = await subscriptionProvider.createCheckout({ userId: user.id, plan, email: user.email });
+    res.json(checkout);
+  } catch (err) {
+    res.status(503).json({ error: 'Payment provider is not configured.' });
+  }
+});
+
+app.post('/api/billing/webhook/:provider', async (req: Request, res: Response) => {
+  const rawBody = String((req as any).rawBody || '');
+  const signature = req.header('x-webhook-signature') || req.header('stripe-signature') || undefined;
+  if (!subscriptionProvider.verifyWebhook(rawBody, signature)) return res.status(401).json({ error: 'Invalid webhook signature' });
+  try {
+    const payload = req.body || {};
+    const eventId = String(payload.id || payload.eventId || '').slice(0, 200);
+    const userId = String(payload.userId || payload.user_id || '').slice(0, 80);
+    if (!eventId || !userId) return res.status(400).json({ error: 'Invalid webhook payload' });
+    const plan: PlanId = payload.plan === 'PRO' ? 'PRO' : payload.plan === 'PREMIUM' ? 'PREMIUM' : 'FREE';
+    const status: SubscriptionStatus = subscriptionProvider.mapSubscriptionStatus(String(payload.status || 'expired'));
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) return res.status(503).json({ error: 'Billing database unavailable' });
+    const safePayload = { id: eventId, userId, plan, status, provider: String(req.params.provider).slice(0, 50), providerCustomerId: payload.providerCustomerId || payload.customerId || null, providerSubscriptionId: payload.providerSubscriptionId || payload.subscriptionId || null, currentPeriodStart: payload.currentPeriodStart || null, currentPeriodEnd: payload.currentPeriodEnd || null, cancelAtPeriodEnd: Boolean(payload.cancelAtPeriodEnd) };
+    const eventInsert = await fetch(SUPABASE_URL + '/rest/v1/lina_billing_webhook_events', { method: 'POST', headers: { apikey: SUPABASE_SERVICE_ROLE_KEY, Authorization: 'Bearer ' + SUPABASE_SERVICE_ROLE_KEY, 'Content-Type': 'application/json', Prefer: 'resolution=ignore-duplicates,return=minimal' }, body: JSON.stringify({ event_id: eventId, provider: String(req.params.provider).slice(0, 50), payload: safePayload }) });
+    if (!eventInsert.ok) return res.status(503).json({ error: 'Webhook event storage unavailable' });
+    const update = await fetch(SUPABASE_URL + '/rest/v1/lina_subscriptions?user_id=eq.' + encodeURIComponent(userId), { method: 'PATCH', headers: { apikey: SUPABASE_SERVICE_ROLE_KEY, Authorization: 'Bearer ' + SUPABASE_SERVICE_ROLE_KEY, 'Content-Type': 'application/json', Prefer: 'return=minimal' }, body: JSON.stringify({ plan, status, provider: req.params.provider, provider_customer_id: safePayload.providerCustomerId, provider_subscription_id: safePayload.providerSubscriptionId, current_period_start: safePayload.currentPeriodStart, current_period_end: safePayload.currentPeriodEnd, cancel_at_period_end: safePayload.cancelAtPeriodEnd, updated_at: new Date().toISOString() }) });
+    if (!update.ok) return res.status(503).json({ error: 'Subscription update failed' });
+    await fetch(SUPABASE_URL + '/rest/v1/lina_billing_webhook_events?event_id=eq.' + encodeURIComponent(eventId), { method: 'PATCH', headers: { apikey: SUPABASE_SERVICE_ROLE_KEY, Authorization: 'Bearer ' + SUPABASE_SERVICE_ROLE_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ processed_at: new Date().toISOString(), status: 'processed' }) });
+    res.json({ received: true });
+  } catch (err) { console.error('[Lina][BILLING_WEBHOOK_ERROR]', { name: (err as any)?.name || 'Error' }); res.status(500).json({ error: 'Webhook processing failed' }); }
+});
+
+app.get('/api/admin/costs', async (req, res) => {
+  try {
+    if (!await requireAdmin(req)) return res.status(403).json({ error: 'Admin access required' });
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) return res.status(503).json({ error: 'Usage database unavailable' });
+    const days = Math.min(90, Math.max(1, Number(req.query.days) || 30));
+    const since = new Date(Date.now() - days * 86400000).toISOString();
+    const url = new URL(SUPABASE_URL + '/rest/v1/lina_usage_events');
+    url.searchParams.set('select', 'user_id,model,purpose,estimated_cost,input_tokens,output_tokens,voice_minutes,tts_usage,stt_usage,avatar_usage,occurred_at');
+    url.searchParams.set('occurred_at', 'gte.' + since);
+    url.searchParams.set('order', 'occurred_at.desc');
+    url.searchParams.set('limit', '50000');
+    const r = await fetch(url, { headers: { apikey: SUPABASE_SERVICE_ROLE_KEY, Authorization: 'Bearer ' + SUPABASE_SERVICE_ROLE_KEY } });
+    if (!r.ok) throw new Error('Usage query failed');
+    const rows = await r.json();
+    const daily: Record<string, number> = {}, byUser: Record<string, number> = {}, byFeature: Record<string, number> = {}, byOperation: Record<string, number> = {};
+    for (const x of rows) {
+      const cost = Number(x.estimated_cost || 0);
+      const day = String(x.occurred_at).slice(0, 10);
+      daily[day] = (daily[day] || 0) + cost;
+      byUser[x.user_id] = (byUser[x.user_id] || 0) + cost;
+      byFeature[x.purpose] = (byFeature[x.purpose] || 0) + cost;
+      const op = x.model + ':' + x.purpose;
+      byOperation[op] = (byOperation[op] || 0) + cost;
+    }
+    const top = (map: Record<string, number>) => Object.entries(map).sort((a,b) => b[1]-a[1]).slice(0,10).map(([key,cost]) => ({ key, cost: Number(cost.toFixed(8)) }));
+    res.json({ days, dailyAICost: top(daily), monthlyAICost: Number(rows.reduce((s:number,x:any)=>s+Number(x.estimated_cost||0),0).toFixed(8)), costPerUser: top(byUser), costPerFeature: top(byFeature), topExpensiveOperations: top(byOperation), totals: { geminiRequests: rows.length, inputTokens: rows.reduce((s:number,x:any)=>s+Number(x.input_tokens||0),0), outputTokens: rows.reduce((s:number,x:any)=>s+Number(x.output_tokens||0),0), voiceMinutes: rows.reduce((s:number,x:any)=>s+Number(x.voice_minutes||0),0), ttsUsage: rows.reduce((s:number,x:any)=>s+Number(x.tts_usage||0),0), sttUsage: rows.reduce((s:number,x:any)=>s+Number(x.stt_usage||0),0), avatarUsage: rows.reduce((s:number,x:any)=>s+Number(x.avatar_usage||0),0) } });
+  } catch (err) { console.error('[Lina][ADMIN_COST_ERROR]', { name: (err as any)?.name || 'Error' }); res.status(503).json({ error: 'Cost dashboard unavailable' }); }
+});
 
 app.get('/api/sync/pull',async(req:Request,res:Response)=>{try{const user=await requireSyncUser(req);if(!user||!SUPABASE_URL||!SUPABASE_SERVICE_ROLE_KEY){res.status(401).json({error:'Unauthorized'});return;}const url=new URL(`${SUPABASE_URL}/rest/v1/lina_learning_sync_records`);url.searchParams.set('select','record_key,payload,version,updated_at,device_id');url.searchParams.set('user_id',`eq.${user.id}`);const r=await fetch(url,{headers:{apikey:SUPABASE_SERVICE_ROLE_KEY,Authorization:`Bearer ${SUPABASE_SERVICE_ROLE_KEY}`}});if(!r.ok)throw new Error('DB pull failed');const rows=await r.json();res.json({records:rows.map((x:any)=>({key:x.record_key,data:x.payload,version:x.version,updatedAt:x.updated_at,deviceId:x.device_id})),serverTime:new Date().toISOString()});}catch{res.status(500).json({error:'Sync pull failed'});}});
 app.post('/api/sync/push',async(req:Request,res:Response)=>{try{const user=await requireSyncUser(req);if(!user||!SUPABASE_URL||!SUPABASE_SERVICE_ROLE_KEY){res.status(401).json({error:'Unauthorized'});return;}const records=Array.isArray(req.body?.records)?req.body.records.slice(0,50):[];const accepted=[];const conflicts=[];for(const record of records){if(!record||typeof record.key!=='string'||typeof record.updatedAt!=='string')continue;const lookup=new URL(`${SUPABASE_URL}/rest/v1/lina_learning_sync_records`);lookup.searchParams.set('select','version,updated_at');lookup.searchParams.set('user_id',`eq.${user.id}`);lookup.searchParams.set('record_key',`eq.${record.key}`);const existingR=await fetch(lookup,{headers:{apikey:SUPABASE_SERVICE_ROLE_KEY,Authorization:`Bearer ${SUPABASE_SERVICE_ROLE_KEY}`}});const existing=existingR.ok?(await existingR.json())[0]:null;if(existing&&new Date(existing.updated_at).getTime()>new Date(record.updatedAt).getTime()){conflicts.push(record.key);continue;}const upsert=await fetch(`${SUPABASE_URL}/rest/v1/lina_learning_sync_records?on_conflict=user_id,record_key`,{method:'POST',headers:{apikey:SUPABASE_SERVICE_ROLE_KEY,Authorization:`Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({user_id:user.id,record_key:record.key,payload:record.data,version:Math.max(Number(record.version)||1,Number(existing?.version||0)+1),updated_at:record.updatedAt,device_id:String(record.deviceId||'unknown').slice(0,100)})});if(upsert.ok)accepted.push(record.key);}res.json({accepted,conflicts,serverTime:new Date().toISOString()});}catch{res.status(500).json({error:'Sync push failed'});}});
@@ -299,6 +499,8 @@ app.post('/api/tutor/chat', async (req: Request, res: Response) => {
       res.status(400).json({ error: 'Message string is required' });
       return;
     }
+    const aiAccess = await requireAIEntitlement(req, 'ai');
+    if ('error' in aiAccess) { res.status(aiAccess.status).json({ error: aiAccess.error, ...(aiAccess.error === 'LIMIT_REACHED' ? { code: 'LIMIT_REACHED' } : {}) }); return; }
 
     if (!ai) {
       // Graceful fallback if GEMINI_API_KEY is not configured
@@ -346,6 +548,7 @@ Trả về kết quả dưới dạng JSON theo đúng schema.
 
     const jsonText = response.text?.trim() || '{}';
     const parsedData = JSON.parse(jsonText);
+    await recordAIUsage(aiAccess.user.id, 'gemini-3.8-flash', 'tutor_chat', response);
     res.json(parsedData);
   } catch (err: any) {
     console.error('[Lina][AI_ERROR]', { name: err?.name || 'Error' });
@@ -400,6 +603,7 @@ Hint 4: Câu nói mẫu hoàn chỉnh (full answer tiếng Trung + pinyin + ti�
     });
 
     const jsonText = response.text?.trim() || '{}';
+    await recordAIUsage(aiAccess.user.id, 'gemini-3.8-flash', 'tutor_hints', response);
     res.json(JSON.parse(jsonText));
   } catch (err: any) {
     console.error('Error in /api/tutor/hints:', err);
@@ -416,6 +620,9 @@ Hint 4: Câu nói mẫu hoàn chỉnh (full answer tiếng Trung + pinyin + ti�
 app.post('/api/tutor/explain', async (req: Request, res: Response) => {
   try {
     const { sentence, hskLevel = 'HSK 1' } = req.body;
+
+    const aiAccess = await requireAIEntitlement(req, 'ai');
+    if ('error' in aiAccess) { res.status(aiAccess.status).json({ error: aiAccess.error, ...(aiAccess.error === 'LIMIT_REACHED' ? { code: 'LIMIT_REACHED' } : {}) }); return; }
 
     if (!sentence) {
       res.status(400).json({ error: 'Sentence is required' });
@@ -478,6 +685,7 @@ Giải thích từ vựng cấu thành, cấu trúc ngữ pháp, pinyin có dấ
     });
 
     const jsonText = response.text?.trim() || '{}';
+    await recordAIUsage(aiAccess.user.id, 'gemini-3.8-flash', 'tutor_explain', response);
     res.json(JSON.parse(jsonText));
   } catch (err: any) {
     console.error('Error in /api/tutor/explain:', err);
@@ -490,6 +698,8 @@ app.post('/api/tutor/chat/stream', async (req: Request, res: Response) => {
   try {
     const { message, history = [], mode = 'conversation', hskLevel = 'HSK 1', userName = 'Bạn', userLevel = 'Cơ bản', topicTitle = 'Tự do', memoryFacts = [] } = req.body;
     if (!message || typeof message !== 'string') { res.status(400).json({ error: 'Message string is required' }); return; }
+    const aiAccess = await requireAIEntitlement(req, 'ai');
+    if ('error' in aiAccess) { res.status(aiAccess.status).json({ error: aiAccess.error, ...(aiAccess.error === 'LIMIT_REACHED' ? { code: 'LIMIT_REACHED' } : {}) }); return; }
 
     res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
     res.setHeader('Cache-Control', 'no-cache, no-transform');
@@ -515,6 +725,7 @@ app.post('/api/tutor/chat/stream', async (req: Request, res: Response) => {
     });
 
     let fullText = '';
+    let usageMetadata: any = null;
     let spokenChinese = '';
     let speechBuffer = '';
     const emitCompleteSpeech = (flush = false) => {
@@ -533,6 +744,7 @@ app.post('/api/tutor/chat/stream', async (req: Request, res: Response) => {
       }
     };
     for await (const chunk of stream) {
+      usageMetadata = (chunk as any).usageMetadata || usageMetadata;
       const text = chunk.text || '';
       if (!text) continue;
       fullText += text;
@@ -554,6 +766,7 @@ app.post('/api/tutor/chat/stream', async (req: Request, res: Response) => {
     emitCompleteSpeech(true);
     try {
       const parsed = JSON.parse(fullText.trim());
+      await recordAIUsage(aiAccess.user.id, 'gemini-3.8-flash', 'tutor_chat_stream', { usageMetadata });
       send({ type: 'response', response: parsed });
       send({ type: 'done' });
     } catch {
@@ -586,6 +799,8 @@ app.get('/api/health', (_req: Request, res: Response) => {
 app.post('/api/tts/speak', async (req: Request, res: Response) => {
   try {
     const { text, voice = 'Kore' } = req.body;
+    const aiAccess = await requireAIEntitlement(req, 'voice', Math.max(0.1, Math.min(5, text && typeof text === 'string' ? text.length / 600 : 0.1)));
+    if ('error' in aiAccess) { res.status(aiAccess.status).json({ error: aiAccess.error, ...(aiAccess.error === 'LIMIT_REACHED' ? { code: 'LIMIT_REACHED' } : {}) }); return; }
     if (!text || typeof text !== 'string') {
       res.status(400).json({ error: 'Text string is required' });
       return;
@@ -623,6 +838,7 @@ app.post('/api/tts/speak', async (req: Request, res: Response) => {
 
     const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
     if (base64Audio) {
+      await recordAIUsage(aiAccess.user.id, 'gemini-3.8-flash-lite-tts', 'tts', response, { ttsUsage: 1, voiceMinutes: Math.max(0.1, Math.min(5, text.length / 600)) });
       res.json({
         audioBase64: base64Audio,
         mimeType: 'audio/wav',
@@ -693,6 +909,8 @@ app.post('/api/tts/elevenlabs/stream', async (req: Request, res: Response) => {
 app.post('/api/stt/transcribe', async (req: Request, res: Response) => {
   try {
     const { audioBase64, mimeType = 'audio/webm' } = req.body;
+    const aiAccess = await requireAIEntitlement(req, 'voice', 1);
+    if ('error' in aiAccess) { res.status(aiAccess.status).json({ error: aiAccess.error, ...(aiAccess.error === 'LIMIT_REACHED' ? { code: 'LIMIT_REACHED' } : {}) }); return; }
     if (!audioBase64 || typeof audioBase64 !== 'string') {
       res.status(400).json({ error: 'Audio base64 string is required' });
       return;
@@ -721,6 +939,7 @@ app.post('/api/stt/transcribe', async (req: Request, res: Response) => {
     });
 
     const transcript = response.text?.trim() || '';
+    await recordAIUsage(aiAccess.user.id, 'gemini-3.5-transcribe', 'stt', response, { sttUsage: 1, voiceMinutes: 1 });
     res.json({ transcript });
   } catch (err: any) {
     console.error('Error in /api/stt/transcribe:', err);
