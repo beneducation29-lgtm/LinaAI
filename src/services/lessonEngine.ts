@@ -6,6 +6,8 @@ import {
 } from '../types/lessonEngine';
 import { ReviewSchedule } from '../types/learning';
 import { scheduleReview } from './learningEngine';
+import { fetchWithControl } from './requestControl';
+import { readCache, writeCache } from './cache';
 
 const HSK_LEVELS = new Set(['HSK 1','HSK 2','HSK 3','HSK 4','HSK 5','HSK 6']);
 
@@ -81,16 +83,22 @@ export function normalizeLesson(raw: Partial<LessonEngineLesson>, params: Lesson
 }
 
 export async function generateLesson(parameters: LessonGenerationParameters): Promise<LessonEngineLesson> {
-  const response = await fetch('/api/lesson/generate', {
+  const cacheKey = `lesson:${parameters.hskLevel}:${parameters.level}:${parameters.topic}:${parameters.lessonType || 'mixed'}:${parameters.duration}`;
+  if (!parameters.personalized) {
+    const cached = readCache<LessonEngineLesson>(cacheKey, 24*60*60*1000);
+    if (cached) return cached;
+  }
+  const response = await fetchWithControl('/api/lesson/generate', {
     method: 'POST',
     headers: {'Content-Type':'application/json'},
     body: JSON.stringify({ ...parameters, verifiedVocabulary: parameters.hskLevel === 'HSK 1' ? HSK1_VOCABULARY.filter(v => (parameters.targetVocabulary || []).includes(v.hanzi)) : [] })
-  });
+  }, { timeoutMs: 30000, retries: 1 });
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(payload?.error || `Lesson generation failed: HTTP ${response.status}`);
   const lesson = normalizeLesson(payload.lesson, parameters);
   const validation = validateLesson(lesson);
   if (!validation.valid) throw new Error(`Lesson validation failed: ${validation.errors.slice(0,4).join(' | ')}`);
+  if (!parameters.personalized) writeCache(cacheKey, lesson);
   return lesson;
 }
 
