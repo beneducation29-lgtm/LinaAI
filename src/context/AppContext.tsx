@@ -46,6 +46,16 @@ interface AppContextType {
   showOnboarding: boolean;
   setShowOnboarding: (show: boolean) => void;
   completeOnboarding: (goalCategory: any, level: any, dailyMinutes: any) => void;
+  structuredProgress: Record<string, { mastery: number; speaking: number; listening: number; grammar: number }>;
+  reviewSchedules: Record<string, ReviewSchedule>;
+  mistakes: MistakeRecord[];
+  structuredSavedVocabularyIds: string[];
+  toggleSaveStructuredVocabulary: (id: string) => void;
+  isStructuredVocabularySaved: (id: string) => boolean;
+  recordLearningResult: (itemId: string, correct: boolean, rating?: ReviewRating) => void;
+  addMistake: (input: Omit<MistakeRecord, 'id' | 'frequency' | 'lastSeen'>) => void;
+  getDueReviewCount: () => number;
+  learnerProfileMemory: () => ReturnType<typeof buildLearnerMemory>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -56,7 +66,11 @@ const STORAGE_KEYS = {
   FLASHCARDS: 'lina_flashcards_v1',
   PREFERENCES: 'lina_preferences_v1',
   TUTOR_MODE: 'lina_tutor_mode_v1',
-  LEARNER_MEMORY: 'lina_learner_memory_v1'
+  LEARNER_MEMORY: 'lina_learner_memory_v1',
+  STRUCTURED_PROGRESS: 'lina_structured_progress_v1',
+  REVIEW_SCHEDULES: 'lina_review_schedules_v1',
+  MISTAKES: 'lina_mistakes_v1',
+  STRUCTURED_SAVED: 'lina_structured_saved_v1'
 };
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -103,6 +117,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [currentTab, setCurrentTab] = useState<TabType>('home');
   const [lessonSectionIndex, setLessonSectionIndex] = useState<number>(0);
   const [currentLesson] = useState<Lesson>(LESSON_HSK1_1);
+  const [structuredProgress, setStructuredProgress] = useState<Record<string, { mastery: number; speaking: number; listening: number; grammar: number }>>(() => {
+    try { const saved=localStorage.getItem(STORAGE_KEYS.STRUCTURED_PROGRESS); if(saved) return JSON.parse(saved); } catch {} return {};
+  });
+  const [reviewSchedules, setReviewSchedules] = useState<Record<string, ReviewSchedule>>(() => {
+    try { const saved=localStorage.getItem(STORAGE_KEYS.REVIEW_SCHEDULES); if(saved) return JSON.parse(saved); } catch {} return {};
+  });
+  const [mistakes, setMistakes] = useState<MistakeRecord[]>(() => {
+    try { const saved=localStorage.getItem(STORAGE_KEYS.MISTAKES); if(saved) return JSON.parse(saved); } catch {} return [];
+  });
+  const [structuredSavedVocabularyIds, setStructuredSavedVocabularyIds] = useState<string[]>(() => {
+    try { const saved=localStorage.getItem(STORAGE_KEYS.STRUCTURED_SAVED); if(saved) return JSON.parse(saved); } catch {} return [];
+  });
   const [allVocabularies] = useState<Vocabulary[]>(INITIAL_VOCABULARIES);
 
   const [conversation, setConversation] = useState<Conversation>(() => {
@@ -178,6 +204,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       // ignore
     }
   }, [tutorMode]);
+
+  useEffect(() => { try { localStorage.setItem(STORAGE_KEYS.STRUCTURED_PROGRESS, JSON.stringify(structuredProgress)); } catch {} }, [structuredProgress]);
+  useEffect(() => { try { localStorage.setItem(STORAGE_KEYS.REVIEW_SCHEDULES, JSON.stringify(reviewSchedules)); } catch {} }, [reviewSchedules]);
+  useEffect(() => { try { localStorage.setItem(STORAGE_KEYS.MISTAKES, JSON.stringify(mistakes)); } catch {} }, [mistakes]);
+  useEffect(() => { try { localStorage.setItem(STORAGE_KEYS.STRUCTURED_SAVED, JSON.stringify(structuredSavedVocabularyIds)); } catch {} }, [structuredSavedVocabularyIds]);
 
   // Sync learner memory
   useEffect(() => {
@@ -261,6 +292,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
   };
 
+  const toggleSaveStructuredVocabulary = (id: string) => {
+    setStructuredSavedVocabularyIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+  const isStructuredVocabularySaved = (id: string) => structuredSavedVocabularyIds.includes(id);
+  const recordLearningResult = (itemId: string, correct: boolean, rating: ReviewRating = correct ? 'good' : 'again') => {
+    setReviewSchedules(prev => ({ ...prev, [itemId]: scheduleReview({ ...(prev[itemId] || { itemId, lastReviewed: null, nextReview: new Date().toISOString(), interval: 0, ease: 2.5, correctCount: 0, incorrectCount: 0, mastery: 0 }) }, rating) }));
+    const lesson = HSK1_LESSONS.find(l => l.vocabulary.some(v => v.id === itemId) || l.roleplay.id === itemId || l.speaking.some(s => s.id === itemId));
+    if (lesson) setStructuredProgress(prev => {
+      const current = prev[lesson.id] || { mastery: 0, speaking: 0, listening: 0, grammar: 0 };
+      const next = Math.min(100, Math.max(0, current.mastery + (correct ? 10 : -5)));
+      const speaking = itemId.includes('-sp') || itemId.includes('-rp') ? Math.min(100, current.speaking + (correct ? 15 : 0)) : current.speaking;
+      return { ...prev, [lesson.id]: { ...current, mastery: next, speaking } };
+    });
+    if (correct) updateUser({ todayMinutesSpent: Math.min(user.dailyGoalMinutes, user.todayMinutesSpent + 1) });
+  };
+  const addMistake = (input: Omit<MistakeRecord, 'id' | 'frequency' | 'lastSeen'>) => setMistakes(prev => recordMistake(prev, input));
+  const getDueReviewCount = () => Object.values(reviewSchedules).filter(s => isDue(s.nextReview)).length;
+  const learnerProfileMemory = () => buildLearnerMemory({ level: user.currentHsk, goal: 'conversation', dailyMinutes: user.dailyGoalMinutes, weakGrammar: [], weakVocabulary: [], weakTones: [], preferredTopics: [], recentMistakes: [] }, mistakes);
+
   const toggleSaveVocabulary = (vocabId: string) => {
     setUser(prev => {
       const isSaved = prev.savedVocabularyIds.includes(vocabId);
@@ -321,7 +371,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         isVocabularySaved,
         showOnboarding,
         setShowOnboarding,
-        completeOnboarding
+        completeOnboarding,
+        structuredProgress,
+        reviewSchedules,
+        mistakes,
+        structuredSavedVocabularyIds,
+        toggleSaveStructuredVocabulary,
+        isStructuredVocabularySaved,
+        recordLearningResult,
+        addMistake,
+        getDueReviewCount,
+        learnerProfileMemory
       }}
     >
       {children}

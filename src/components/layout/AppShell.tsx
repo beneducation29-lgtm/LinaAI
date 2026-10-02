@@ -4,7 +4,7 @@ import { Sidebar } from '../navigation/Sidebar';
 import { BottomNavigation } from '../navigation/BottomNavigation';
 import { HomeDashboard } from '../home/HomeDashboard';
 import { TutorScreen } from '../tutor/TutorScreen';
-import { LessonScreen } from '../learning/LessonScreen';
+import { LearningSystemScreen } from '../learning/LearningSystemScreen';
 import { ReviewScreen } from '../review/ReviewScreen';
 import { Profile } from '../profile/Profile';
 import { Onboarding } from '../onboarding/Onboarding';
@@ -19,7 +19,7 @@ export const AppShell: React.FC = () => {
       case 'home':
         return <HomeDashboard />;
       case 'learn':
-        return <LessonScreen />;
+        return <LearningSystemScreen />;
       case 'speak':
         return <TutorScreen />;
       case 'review':
