@@ -1,4 +1,26 @@
 export interface ValidationResult<T>{ok:boolean;value?:T;error?:string}
-function clean(value:any,depth=0):any{if(depth>6)return undefined;if(typeof value==='string')return value.replace(/[\\u0000-\\u001F\\u007F]/g,'').slice(0,4000);if(Array.isArray(value))return value.slice(0,30).map(x=>clean(x,depth+1)).filter(x=>x!==undefined);if(value&&typeof value==='object'){const out:any={};for(const [k,v] of Object.entries(value).slice(0,80)){const c=clean(v,depth+1);if(c!==undefined)out[String(k).slice(0,100)]=c;}return out;}if(typeof value==='number'||typeof value==='boolean'||value===null)return value;return undefined;}
-export function parseAndSanitizeJSON<T>(text:string):ValidationResult<T>{try{return {ok:true,value:clean(JSON.parse(text)) as T};}catch{return {ok:false,error:'INVALID_JSON'}}}
-export function enforceLearningLevel<T extends Record<string,any>>(value:T,hskLevel:string):T{const allowed=Math.max(1,Math.min(6,Number((hskLevel||'HSK 1').match(/\d+/)?.[0]||1)));const clone:any={...value};if(Array.isArray(clone.vocabulary))clone.vocabulary=clone.vocabulary.map((v:any)=>({...v,hskLevel:typeof v.hskLevel==='string'&&Number(v.hskLevel.match(/\d+/)?.[0]||99)<=allowed?v.hskLevel:undefined}));return clone;}
+function clean(value:any,depth=0):any{
+  if(depth>6)return undefined;
+  if(typeof value==='string')return value.replace(/[\u0000-\u001F\u007F]/g,'').slice(0,4000);
+  if(Array.isArray(value))return value.slice(0,30).map(x=>clean(x,depth+1)).filter(x=>x!==undefined);
+  if(value&&typeof value==='object'){
+    const out:any={};
+    for(const [k,v] of Object.entries(value).slice(0,80)){
+      const c=clean(v,depth+1);
+      if(c!==undefined)out[String(k).slice(0,100)]=c;
+    }
+    return out;
+  }
+  if(typeof value==='number'||typeof value==='boolean'||value===null)return value;
+  return undefined;
+}
+export function parseAndSanitizeJSON<T>(text:string):ValidationResult<T>{
+  try{return {ok:true,value:clean(JSON.parse(text)) as T};}
+  catch{return {ok:false,error:'INVALID_JSON'}}
+}
+export function enforceLearningLevel<T extends Record<string,any>>(value:T,hskLevel:string):T{
+  const allowed=Math.max(1,Math.min(6,Number((hskLevel||'HSK 1').match(/\d+/)?.[0]||1)));
+  const clone:any={...value};
+  if(Array.isArray(clone.vocabulary))clone.vocabulary=clone.vocabulary.map((v:any)=>({...v,hskLevel:typeof v.hskLevel==='string'&&Number(v.hskLevel.match(/\d+/)?.[0]||99)<=allowed?v.hskLevel:undefined}));
+  return clone;
+}
