@@ -12,6 +12,10 @@ import {
 } from '../types';
 import { ReviewSchedule, MistakeRecord, MistakeType, AIStoredMemory, LearnerProfile } from '../types/learning';
 import { LessonEngineLesson, LessonQuizResult, LessonCompletionResult } from '../types/lessonEngine';
+import { syncEngine } from '../services/syncEngine';
+import { getCurrentUser, login as loginAccountRequest, signup as signupAccountRequest, logout as logoutAccountRequest } from '../services/authService';
+import type { AuthUser } from '../services/authService';
+import type { SyncState, SyncRecord } from '../types/sync';
 import { storage } from '../services/storage';
 import { findLessonForItem, updateLessonProgress } from '../services/progressService';
 import { createLocalMemoryRepository, emptyMemory, updateMemory } from '../services/aiMemory';
@@ -73,6 +77,12 @@ interface AppContextType {
   resetProgress: () => void;
   completeGeneratedLesson: (lesson: LessonEngineLesson, results: LessonQuizResult[]) => LessonCompletionResult;
   motivation: MotivationState;
+  authUser: AuthUser | null;
+  syncState: SyncState;
+  loginAccount: (email: string, password: string) => Promise<void>;
+  signupAccount: (email: string, password: string, name?: string) => Promise<void>;
+  logoutAccount: () => Promise<void>;
+  syncNow: () => Promise<void>;
   motivationSnapshot: ReturnType<typeof getMotivationSnapshot>;
   setDailyGoalMinutes: (minutes: DailyGoalMinutes) => void;
   recordMotivationActivity: (input: { id: string; type: MotivationActivityType; minutes: number; lessonId?: string; vocabularyCount?: number; metadata?: Record<string, string | number | boolean> }) => void;
@@ -154,6 +164,67 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   if (!memoryRepoRef.current) memoryRepoRef.current = createLocalMemoryRepository();
   const [aiMemory, setAiMemory] = useState<AIStoredMemory>(() => memoryRepoRef.current!.load());
   const [motivation, setMotivation] = useState<MotivationState>(() => loadMotivationState(INITIAL_USER_PROFILE.dailyGoalMinutes, INITIAL_USER_PROFILE.streakDays));
+  const [authUser, setAuthUser] = useState<AuthUser | null>(null);
+  const [syncState, setSyncState] = useState<SyncState>(() => ({ status: 'offline', lastSyncedAt: null, pendingCount: 0, error: null, userId: null }));
+  const syncReadyRef = React.useRef(false);
+  const applyingRemoteRef = React.useRef(false);
+
+  useEffect(() => syncEngine.subscribe(setSyncState), []);
+  useEffect(() => {
+    let mounted = true;
+    void getCurrentUser().then(account => { if (mounted) setAuthUser(account); });
+    return () => { mounted = false; };
+  }, []);
+  useEffect(() => {
+    syncEngine.setUser(authUser?.id || null);
+    syncReadyRef.current = false;
+    if (!authUser) return;
+    setUser(prev => prev.id === authUser.id ? prev : { ...prev, id: authUser.id, name: authUser.name || prev.name });
+    void syncEngine.initialSync().then(() => { syncReadyRef.current = true; });
+  }, [authUser?.id]);
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const record = (event as CustomEvent<SyncRecord>).detail;
+      if (!record) return;
+      applyingRemoteRef.current = true;
+      try {
+        switch(record.key) {
+          case 'profile': setUser(record.data as UserProfile); break;
+          case 'preferences': setPreferences(record.data as DisplayPreferences); break;
+          case 'conversation': setConversation(record.data as Conversation); break;
+          case 'flashcards': setFlashcards(record.data as Flashcard[]); break;
+          case 'structuredProgress': setStructuredProgress(record.data as typeof structuredProgress); break;
+          case 'reviewSchedules': setReviewSchedules(record.data as Record<string, ReviewSchedule>); break;
+          case 'mistakes': setMistakes(record.data as MistakeRecord[]); break;
+          case 'structuredSavedVocabulary': setStructuredSavedVocabularyIds(record.data as string[]); break;
+          case 'aiMemory': setAiMemory(record.data as AIStoredMemory); break;
+          case 'motivation': setMotivation(record.data as MotivationState); break;
+          case 'learnerMemory': setLearnerMemory(record.data as string[]); break;
+        }
+      } finally { window.setTimeout(() => { applyingRemoteRef.current = false; }, 0); }
+    };
+    window.addEventListener('lina:sync-remote', handler);
+    return () => window.removeEventListener('lina:sync-remote', handler);
+  }, []);
+  const loginAccount = async (email: string, password: string) => { const account = await loginAccountRequest(email, password); setAuthUser(account); };
+  const signupAccount = async (email: string, password: string, name?: string) => { const account = await signupAccountRequest(email, password, name); if (account) setAuthUser(account); };
+  const logoutAccount = async () => { await logoutAccountRequest(); syncEngine.setUser(null); setAuthUser(null); };
+  const syncNow = async () => { await syncEngine.sync(); };
+  useEffect(() => {
+    if (!authUser || !syncReadyRef.current || applyingRemoteRef.current) return;
+    const enqueue = (key: any, data: unknown) => syncEngine.enqueue(key, data);
+    enqueue('profile', user);
+    enqueue('preferences', preferences);
+    enqueue('conversation', conversation);
+    enqueue('flashcards', flashcards);
+    enqueue('structuredProgress', structuredProgress);
+    enqueue('reviewSchedules', reviewSchedules);
+    enqueue('mistakes', mistakes);
+    enqueue('structuredSavedVocabulary', structuredSavedVocabularyIds);
+    enqueue('aiMemory', aiMemory);
+    enqueue('motivation', motivation);
+    enqueue('learnerMemory', learnerMemory);
+  }, [authUser, user, preferences, conversation, flashcards, structuredProgress, reviewSchedules, mistakes, structuredSavedVocabularyIds, aiMemory, motivation, learnerMemory]);
 
   const [conversation, setConversation] = useState<Conversation>(() => {
     try {
@@ -473,6 +544,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         aiMemory,
         learnerProfile,
         motivation,
+      authUser,
+      syncState,
+      loginAccount,
+      signupAccount,
+      logoutAccount,
+      syncNow,
         motivationSnapshot: getMotivationSnapshot(motivation, mistakes.map(m => m.original)),
         setDailyGoalMinutes,
         recordMotivationActivity,

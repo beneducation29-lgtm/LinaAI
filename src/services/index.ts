@@ -23,3 +23,5 @@ export * from './ttsQueue';
 export * from './realtimeSpeechOrchestrator';
 export * from './audioBufferManager';
 export * from './avatarProviderAdapter';
+export * from './syncEngine';
+export * from './authService';

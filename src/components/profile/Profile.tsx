@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { 
   User, 
@@ -17,6 +17,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import linaAvatarImg from '../../assets/images/tutor_lina_avatar_1790861417833.jpg';
+import { AccountSyncCard } from './AccountSyncCard';
 
 export const Profile: React.FC = () => {
   const { 
@@ -28,6 +29,15 @@ export const Profile: React.FC = () => {
     setShowOnboarding 
   } = useApp();
 
+  const [accountOpen, setAccountOpen] = useState(false);
+  const [accountMode, setAccountMode] = useState<'login'|'signup'>('login');
+  const [accountEmail, setAccountEmail] = useState('');
+  const [accountPassword, setAccountPassword] = useState('');
+  const [accountName, setAccountName] = useState('');
+  const [accountError, setAccountError] = useState('');
+
+  const handleAccountSubmit = async (event: React.FormEvent) => { event.preventDefault(); setAccountError(''); try { if(accountMode==='login') await loginAccount(accountEmail,accountPassword); else await signupAccount(accountEmail,accountPassword,accountName); setAccountOpen(false); setAccountPassword(''); } catch(e) { setAccountError(e instanceof Error ? e.message : 'Không thể kết nối tài khoản.'); } };
+
   const handleLevelChange = (newLevel: any) => {
     updateUser({ currentLevel: newLevel });
   };
@@ -38,7 +48,20 @@ export const Profile: React.FC = () => {
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 pb-24 md:pb-12 space-y-6">
-      {/* 1. PROFILE HEADER CARD */}
+      <AccountSyncCard user={authUser} sync={syncState} onLogin={() => { setAccountMode('login'); setAccountOpen(true); }} onLogout={() => void logoutAccount()} onSync={() => void syncNow()} />
+      {accountOpen && <div className="p-5 rounded-3xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800">
+        <div className="flex items-center justify-between mb-3"><div className="text-sm font-bold">{accountMode==='login'?'Đăng nhập':'Tạo tài khoản'}</div><button onClick={()=>setAccountOpen(false)} className="text-xs text-stone-400">Đóng</button></div>
+        <form onSubmit={handleAccountSubmit} className="space-y-2">
+          {accountMode==='signup'&&<input value={accountName} onChange={e=>setAccountName(e.target.value)} placeholder="Tên hiển thị" className="w-full px-3 py-2 rounded-xl border border-stone-200 dark:border-stone-700 bg-transparent text-sm" />}
+          <input type="email" required value={accountEmail} onChange={e=>setAccountEmail(e.target.value)} placeholder="Email" className="w-full px-3 py-2 rounded-xl border border-stone-200 dark:border-stone-700 bg-transparent text-sm" />
+          <input type="password" required minLength={8} value={accountPassword} onChange={e=>setAccountPassword(e.target.value)} placeholder="Mật khẩu (tối thiểu 8 ký tự)" className="w-full px-3 py-2 rounded-xl border border-stone-200 dark:border-stone-700 bg-transparent text-sm" />
+          {accountError&&<div className="text-xs text-rose-600">{accountError}</div>}
+          <button type="submit" className="w-full py-2.5 rounded-xl bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900 text-sm font-semibold">{accountMode==='login'?'Đăng nhập':'Tạo tài khoản'}</button>
+        </form>
+        <button onClick={()=>setAccountMode(accountMode==='login'?'signup':'login')} className="mt-2 text-xs text-amber-700 dark:text-amber-400 hover:underline">{accountMode==='login'?'Chưa có tài khoản? Tạo tài khoản':'Đã có tài khoản? Đăng nhập'}</button>
+      </div>
+
+      {/* 1. PROFILE HEADER CARD */
       <div className="p-6 rounded-3xl bg-white dark:bg-stone-900 border border-stone-200/90 dark:border-stone-800 shadow-xs flex flex-col sm:flex-row items-center sm:items-start gap-5 text-center sm:text-left">
         <div className="relative w-20 h-20 rounded-full bg-amber-100 dark:bg-stone-800 border-2 border-amber-400 dark:border-amber-600/80 flex items-center justify-center text-2xl font-bold text-amber-800 dark:text-amber-200 shrink-0 shadow-xs">
           {user.name.charAt(0)}
@@ -186,7 +209,7 @@ export const Profile: React.FC = () => {
       <div className="p-5 rounded-3xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 space-y-3">
         <div className="flex items-center justify-between"><div><div className="text-sm font-bold">Lỗi thường gặp</div><div className="text-xs text-stone-500">Theo dõi để Lina ưu tiên luyện lại.</div></div><span className="text-xs font-bold">{aiMemory.mistakes.length}</span></div>
         <div className="space-y-1.5">{aiMemory.mistakes.slice().sort((a,b)=>b.frequency-a.frequency).slice(0,5).map(m=><div key={m.id} className="text-xs flex justify-between gap-3"><span>{m.original} → {m.corrected}</span><span className="text-stone-400">{m.frequency} lần</span></div>)}</div>
-        <div className="flex flex-wrap gap-2 pt-2"><button type="button" onClick={clearLearningMemory} className="px-3 py-2 rounded-xl bg-stone-100 dark:bg-stone-800 text-xs font-semibold">Xóa AI Memory</button><button type="button" onClick={resetProgress} className="px-3 py-2 rounded-xl bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-300 text-xs font-semibold">Reset tiến trình</button></div>
+        <div className="flex flex-wrap gap-2 pt-2"><button type="button" onClick={clearLearningMemory} className="px-3 py-2 rounded-xl bg-stone-100 dark:bg-stone-800 text-xs font-semibold">Xóa AI Memory</button><button type="button" onClick={() => { if (window.confirm('Reset toàn bộ tiến trình học tập trên thiết bị này? Hành động này không thể hoàn tác. Dữ liệu cloud chỉ được thay đổi khi bạn xác nhận đồng bộ lại.')) resetProgress(); }} className="px-3 py-2 rounded-xl bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-300 text-xs font-semibold">Reset tiến trình</button></div>
       </div>
 
       {/* 3. DISPLAY PREFERENCES & SYSTEM SETTINGS */}
