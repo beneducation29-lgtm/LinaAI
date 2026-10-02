@@ -7,7 +7,7 @@ const jsonSchema = {
     id:{type:'string'}, title:{type:'string'}, description:{type:'string'}, hskLevel:{type:'string',enum:['HSK 1','HSK 2','HSK 3','HSK 4','HSK 5','HSK 6']},
     level:{type:'string'}, objectives:{type:'array',items:{type:'string'}},
     vocabulary:{type:'array',items:{type:'object',required:['id','hanzi','pinyin','pinyinNumbered','vietnamese','partOfSpeech','exampleChinese','examplePinyin','exampleVietnamese','hskLevel','category','difficulty'],properties:{id:{type:'string'},hanzi:{type:'string'},pinyin:{type:'string'},pinyinNumbered:{type:'string'},vietnamese:{type:'string'},partOfSpeech:{type:'string'},exampleChinese:{type:'string'},examplePinyin:{type:'string'},exampleVietnamese:{type:'string'},hskLevel:{type:'string'},category:{type:'string'},difficulty:{type:'integer'}}}},
-    grammar:{type:'array'}, dialogue:{type:'array'}, listening:{type:'array'}, speaking:{type:'array'}, reading:{type:'array'}, writing:{type:'array'}, roleplay:{type:'array'}, quiz:{type:'array'}, review:{type:'array'},
+    grammar:{type:'array',items:{type:'object'}}, dialogue:{type:'array',items:{type:'object'}}, listening:{type:'array',items:{type:'object'}}, speaking:{type:'array',items:{type:'object'}}, reading:{type:'array',items:{type:'object'}}, writing:{type:'array',items:{type:'object'}}, roleplay:{type:'array',items:{type:'object'}}, quiz:{type:'array',items:{type:'object'}}, review:{type:'array',items:{type:'object'}},
     estimatedMinutes:{type:'integer'}, lessonType:{type:'string'}
   }
 };
@@ -20,8 +20,11 @@ Rules:
 4. Quiz questions must contain question, options when relevant, answer, explanation, difficulty, skill, relatedVocabulary and relatedGrammar.
 5. For a micro lesson of 5-10 minutes, keep content small and focused.
 6. Personalize from learnerWeaknesses and goal without creating a second content system.
+7. For HSK 1, only use vocabulary from verifiedVocabulary supplied in Parameters; copy its Chinese, Pinyin and Vietnamese fields exactly.
 Parameters:
-${JSON.stringify(p)} 
+${JSON.stringify(p)}
+Verified HSK 1 vocabulary records:
+${JSON.stringify(p.verifiedVocabulary || [])}
 Schema:
 ${JSON.stringify(jsonSchema)}
 `;
