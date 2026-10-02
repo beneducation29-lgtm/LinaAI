@@ -1,0 +1,11 @@
+import React from 'react';
+import { Cloud, LogIn, LogOut, RefreshCw } from 'lucide-react';
+import type { SyncState } from '../../types/sync';
+export const AccountSyncCard:React.FC<{user:{email?:string;name?:string}|null;sync:SyncState;onLogin:()=>void;onLogout:()=>void;onSync:()=>void}>=({user,sync,onLogin,onLogout,onSync})=><div className="p-5 rounded-3xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 space-y-3">
+  <div className="flex items-center justify-between gap-3"><div><div className="text-sm font-bold flex items-center gap-2"><Cloud className="w-4 h-4 text-amber-600"/>Tài khoản & đồng bộ đa thiết bị</div><div className="text-xs text-stone-500 mt-1">{user?user.email:'Đang dùng học tập cục bộ trên thiết bị này.'}</div></div>
+  {user?<button onClick={onLogout} className="px-3 py-2 rounded-xl bg-stone-100 dark:bg-stone-800 text-xs font-semibold flex items-center gap-1"><LogOut className="w-3.5 h-3.5"/>Đăng xuất</button>:<button onClick={onLogin} className="px-3 py-2 rounded-xl bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900 text-xs font-semibold flex items-center gap-1"><LogIn className="w-3.5 h-3.5"/>Đăng nhập</button>}</div>
+  <div className="flex items-center justify-between text-xs"><span>{sync.status==='synced'?'✓ Đã đồng bộ':sync.status==='syncing'?'↻ Đang đồng bộ':sync.status==='offline'?'○ Ngoại tuyến':'! Đồng bộ lỗi'}</span><button onClick={onSync} disabled={!user||sync.status==='syncing'} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-stone-100 dark:bg-stone-800 disabled:opacity-50"><RefreshCw className="w-3 h-3"/>Đồng bộ</button></div>
+  {sync.lastSyncedAt&&<div className="text-[11px] text-stone-400">Lần cuối: {new Date(sync.lastSyncedAt).toLocaleString('vi-VN')}</div>}
+  {sync.pendingCount>0&&<div className="text-[11px] text-amber-600">{sync.pendingCount} thay đổi đang chờ đồng bộ.</div>}
+  {sync.error&&<div className="text-[11px] text-rose-600">{sync.error}</div>}
+</div>;
