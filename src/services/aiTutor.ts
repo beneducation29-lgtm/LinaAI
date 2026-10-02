@@ -3,7 +3,6 @@
  * Handles structured conversation, progressive hints, grammar analysis, and test scenarios.
  */
 
-import { fetchWithControl, isOfflineError, readCache, writeCache } from './requestControl';
 import { 
   ConversationMessage, 
   HSKLevel, 
@@ -52,65 +51,42 @@ export const TEST_SCENARIOS: TestScenario[] = [
 ];
 
 class AITutorClientService {
-  private inFlight = new Map<string, Promise<StructuredTutorResponse>>();
-  private controllers = new Map<string, AbortController>();
   /**
    * Send a user turn to Gemini via the server-side proxy
    */
   async sendMessage(options: SendMessageOptions, userText: string): Promise<StructuredTutorResponse> {
-    const requestKey = `${options.conversationId}:${options.mode}:${userText.trim()}`;
-    const existing = this.inFlight.get(requestKey);
-    if (existing) return existing;
-    const promise = this.sendMessageInternal(options, userText);
-    this.inFlight.set(requestKey, promise);
-    void promise.then(() => this.inFlight.delete(requestKey), () => this.inFlight.delete(requestKey));
-    return promise;
-  }
-
-  private async sendMessageInternal(options: SendMessageOptions, userText: string): Promise<StructuredTutorResponse> {
-    const controller = new AbortController();
-    this.controllers.set(options.conversationId, controller);
-    const requestId = `${options.conversationId}:${Date.now()}`;
-    const history = options.history.slice(-6).map(m => ({ sender:m.sender, hanzi:m.hanzi, text:m.hanzi, pinyin:m.pinyin, vietnamese:m.vietnamese }));
-    const memoryFacts = (options.memoryFacts || []).slice(-6);
     try {
-      const response = await fetchWithControl('/api/tutor/chat', {
+      const response = await fetch('/api/tutor/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: userText,
-          history,
-
+          history: options.history.map(m => ({
+            sender: m.sender,
+            hanzi: m.hanzi,
+            text: m.hanzi,
+            pinyin: m.pinyin,
+            vietnamese: m.vietnamese
+          })),
           mode: options.mode,
           hskLevel: options.hskLevel,
           userLevel: options.userLevel || 'Cơ bản',
           userName: options.userName,
           topicTitle: options.topicTitleVi,
-          memoryFacts
+          memoryFacts: options.memoryFacts || []
         })
-      }, { timeoutMs: 20000, retries: 1, signal: controller.signal });
+      });
 
       if (!response.ok) {
         throw new Error(`Server returned HTTP ${response.status}`);
       }
 
       const data: StructuredTutorResponse = await response.json();
-      writeCache(`conversation:${options.conversationId}:last`,data);
       return data;
     } catch (err) {
-      const cached = readCache<StructuredTutorResponse>(`conversation:${options.conversationId}:last`, 7*86400000);
-      if (cached) return cached;
-      console.warn('[Lina][AI_ERROR]', { requestId, offline: isOfflineError(err), name: (err as Error)?.name || 'Error' });
-      if ((err as Error)?.name === 'AbortError') throw err;
+      console.warn('Network call failed, utilizing graceful local fallback:', err);
       return this.getLocalFallbackResponse(userText, options.mode, options.userName);
-    } finally {
-      if (this.controllers.get(options.conversationId) === controller) this.controllers.delete(options.conversationId);
     }
-  }
-
-  cancelConversationRequest(conversationId: string): void {
-    this.controllers.get(conversationId)?.abort();
-    this.controllers.delete(conversationId);
   }
 
   /**
@@ -118,7 +94,7 @@ class AITutorClientService {
    */
   async getProgressiveHints(contextSentence: string, topicTitle: string, hskLevel: HSKLevel): Promise<ProgressiveHints> {
     try {
-      const response = await fetchWithControl('/api/tutor/hints', {
+      const response = await fetch('/api/tutor/hints', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -126,7 +102,7 @@ class AITutorClientService {
           topicTitle,
           hskLevel
         })
-      }, { timeoutMs: 12000, retries: 1 });
+      });
 
       if (!response.ok) throw new Error('Hints fetch failed');
       return await response.json();
@@ -145,11 +121,11 @@ class AITutorClientService {
    */
   async explainSentence(sentence: string, hskLevel: HSKLevel) {
     try {
-      const response = await fetchWithControl('/api/tutor/explain', {
+      const response = await fetch('/api/tutor/explain', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sentence, hskLevel })
-      }, { timeoutMs: 12000, retries: 1 });
+      });
       if (!response.ok) throw new Error('Explain fetch failed');
       return await response.json();
     } catch {
