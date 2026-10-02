@@ -330,13 +330,15 @@ async function getUsageSnapshot(userId: string) {
   monthUrl.searchParams.set('select', 'monthly_minutes');
   monthUrl.searchParams.set('user_id', 'eq.' + userId);
   monthUrl.searchParams.set('period_month', 'eq.' + month);
+  monthUrl.searchParams.set('order', 'period_day.desc');
+  monthUrl.searchParams.set('limit', '1');
   const headers = { apikey: SUPABASE_SERVICE_ROLE_KEY, Authorization: 'Bearer ' + SUPABASE_SERVICE_ROLE_KEY };
   const [d, m] = await Promise.all([fetch(dayUrl, { headers }), fetch(monthUrl, { headers })]);
   const dayRows = d.ok ? await d.json() : [];
   const monthRows = m.ok ? await m.json() : [];
   return {
     dailyRequests: Number(dayRows[0]?.daily_requests || 0),
-    monthlyMinutes: monthRows.reduce((sum: number, row: any) => sum + Number(row.monthly_minutes || 0), 0)
+    monthlyMinutes: Number(monthRows[0]?.monthly_minutes || 0)
   };
 }
 
