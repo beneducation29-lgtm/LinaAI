@@ -1,0 +1,17 @@
+import type {ConversationMessage,HSKLevel,ProgressiveHints,StructuredTutorResponse,TutorMode,UserLevel} from '../types';import type {PronunciationScore} from './speech';
+export interface AITutorProvider{sendMessage(options:{conversationId:string;topicTitleVi:string;hskLevel:HSKLevel;userLevel?:UserLevel;userName:string;history:ConversationMessage[];mode:TutorMode;memoryFacts?:string[];signal?:AbortSignal},userText:string):Promise<StructuredTutorResponse>;getProgressiveHints(contextSentence:string,topicTitle:string,hskLevel:HSKLevel):Promise<ProgressiveHints>;explainSentence(sentence:string,hskLevel:HSKLevel):Promise<unknown>;}
+export interface STTProvider{startListening(onResult:(result:{transcript:string;isFinal:boolean;confidence?:number})=>void,onError:(error:string)=>void,onEnd:()=>void,lang?:string):void;stopListening():void;isSupported():boolean;isListening():boolean;}
+export interface TTSProvider{speak(text:string,lang?:string,onEnd?:()=>void):Promise<void>;stop():void;isSupported():boolean;}
+export interface AvatarProviderContract{
+  initialize():Promise<boolean>;
+  setState(state:string):void;
+  setEmotion?(emotion:'neutral'|'happy'|'encouraging'|'curious'|'confused'|'correcting'):void;
+  setLipSync?(frame:{timestamp:number;duration:number;viseme:string;intensity:number;source:'audio'|'timing'}):void;
+  setFacialExpression?(expression:Record<string,number|string>):void;
+  speak(text:string,options?:Record<string,unknown>):Promise<void>;
+  stop():void;
+  destroy():void;
+  isReady():boolean;
+}
+export interface DatabaseProvider<T>{load():T;save(value:T):void;clear():void;}
+export type PronunciationProvider=(input:{targetText:string;audio?:Blob|ArrayBuffer|Float32Array;recognizedText?:string})=>Promise<PronunciationScore>;
