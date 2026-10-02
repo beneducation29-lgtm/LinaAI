@@ -9,6 +9,8 @@ import { buildAIUsageRecord, estimateTokenCost } from './src/services/usageServi
 import { checkQuota } from './src/services/quotaService';
 import { GenericHmacPaymentProvider } from './src/services/billingService';
 import { orchestrate } from './src/services/aiOrchestrator';
+import { rateLimit, SECURITY_LIMITS } from './src/services/security';
+import { DEFAULT_PRIVACY_PREFERENCES, normalizePrivacyPreferences } from './src/services/privacy';
 import type { Entitlements, SubscriptionRecord, PlanId, SubscriptionStatus } from './src/types/subscription';
 
 dotenv.config();
@@ -17,9 +19,37 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+app.set('trust proxy', 1);
 const PORT = Number(process.env.PORT) || 3000;
 
-app.use(express.json({ verify: (req, _res, buf) => { (req as any).rawBody = buf.toString('utf8'); } }));
+app.use(express.json({ limit: '1mb', verify: (req, _res, buf) => { (req as any).rawBody = buf.toString('utf8'); } }));
+
+// Prompt 21 security boundary: same-origin state changes + lightweight abuse controls.
+const isStateChanging=(req:Request)=>['POST','PUT','PATCH','DELETE'].includes(req.method);
+const clientKey=(req:Request)=>String(req.ip||req.socket.remoteAddress||'unknown').slice(0,120);
+const rateBucketFor=(req:Request)=>{
+  const p=req.path;
+  if(p.startsWith('/api/auth/')) return SECURITY_LIMITS.auth;
+  if(p.startsWith('/api/tutor/')) return SECURITY_LIMITS.ai;
+  if(p.includes('/tts')) return SECURITY_LIMITS.tts;
+  if(p.includes('/avatar')) return SECURITY_LIMITS.avatar;
+  if(p.startsWith('/api/admin/')) return SECURITY_LIMITS.admin;
+  if(p.includes('/upload')||p.includes('/stt')) return SECURITY_LIMITS.upload;
+  return 120;
+};
+app.use('/api', (req,res,next)=>{
+  if(isStateChanging(req)){
+    const origin=req.header('origin');
+    const host=req.header('host');
+    if(origin){try{const originHost=new URL(origin).host;if(host&&originHost!==host)return res.status(403).json({error:'Cross-origin request blocked'});}catch{return res.status(403).json({error:'Invalid request origin'});}}
+  }
+  const limit=rateBucketFor(req);
+  const result=rateLimit(clientKey(req)+':'+req.method+':'+Math.floor(Date.now()/60000),limit);
+  res.setHeader('X-RateLimit-Remaining',String(result.remaining));
+  if(!result.allowed){res.setHeader('Retry-After',String(result.retryAfterSeconds));return res.status(429).json({error:'RATE_LIMITED'});}
+  next();
+});
+
 
 // Initialize GoogleGenAI server-side with User-Agent header
 const apiKey = process.env.GEMINI_API_KEY || '';
@@ -285,6 +315,24 @@ app.post('/api/auth/refresh',async(req:Request,res:Response)=>{try{if(!SUPABASE_
 app.get('/api/auth/me',async(req:Request,res:Response)=>{const user=await supabaseUser(getCookie(req,'lina_access'));if(!user){res.status(401).json({user:null});return;}res.json({user:{id:user.id,email:user.email,name:user.user_metadata?.name}});});
 app.post('/api/auth/logout',async(_req:Request,res:Response)=>{clearAuthCookies(res);res.json({ok:true});});
 async function requireSyncUser(req:Request){return await supabaseUser(getCookie(req,'lina_access'));}
+
+
+// Prompt 21-23 privacy API. Identity is always derived from the authenticated session.
+const privacyTable='lina_privacy_preferences';
+const privacyDefaults=()=>({user_id:'',...DEFAULT_PRIVACY_PREFERENCES});
+async function privacyFetch(userId:string){
+  if(!SUPABASE_URL||!SUPABASE_SERVICE_ROLE_KEY)return DEFAULT_PRIVACY_PREFERENCES;
+  const url=new URL(SUPABASE_URL+'/rest/v1/'+privacyTable);url.searchParams.set('select','ai_memory_enabled,conversation_history_enabled,analytics_enabled,voice_data_enabled,personalization_enabled');url.searchParams.set('user_id','eq.'+userId);url.searchParams.set('limit','1');
+  const r=await fetch(url,{headers:{apikey:SUPABASE_SERVICE_ROLE_KEY,Authorization:'Bearer '+SUPABASE_SERVICE_ROLE_KEY}});if(!r.ok)return DEFAULT_PRIVACY_PREFERENCES;const row=(await r.json())[0];return row?normalizePrivacyPreferences({aiMemoryEnabled:row.ai_memory_enabled,conversationHistoryEnabled:row.conversation_history_enabled,analyticsEnabled:row.analytics_enabled,voiceDataEnabled:row.voice_data_enabled,personalizationEnabled:row.personalization_enabled}):DEFAULT_PRIVACY_PREFERENCES;
+}
+app.get('/api/privacy/preferences',async(req,res)=>{try{const user=await requireSyncUser(req);if(!user)return res.status(401).json({error:'Unauthorized'});res.json({preferences:await privacyFetch(user.id)});}catch{res.status(503).json({error:'Privacy service unavailable'});}});
+app.post('/api/privacy/preferences',async(req,res)=>{try{const user=await requireSyncUser(req);if(!user)return res.status(401).json({error:'Unauthorized'});if(!SUPABASE_URL||!SUPABASE_SERVICE_ROLE_KEY)return res.status(503).json({error:'Privacy database unavailable'});const p=normalizePrivacyPreferences(req.body?.preferences);const r=await fetch(SUPABASE_URL+'/rest/v1/'+privacyTable,{method:'POST',headers:{apikey:SUPABASE_SERVICE_ROLE_KEY,Authorization:'Bearer '+SUPABASE_SERVICE_ROLE_KEY,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({user_id:user.id,ai_memory_enabled:p.aiMemoryEnabled,conversation_history_enabled:p.conversationHistoryEnabled,analytics_enabled:p.analyticsEnabled,voice_data_enabled:p.voiceDataEnabled,personalization_enabled:p.personalizationEnabled,updated_at:new Date().toISOString()})});if(!r.ok)return res.status(503).json({error:'Could not save privacy preferences'});res.json({preferences:p});}catch{res.status(503).json({error:'Privacy service unavailable'});}});
+
+app.get('/api/privacy/export',async(req,res)=>{try{const user=await requireSyncUser(req);if(!user||!SUPABASE_URL||!SUPABASE_SERVICE_ROLE_KEY)return res.status(401).json({error:'Unauthorized'});const h={apikey:SUPABASE_SERVICE_ROLE_KEY,Authorization:'Bearer '+SUPABASE_SERVICE_ROLE_KEY};const syncUrl=new URL(SUPABASE_URL+'/rest/v1/lina_learning_sync_records');syncUrl.searchParams.set('select','record_key,payload,version,updated_at,device_id');syncUrl.searchParams.set('user_id','eq.'+user.id);const analyticsUrl=new URL(SUPABASE_URL+'/rest/v1/lina_analytics_events');analyticsUrl.searchParams.set('select','event_id,event_name,properties,occurred_at');analyticsUrl.searchParams.set('user_id','eq.'+user.id);analyticsUrl.searchParams.set('order','occurred_at.desc');analyticsUrl.searchParams.set('limit','5000');const subUrl=new URL(SUPABASE_URL+'/rest/v1/lina_subscriptions');subUrl.searchParams.set('select','plan,status,provider,current_period_start,current_period_end,cancel_at_period_end');subUrl.searchParams.set('user_id','eq.'+user.id);subUrl.searchParams.set('limit','1');const [a,b,c]=await Promise.all([fetch(syncUrl,{headers:h}),fetch(analyticsUrl,{headers:h}),fetch(subUrl,{headers:h})]);const sync=a.ok?await a.json():[];const analyticsRows=b.ok?await b.json():[];const subscription=c.ok?(await c.json())[0]||null:null;const safeSync=sync.map((x:any)=>({recordKey:x.record_key,data:x.payload,version:x.version,updatedAt:x.updated_at,deviceId:x.device_id}));res.setHeader('Content-Disposition','attachment; filename="lina-learning-export.json"');res.json({exportedAt:new Date().toISOString(),user:{id:user.id,email:user.email||null},profile:safeSync.find((x:any)=>x.recordKey==='profile')?.data||null,learningData:safeSync.filter((x:any)=>x.recordKey!=='profile'),analytics:analyticsRows,subscription});}catch{res.status(503).json({error:'Data export unavailable'});}});
+
+app.post('/api/privacy/delete-learning-data',async(req,res)=>{try{const user=await requireSyncUser(req);if(!user||!SUPABASE_URL||!SUPABASE_SERVICE_ROLE_KEY)return res.status(401).json({error:'Unauthorized'});const h={apikey:SUPABASE_SERVICE_ROLE_KEY,Authorization:'Bearer '+SUPABASE_SERVICE_ROLE_KEY};const keys=['conversation','flashcards','structuredProgress','reviewSchedules','mistakes','structuredSavedVocabulary','aiMemory','motivation','learnerMemory'];const url=new URL(SUPABASE_URL+'/rest/v1/lina_learning_sync_records');url.searchParams.set('user_id','eq.'+user.id);url.searchParams.set('record_key','in.('+keys.join(',')+')');const d=await fetch(url,{method:'DELETE',headers:h});const analyticsUrl=new URL(SUPABASE_URL+'/rest/v1/lina_analytics_events');analyticsUrl.searchParams.set('user_id','eq.'+user.id);const ad=await fetch(analyticsUrl,{method:'DELETE',headers:h});if(!d.ok||!ad.ok)return res.status(503).json({error:'Learning data deletion incomplete'});res.json({ok:true});}catch{res.status(503).json({error:'Learning data deletion unavailable'});}});
+
+app.post('/api/privacy/delete-account',async(req,res)=>{try{const user=await requireSyncUser(req);if(!user||!SUPABASE_URL||!SUPABASE_SERVICE_ROLE_KEY)return res.status(401).json({error:'Unauthorized'});if(String(req.body?.confirmation||'')!=='DELETE')return res.status(400).json({error:'Confirmation DELETE is required'});const r=await fetch(SUPABASE_URL+'/auth/v1/admin/users/'+encodeURIComponent(user.id),{method:'DELETE',headers:{apikey:SUPABASE_SERVICE_ROLE_KEY,Authorization:'Bearer '+SUPABASE_SERVICE_ROLE_KEY}});if(!r.ok)return res.status(503).json({error:'Account deletion unavailable'});clearAuthCookies(res);res.json({ok:true});}catch{res.status(503).json({error:'Account deletion unavailable'});}});
 
 
 const subscriptionProvider = new GenericHmacPaymentProvider(
