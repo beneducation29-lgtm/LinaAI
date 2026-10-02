@@ -1,5 +1,5 @@
 import { ReviewRating } from '../types';
-import { MistakeRecord, ReviewSchedule, LearnerProfile } from '../types/learning';
+import { MistakeRecord, ReviewSchedule } from '../types/learning';
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -65,7 +65,7 @@ export function getWeakAreas(mistakes: MistakeRecord[]) {
   };
 }
 
-export function buildLearnerMemory(profile: LearnerProfile, mistakes: MistakeRecord[]) {
+export function buildLearnerMemory(profile: {level:string; goal:string; dailyMinutes:number; preferredTopics:string[]; recentMistakes:string[]}, mistakes: MistakeRecord[]) {
   const weak = getWeakAreas(mistakes);
   return {
     level: profile.level, goal: profile.goal, dailyMinutes: profile.dailyMinutes,

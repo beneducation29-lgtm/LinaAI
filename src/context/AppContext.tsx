@@ -10,6 +10,13 @@ import {
   Vocabulary,
   TutorMode 
 } from '../types';
+import { ReviewSchedule, MistakeRecord, MistakeType, AIStoredMemory, LearnerProfile } from '../types/learning';
+import { LessonEngineLesson, LessonQuizResult, LessonCompletionResult } from '../types/lessonEngine';
+import { createLocalMemoryRepository, emptyMemory, updateMemory } from '../services/aiMemory';
+import { buildLearnerMemory } from '../services/learningEngine';
+import { scheduleReview, isDue, recordMistake } from '../services/learningEngine';
+import { HSK1_LESSONS } from '../data/hsk1Lessons';
+import { completeLesson } from '../services/lessonEngine';
 import { 
   INITIAL_USER_PROFILE, 
   LESSON_HSK1_1, 
