@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { BookOpen, CheckCircle2, ChevronRight, Headphones, Mic, MessageCircle, RotateCcw, Sparkles, Volume2 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { HSK1_LESSONS } from '../../data/hsk1Lessons';
@@ -22,6 +22,7 @@ export const LearningSystemScreen: React.FC = () => {
   const [roleplayReply,setRoleplayReply] = useState('');
   const [busy,setBusy] = useState(false);
   const [pinyinMode,setPinyinMode] = useState<'marks'|'numbers'|'hidden'>('marks');
+  const lessonStartedAt = useRef<Record<string, number>>({});
 
   const lesson = useMemo(() => HSK1_LESSONS.find(l => l.id === lessonId) || HSK1_LESSONS[0], [lessonId]);
   React.useEffect(() => {
