@@ -14,7 +14,7 @@ import { ReviewSchedule, MistakeRecord, MistakeType, AIStoredMemory, LearnerProf
 import { LessonEngineLesson, LessonQuizResult, LessonCompletionResult } from '../types/lessonEngine';
 import { syncEngine } from '../services/syncEngine';
 import { analytics } from '../services/analytics';
-import { getCurrentUser, login as loginAccountRequest, signup as signupAccountRequest, logout as logoutAccountRequest } from '../services/authService';
+import { getCurrentUser, login as loginAccountRequest, signup as signupAccountRequest, logout as logoutAccountRequest, loginWithGoogle } from '../services/authService';
 import type { AuthUser } from '../services/authService';
 import type { SyncState, SyncRecord } from '../types/sync';
 import { storage } from '../services/storage';
@@ -81,6 +81,7 @@ interface AppContextType {
   authUser: AuthUser | null;
   syncState: SyncState;
   loginAccount: (email: string, password: string) => Promise<void>;
+  loginWithGoogle: () => void;
   signupAccount: (email: string, password: string, name?: string) => Promise<void>;
   logoutAccount: () => Promise<void>;
   syncNow: () => Promise<void>;
@@ -231,6 +232,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return () => window.removeEventListener('lina:sync-remote', handler);
   }, []);
   const loginAccount = async (email: string, password: string) => { const account = await loginAccountRequest(email, password); setAuthUser(account); };
+  const loginWithGoogleAccount = () => loginWithGoogle();
   const signupAccount = async (email: string, password: string, name?: string) => { const account = await signupAccountRequest(email, password, name); if (account) setAuthUser(account); };
   const logoutAccount = async () => { await logoutAccountRequest(); syncEngine.setUser(null); setAuthUser(null); };
   const syncNow = async () => { await syncEngine.sync(); };
