@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import { AvatarTurnController } from '../src/services/avatarTurnController';
+import { AvatarAnimationEngine } from '../src/services/avatarAnimationEngine';
 const root=process.cwd(); const read=(file:string)=>fs.readFileSync(path.join(root,file),'utf8');
 const motion=read('src/services/avatarAnimationEngine.ts');
 const turns=read('src/services/avatarTurnController.ts');
@@ -13,4 +15,19 @@ assert.match(turns,/beginTurn/); assert.match(turns,/nextSentence/); assert.matc
 assert.match(avatar,/avatarAnimationEngine/); assert.match(avatar,/setEmotion/); assert.match(avatar,/avatarTurnController/);
 assert.match(queue,/generation/); assert.match(queue,/sentenceId/);
 assert.match(doc,/AUDIO_DRIVEN/); assert.match(doc,/VISEME_TIMELINE/); assert.match(doc,/fallback/i);
+const turnsUnit=new AvatarTurnController();
+const t1=turnsUnit.beginTurn();
+const s1=turnsUnit.nextSentence(t1);
+assert.ok(s1?.startsWith(t1+'_sentence_'));
+const t2=turnsUnit.beginTurn();
+assert.notEqual(t1,t2);
+assert.equal(turnsUnit.nextSentence(t1),null);
+assert.equal(turnsUnit.isCurrent(t2),true);
+turnsUnit.cancel(t2);
+assert.equal(turnsUnit.isCurrent(t2),false);
+const motionUnit=new AvatarAnimationEngine();
+motionUnit.setState('LISTENING');
+const frame=motionUnit.frame(Date.now());
+assert.ok(Number.isFinite(frame.gazeX));
+assert.ok(frame.blink>=0&&frame.blink<=1);
 console.log('Prompt 30 avatar architecture tests passed.');
