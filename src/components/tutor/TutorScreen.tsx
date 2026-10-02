@@ -56,7 +56,8 @@ export const TutorScreen: React.FC = () => {
     addLearnerMemory,
     clearConversation,
     aiMemory,
-    learnerProfile
+    learnerProfile,
+    recordMotivationActivity
   } = useApp();
 
   // Microphone and Conversation States
@@ -179,10 +180,7 @@ export const TutorScreen: React.FC = () => {
     setMicState('PROCESSING');
     avatarService.setState('THINKING');
 
-    // Update study time slightly
-    updateUser({
-      todayMinutesSpent: Math.min(user.dailyGoalMinutes, user.todayMinutesSpent + 1)
-    });
+    // Study time is recorded by the motivation activity ledger.
 
     try {
       // 2. Query Centralized Gemini AI Tutor Service
@@ -234,6 +232,7 @@ export const TutorScreen: React.FC = () => {
       };
 
       addMessage(aiMsg);
+      recordMotivationActivity({ id: `conversation:${aiMsg.id}`, type: useRoleplay ? 'speaking' : 'conversation', minutes: 1, metadata: { roleplay: useRoleplay } });
       avatarService.setState(mappedEmotion);
 
       // 4. Text-to-Speech loop synchronized with Avatar

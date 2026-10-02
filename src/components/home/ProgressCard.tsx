@@ -4,6 +4,7 @@ interface ProgressCardProps {
   currentMinutes: number;
   targetMinutes: number;
   streakDays: number;
+  onSelectGoal?: (minutes: 5 | 10 | 15 | 20 | 30) => void;
   className?: string;
 }
 
@@ -11,6 +12,7 @@ export const ProgressCard: React.FC<ProgressCardProps> = ({
   currentMinutes,
   targetMinutes,
   streakDays,
+  onSelectGoal,
   className = ''
 }) => {
   const percentage = Math.min(100, Math.round((currentMinutes / targetMinutes) * 100));
@@ -48,11 +50,8 @@ export const ProgressCard: React.FC<ProgressCardProps> = ({
         />
       </div>
 
-      <p className="text-[11px] text-stone-400 dark:text-stone-500 mt-2.5">
-        {percentage >= 100 
-          ? '🎉 Bạn đã hoàn thành xuất sắc mục tiêu ngày hôm nay!'
-          : `Chỉ còn ${targetMinutes - currentMinutes} phút nữa để đạt mốc hôm nay. Cố lên nhé!`}
-      </p>
+      <div className="mt-3 flex flex-wrap gap-1.5">{[5,10,15,20,30].map(goal => <button key={goal} type="button" onClick={() => onSelectGoal?.(goal as 5|10|15|20|30)} className={'px-2.5 py-1.5 rounded-lg text-[10px] font-bold border ' + (goal === targetMinutes ? 'bg-amber-100 border-amber-300 text-amber-800 dark:bg-amber-950/40 dark:border-amber-800 dark:text-amber-200' : 'bg-stone-50 border-stone-200 text-stone-500 dark:bg-stone-800 dark:border-stone-700')}>{goal} phút</button>)}</div>
+      <p className="text-[11px] text-stone-400 dark:text-stone-500 mt-2.5">{percentage >= 100 ? 'Bạn đã đủ mục tiêu hôm nay. Học thêm nếu bạn muốn, hoàn toàn không áp lực.' : `Hôm nay bạn chỉ cần ${targetMinutes - currentMinutes} phút để tiếp tục.`}</p>
     </div>
   );
 };

@@ -14,7 +14,7 @@ export type LearningGoalOption =
   | '🎓 Học tập'
   | '🎬 Văn hóa';
 
-export type DailyTimeGoal = 5 | 10 | 15 | 20;
+export type DailyTimeGoal = 5 | 10 | 15 | 20 | 30;
 
 export interface DisplayPreferences {
   showChinese: boolean;

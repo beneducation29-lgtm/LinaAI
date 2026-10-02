@@ -17,6 +17,8 @@ import { buildLearnerMemory } from '../services/learningEngine';
 import { scheduleReview, isDue, recordMistake } from '../services/learningEngine';
 import { HSK1_LESSONS } from '../data/hsk1Lessons';
 import { completeLesson } from '../services/lessonEngine';
+import { MotivationState, MotivationActivityType } from '../types/motivation';
+import { DailyGoalMinutes, getTodayStats, getMotivationSnapshot, loadMotivationState, recordMotivationActivity as applyMotivationActivity, saveMotivationState } from '../services/motivationEngine';
 import { 
   INITIAL_USER_PROFILE, 
   LESSON_HSK1_1, 
@@ -68,6 +70,10 @@ interface AppContextType {
   clearLearningMemory: () => void;
   resetProgress: () => void;
   completeGeneratedLesson: (lesson: LessonEngineLesson, results: LessonQuizResult[]) => LessonCompletionResult;
+  motivation: MotivationState;
+  motivationSnapshot: ReturnType<typeof getMotivationSnapshot>;
+  setDailyGoalMinutes: (minutes: DailyGoalMinutes) => void;
+  recordMotivationActivity: (input: { id: string; type: MotivationActivityType; minutes: number; lessonId?: string; vocabularyCount?: number; metadata?: Record<string, string | number | boolean> }) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -145,6 +151,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const memoryRepoRef = React.useRef<MemoryRepository | null>(null);
   if (!memoryRepoRef.current) memoryRepoRef.current = createLocalMemoryRepository();
   const [aiMemory, setAiMemory] = useState<AIStoredMemory>(() => memoryRepoRef.current!.load());
+  const [motivation, setMotivation] = useState<MotivationState>(() => loadMotivationState(INITIAL_USER_PROFILE.dailyGoalMinutes, INITIAL_USER_PROFILE.streakDays));
 
   const [conversation, setConversation] = useState<Conversation>(() => {
     try {
@@ -180,6 +187,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   useEffect(() => { memoryRepoRef.current!.save(aiMemory); }, [aiMemory]);
+  useEffect(() => { saveMotivationState(motivation); }, [motivation]);
+  useEffect(() => { const today=getTodayStats(motivation); setUser(prev=>({...prev,dailyGoalMinutes:motivation.dailyGoalMinutes,todayMinutesSpent:today.minutes,streakDays:motivation.streakDays})); }, [motivation]);
 
   // Sync dark class on document element
   useEffect(() => {
@@ -245,8 +254,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   }, [learnerMemory]);
 
-  const updateUser = (partial: Partial<UserProfile>) => {
-    setUser(prev => ({ ...prev, ...partial }));
+  const updateUser = (partial: Partial<UserProfile>) => { setUser(prev => ({ ...prev, ...partial })); };
+  const setDailyGoalMinutes = (minutes: DailyGoalMinutes) => {
+    setMotivation(prev => ({ ...prev, dailyGoalMinutes: minutes }));
+    setUser(prev => ({ ...prev, dailyGoalMinutes: minutes, learningGoal: { ...prev.learningGoal, targetMinutesPerDay: minutes } }));
+  };
+  const recordMotivationActivity = (input: { id: string; type: MotivationActivityType; minutes: number; lessonId?: string; vocabularyCount?: number; metadata?: Record<string, string | number | boolean> }) => {
+    setMotivation(prev => applyMotivationActivity(prev, input));
   };
 
   const setTutorMode = (mode: TutorMode) => {
@@ -312,10 +326,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       };
     }));
 
-    // Increment today minutes slightly for practice
-    updateUser({
-      todayMinutesSpent: Math.min(user.dailyGoalMinutes, user.todayMinutesSpent + 1)
-    });
+    recordMotivationActivity({ id: `review:${cardId}:${Date.now()}`, type: 'review', minutes: 1, vocabularyCount: 1, metadata: { cardId } });
   };
 
   const toggleSaveStructuredVocabulary = (id: string) => {
@@ -331,7 +342,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const speaking = itemId.includes('-sp') || itemId.includes('-rp') ? Math.min(100, current.speaking + (correct ? 15 : 0)) : current.speaking;
       return { ...prev, [lesson.id]: { ...current, mastery: next, speaking } };
     });
-    if (correct) updateUser({ todayMinutesSpent: Math.min(user.dailyGoalMinutes, user.todayMinutesSpent + 1) });
+    recordMotivationActivity({ id: `learning:${itemId}:${Date.now()}`, type: itemId.includes('-sp') || itemId.includes('-rp') ? 'speaking' : 'review', minutes: 1, lessonId: lesson?.id, metadata: { correct } });
   };
   const addMistake = (input: { type: MistakeType; original: string; corrected: string; explanation: string; mastery?: number; severity?: 'low'|'medium'|'high'; resolved?: boolean; relatedVocabulary?: string[]; relatedGrammar?: string[]; relatedPronunciation?: string[] }) => {
     const created = { ...input, id: 'mistake-' + Date.now(), frequency: 1, firstSeen: new Date().toISOString(), lastSeen: new Date().toISOString() } as MistakeRecord;
@@ -357,7 +368,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       for (const mistake of generatedMistakes) next = updateMemory(next, { mistake });
       return next;
     });
-    setUser(prev => ({ ...prev, lessonsCompletedCount: prev.lessonsCompletedCount + 1, todayMinutesSpent: Math.min(prev.dailyGoalMinutes, prev.todayMinutesSpent + Math.max(1, Math.round(lesson.estimatedMinutes / 5))) }));
+    setUser(prev => ({ ...prev, lessonsCompletedCount: prev.lessonsCompletedCount + 1 }));
+    recordMotivationActivity({ id: `lesson:${lesson.id}:${outcome.completion.completedAt}`, type: 'lesson', minutes: Math.max(1, lesson.estimatedMinutes), lessonId: lesson.id, metadata: { hskLevel: lesson.hskLevel, lessonNumber: lesson.id.match(/(?:lesson-|hsk1-lesson-)(\d+)/)?.[1] || '', source: lesson.source } });
     setStructuredProgress(prev => {
       const current = prev[lesson.id] || { mastery: 0, speaking: 0, listening: 0, grammar: 0 };
       return { ...prev, [lesson.id]: {
@@ -446,6 +458,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         learnerProfileMemory,
         aiMemory,
         learnerProfile,
+        motivation,
+        motivationSnapshot: getMotivationSnapshot(motivation, mistakes.map(m => m.original)),
+        setDailyGoalMinutes,
+        recordMotivationActivity,
         clearLearningMemory: () => { memoryRepoRef.current!.clear(); setAiMemory(emptyMemory()); setMistakes([]); },
         resetProgress: () => { setStructuredProgress({}); setReviewSchedules({}); setMistakes([]); memoryRepoRef.current!.clear(); setAiMemory(emptyMemory()); },
         completeGeneratedLesson

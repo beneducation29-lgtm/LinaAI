@@ -4,6 +4,7 @@ import { generateDailyPlan } from '../../services/personalization';
 import { ProgressCard } from './ProgressCard';
 import { LayerToggles } from '../common/LayerToggles';
 import { ToneTrainingModal } from '../voice/ToneTrainingModal';
+import { getMotivationSnapshot, motivationMessage, ACHIEVEMENTS } from '../../services/motivationEngine';
 import { 
   ArrowRight, 
   Mic, 
@@ -19,7 +20,7 @@ import linaAvatarImg from '../../assets/images/lina_avatar_stylized_179086259485
 import hskStudyImg from '../../assets/images/hsk_study_scene_1790861437105.jpg';
 
 export const HomeDashboard: React.FC = () => {
-  const { user, setCurrentTab, currentLesson, flashcards, aiMemory, learnerProfile, getDueReviewCount } = useApp();
+  const { user, setCurrentTab, currentLesson, flashcards, aiMemory, learnerProfile, getDueReviewCount, motivation, motivationSnapshot, setDailyGoalMinutes, structuredProgress } = useApp();
   const [showToneModal, setShowToneModal] = useState(false);
 
   return (
@@ -55,6 +56,31 @@ export const HomeDashboard: React.FC = () => {
       <div className="p-5 rounded-3xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200/80 dark:border-amber-900/40">
         <div className="flex items-center gap-2 text-sm font-bold"><Sparkles className="w-4 h-4 text-amber-600"/>Hôm nay Lina đề xuất cho bạn</div>
         <div className="mt-3 grid sm:grid-cols-3 gap-2">{generateDailyPlan(learnerProfile, aiMemory, getDueReviewCount()).items.slice(0,3).map((item,i)=><button key={i} type="button" onClick={()=>setCurrentTab(item.type==='conversation'?'speak':item.type==='review'||item.type==='quiz'?'review':'learn')} className="text-left p-3 rounded-2xl bg-white/80 dark:bg-stone-900/70 border border-amber-100 dark:border-stone-800"><div className="text-xs font-bold">{item.title}</div><div className="text-[11px] text-stone-500 mt-1 line-clamp-2">{item.target}</div><div className="text-[10px] text-amber-700 mt-2">{item.minutes} phút</div></button>)}</div>
+      </div>
+
+      <div className="grid lg:grid-cols-[1.35fr_0.65fr] gap-4">
+        <div className="p-5 rounded-3xl bg-white dark:bg-stone-900 border border-stone-200/90 dark:border-stone-800">
+          <div className="flex items-center justify-between gap-3">
+            <div><div className="text-xs font-bold uppercase tracking-wider text-stone-500">Động lực nhẹ nhàng</div><div className="text-lg font-bold mt-1">{motivationMessage(motivation)}</div></div>
+            <div className="text-right"><div className="text-xl font-black">{motivationSnapshot.xp} XP</div><div className="text-[11px] text-stone-500">{motivationSnapshot.streakDays} ngày</div></div>
+          </div>
+          <div className="grid grid-cols-5 gap-1.5 mt-4 text-center">
+            {[['Phút',motivationSnapshot.today.minutes],['Bài',motivationSnapshot.today.lessons],['Từ',motivationSnapshot.today.vocabulary],['Nói',motivationSnapshot.today.speaking],['Ôn',motivationSnapshot.today.review]].map(([label,value]) => <div key={String(label)} className="p-2 rounded-xl bg-stone-50 dark:bg-stone-800"><div className="font-bold text-sm">{value}</div><div className="text-[9px] text-stone-500">{label}</div></div>)}
+          </div>
+        </div>
+        <div className="p-5 rounded-3xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200/80 dark:border-amber-900/40">
+          <div className="text-xs font-bold uppercase tracking-wider text-amber-800 dark:text-amber-300">Thành tựu</div>
+          <div className="mt-3 space-y-1.5">{ACHIEVEMENTS.filter(a => motivationSnapshot.achievements.includes(a.id)).slice(-3).map(a => <div key={a.id} className="text-xs font-semibold">✓ {a.label}</div>)}</div>
+          {!motivationSnapshot.achievements.length && <div className="text-xs text-stone-500 mt-2">Mỗi hoạt động nhỏ đều được ghi nhận.</div>}
+        </div>
+      </div>
+
+      <div className="p-5 rounded-3xl bg-white dark:bg-stone-900 border border-stone-200/90 dark:border-stone-800">
+        <div className="flex items-center justify-between"><div><div className="text-xs font-bold uppercase tracking-wider text-stone-500">Tiến bộ thật</div><div className="text-sm font-semibold mt-1">Dựa trên hoạt động đã ghi nhận.</div></div><div className="text-xs text-stone-500">{user.currentHsk}</div></div>
+        <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 mt-4">
+          {[['Vocabulary',user.vocabularyLearnedCount],['Grammar',Object.values(structuredProgress).filter(p=>p.grammar>0).length],['Speaking',Math.round(Math.max(0,...Object.values(structuredProgress).map(p=>p.speaking)))],['Listening',Math.round(Math.max(0,...Object.values(structuredProgress).map(p=>p.listening)))],['Reading',0],['Pronunciation',user.pronunciationAccuracy]].map(([label,value]) => <div key={String(label)} className="p-3 rounded-xl bg-stone-50 dark:bg-stone-800"><div className="text-base font-bold">{value}{label === 'Pronunciation' ? '%' : ''}</div><div className="text-[10px] text-stone-500 mt-0.5">{label}</div></div>)}
+        </div>
+        <div className="mt-4 pt-4 border-t border-stone-100 dark:border-stone-800"><div className="text-xs font-bold">Tóm tắt 7 ngày</div><div className="grid sm:grid-cols-4 gap-2 mt-2 text-xs"><span>{motivationSnapshot.weekly.minutesStudied} phút học</span><span>{motivationSnapshot.weekly.lessonsCompleted} bài học</span><span>{motivationSnapshot.weekly.wordsReviewed} lượt từ</span><span>{motivationSnapshot.weekly.speakingSessions} lượt nói</span></div><div className="text-[11px] text-stone-500 mt-2">{motivationSnapshot.weekly.nextRecommendedPractice}</div></div>
       </div>
 
       {/* 2. MAIN CARD: CONTINUE LEARNING */}
@@ -229,6 +255,7 @@ export const HomeDashboard: React.FC = () => {
         currentMinutes={user.todayMinutesSpent}
         targetMinutes={user.dailyGoalMinutes}
         streakDays={user.streakDays}
+        onSelectGoal={setDailyGoalMinutes}
       />
 
       {/* Tone Training Modal */}
