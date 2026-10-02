@@ -20,7 +20,8 @@ import {
   VoiceSettings,
   avatarService,
   createRoleplayEngine,
-  ROLEPLAY_SCENARIOS
+  ROLEPLAY_SCENARIOS,
+  realtimeConversationController
 } from '../../services';
 import { getQuickPinyin, getQuickVietnamese } from '../../utils/chinesePinyinMap';
 import { 
@@ -126,6 +127,10 @@ export const TutorScreen: React.FC = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [conversation.messages, micState]);
 
+  useEffect(() => () => {
+    realtimeConversationController.interrupt();
+  }, []);
+
   // Handle progressive hints loading
   const handleOpenHints = async () => {
     setShowHintsModal(true);
@@ -159,6 +164,7 @@ export const TutorScreen: React.FC = () => {
     if (!textToSend.trim()) return;
 
     setErrorMessage(null);
+    realtimeConversationController.interrupt();
     setInputText('');
     setLiveTranscript('');
     setRecognizedReview(null);
@@ -235,25 +241,29 @@ export const TutorScreen: React.FC = () => {
       recordMotivationActivity({ id: `conversation:${aiMsg.id}`, type: useRoleplay ? 'speaking' : 'conversation', minutes: 1, metadata: { roleplay: useRoleplay } });
       avatarService.setState(mappedEmotion);
 
-      // 4. Text-to-Speech loop synchronized with Avatar
+      // 4. Centralized realtime speech lifecycle. TTS failures do not break the text conversation.
       if (voiceSettings.autoPlayAiResponse) {
         setMicState('AI_SPEAKING');
-        avatarService.setState('SPEAKING');
-        await avatarService.speak(structuredRes.chinese, {
-          rate: voiceSettings.playbackSpeed,
-          useGeminiTTS: voiceSettings.useGeminiTTS,
-          onEnd: () => {
-            setMicState('IDLE');
-            avatarService.setState('IDLE');
+        await realtimeConversationController.speakResponse(structuredRes, {
+          onState: (state) => {
+            if (state.audioState === 'playing' || state.audioState === 'buffering') {
+              setMicState('AI_SPEAKING');
+              avatarService.setState('SPEAKING');
+            } else if (state.audioState === 'ended') {
+              setMicState('IDLE');
+              avatarService.setState('IDLE');
+            }
           },
           onError: () => {
             setMicState('IDLE');
             avatarService.setState('IDLE');
           }
-        });
+        }, voiceSettings.playbackSpeed);
+        setMicState('IDLE');
+        if (avatarService.getState() === 'SPEAKING') avatarService.setState('IDLE');
       } else {
         setMicState('IDLE');
-        window.setTimeout(() => avatarService.setState('IDLE'), 2500);
+        avatarService.setState(mappedEmotion);
       }
     } catch {
       setMicState('ERROR');
@@ -269,6 +279,7 @@ export const TutorScreen: React.FC = () => {
     if (micState === 'LISTENING') return;
 
     setErrorMessage(null);
+    realtimeConversationController.interrupt();
     setLiveTranscript('');
     setRecognizedReview(null);
     setMicState('LISTENING');

@@ -88,6 +88,7 @@ export const LinaAvatar: React.FC<LinaAvatarProps> = ({
     HAPPY: 'from-amber-400/30 via-yellow-400/20 to-orange-400/15',
     ENCOURAGING: 'from-amber-500/30 via-emerald-400/20 to-teal-500/15',
     CONFUSED: 'from-purple-500/25 via-indigo-500/15 to-stone-500/10',
+    CORRECTING: 'from-blue-500/25 via-indigo-500/15 to-amber-500/10',
     ERROR: 'from-rose-500/25 via-red-500/15 to-transparent',
   };
 
@@ -99,6 +100,7 @@ export const LinaAvatar: React.FC<LinaAvatarProps> = ({
     HAPPY: 'border-amber-400 ring-amber-300/40',
     ENCOURAGING: 'border-amber-600 ring-amber-500/30',
     CONFUSED: 'border-purple-500 ring-purple-400/30',
+    CORRECTING: 'border-blue-500 ring-blue-400/30',
     ERROR: 'border-rose-500 ring-rose-400/30',
   };
 
@@ -110,6 +112,7 @@ export const LinaAvatar: React.FC<LinaAvatarProps> = ({
     HAPPY: <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500" />,
     ENCOURAGING: <ThumbsUp className="w-3.5 h-3.5 text-amber-600" />,
     CONFUSED: <HelpCircle className="w-3.5 h-3.5 text-purple-600" />,
+    CORRECTING: <BrainCircuit className="w-3.5 h-3.5 text-blue-600" />,
     ERROR: <AlertCircle className="w-3.5 h-3.5 text-rose-600" />,
   };
 
@@ -179,12 +182,10 @@ export const LinaAvatar: React.FC<LinaAvatarProps> = ({
                   </div>
                 )}
 
-                {/* Simulated Viseme Speech Wave Indicator */}
-                {avatarState === 'SPEAKING' && (
-                  <div className="absolute inset-x-0 bottom-0 py-0.5 bg-emerald-950/80 backdrop-blur-xs flex items-center justify-center gap-0.5">
-                    <span className="w-1 bg-emerald-400 rounded-full h-2 animate-bounce" />
-                    <span className="w-1 bg-emerald-400 rounded-full h-3 animate-bounce [animation-delay:0.15s]" />
-                    <span className="w-1 bg-emerald-400 rounded-full h-1.5 animate-bounce [animation-delay:0.3s]" />
+                {/* Audio playback indicator: mouth motion itself is driven by real audio metrics when available. */}
+                {avatarState === 'SPEAKING' && viseme.amplitude > 0.05 && (
+                  <div className="absolute inset-x-0 bottom-0 py-0.5 bg-emerald-950/80 backdrop-blur-xs flex items-center justify-center">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-sm" aria-label="Đang phát âm thanh" />
                   </div>
                 )}
               </div>
@@ -336,13 +337,10 @@ export const LinaAvatar: React.FC<LinaAvatarProps> = ({
               </div>
             )}
 
-            {/* Soundwave Bars Overlay during SPEAKING */}
-            {avatarState === 'SPEAKING' && (
-              <div className="absolute inset-x-0 bottom-0 py-1.5 bg-linear-to-t from-stone-950/80 via-stone-900/50 to-transparent flex items-center justify-center gap-1">
-                <span className="w-1 bg-emerald-400 rounded-full h-3 animate-bounce" />
-                <span className="w-1 bg-emerald-400 rounded-full h-5 animate-bounce [animation-delay:0.15s]" />
-                <span className="w-1 bg-emerald-400 rounded-full h-2 animate-bounce [animation-delay:0.3s]" />
-                <span className="w-1 bg-emerald-400 rounded-full h-4 animate-bounce [animation-delay:0.45s]" />
+            {/* Speaking indicator is event-driven; no fake waveform is rendered. */}
+            {avatarState === 'SPEAKING' && viseme.amplitude <= 0.05 && (
+              <div className="absolute inset-x-0 bottom-0 py-1.5 bg-linear-to-t from-stone-950/60 to-transparent flex items-center justify-center">
+                <span className="text-[10px] text-white/80">Đang nói · audio stream chưa có dữ liệu phân tích</span>
               </div>
             )}
 
@@ -374,10 +372,11 @@ export const LinaAvatar: React.FC<LinaAvatarProps> = ({
             {avatarState === 'IDLE' && 'Hãy bấm micro hoặc gõ câu để luyện tập cùng Lina.'}
             {avatarState === 'LISTENING' && 'Đang lắng nghe câu tiếng Trung của bạn...'}
             {avatarState === 'THINKING' && 'Lina đang chuẩn bị phân tích & câu trả lời...'}
-            {avatarState === 'SPEAKING' && 'Khẩu hình đang đồng bộ cùng giọng đọc chuẩn Phổ thông.'}
+            {avatarState === 'SPEAKING' && (viseme.amplitude > 0.05 ? 'Khẩu hình đang phản hồi theo năng lượng audio thực.' : 'Đang phát giọng đọc; lip sync audio chưa có dữ liệu.')}
             {avatarState === 'HAPPY' && 'Phát âm rất hay! Cùng tiếp tục phát huy nhé.'}
             {avatarState === 'ENCOURAGING' && 'Bạn diễn đạt đúng ý rồi. Cố lên nhé!'}
             {avatarState === 'CONFUSED' && 'Bạn thử nói lại chậm hơn một chút nhé.'}
+            {avatarState === 'CORRECTING' && 'Lina đang tập trung chỉnh một điểm quan trọng trong câu.'}
             {avatarState === 'ERROR' && 'Đang thử kết nối lại âm thanh...'}
           </p>
         </div>

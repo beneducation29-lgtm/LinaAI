@@ -9,3 +9,10 @@ export * from './providers';
 export * from './storage';
 export * from './progressService';
 export * from './inputGuards';
+
+export * from './audioAnalyzer';
+export * from './audioStreamController';
+export * from './lipSyncEngine';
+export * from './facialAnimationEngine';
+export * from './streamingTTS';
+export * from './realtimeConversationController';

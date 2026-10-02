@@ -147,13 +147,14 @@ export type AvatarState =
   | 'HAPPY' 
   | 'ENCOURAGING' 
   | 'CONFUSED' 
+  | 'CORRECTING'
   | 'ERROR';
 
 export type TutorState = 'idle' | 'listening' | 'thinking' | 'speaking' | AvatarState;
 
 export type AvatarProviderLevel = 'level1_fallback' | 'level2_interactive' | 'level3_realtime';
 
-export type TutorEmotion = 'neutral' | 'happy' | 'encouraging' | 'confused';
+export type TutorEmotion = 'neutral' | 'happy' | 'encouraging' | 'curious' | 'confused' | 'correcting';
 
 export interface CharacterDesignConfig {
   name: string;

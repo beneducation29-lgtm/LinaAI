@@ -8,6 +8,9 @@
 
 import { AvatarState, AvatarProviderLevel, CharacterDesignConfig } from '../types';
 import { speechService } from './speech';
+import { audioStreamController } from './audioStreamController';
+import { audioAnalyzer } from './audioAnalyzer';
+import { lipSyncEngine } from './lipSyncEngine';
 
 export type VisemeEvent = {
   viseme: 'sil' | 'aa' | 'ee' | 'oo' | 'mm' | 'oh' | 'f' | 's';
@@ -102,6 +105,10 @@ export const AVATAR_STATE_DESCRIPTIONS: Record<AvatarState, { titleVi: string; b
     titleVi: 'Lina đang lắng lại để hiểu rõ hơn ý bạn',
     badgeClass: 'bg-purple-100 text-purple-800 dark:bg-purple-950/60 dark:text-purple-300',
   },
+  CORRECTING: {
+    titleVi: 'Lina đang giúp bạn chỉnh câu tự nhiên hơn',
+    badgeClass: 'bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300',
+  },
   ERROR: {
     titleVi: 'Gặp chút gián đoạn, Lina vẫn luôn ở đây cùng bạn',
     badgeClass: 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300',
@@ -169,7 +176,6 @@ export class Level2InteractiveAvatarProvider implements AvatarProvider {
 
   private ready = false;
   private currentState: AvatarState = 'IDLE';
-  private speechInterval: any = null;
 
   async initialize(): Promise<boolean> {
     this.ready = true;
@@ -187,54 +193,28 @@ export class Level2InteractiveAvatarProvider implements AvatarProvider {
   async speak(text: string, options?: SpeakOptions): Promise<void> {
     this.setState('SPEAKING');
 
-    // Phonetic viseme wave simulation synchronized with speech syllables
-    const visemeSequence: Array<'aa' | 'ee' | 'oo' | 'oh' | 'mm' | 's' | 'sil'> = [
-      'aa', 'oh', 'ee', 'oo', 'aa', 'mm', 'oh', 'ee', 's', 'sil'
-    ];
-    let vIndex = 0;
-
-    if (this.speechInterval) clearInterval(this.speechInterval);
-
-    this.speechInterval = setInterval(() => {
-      if (this.currentState !== 'SPEAKING') {
-        clearInterval(this.speechInterval);
-        return;
-      }
-      const viseme = visemeSequence[vIndex % visemeSequence.length];
-      const amplitude = Math.sin(Date.now() / 120) * 0.4 + 0.6;
-      options?.onViseme?.({ viseme, amplitude });
-      vIndex++;
-    }, 110);
-
     try {
       await speechService.speakChinese(text, {
         rate: (options?.rate as any) || 1.0,
         useGeminiTTS: options?.useGeminiTTS,
         onEnd: () => {
-          if (this.speechInterval) clearInterval(this.speechInterval);
           options?.onViseme?.({ viseme: 'sil', amplitude: 0 });
           this.setState('IDLE');
           options?.onEnd?.();
         },
         onError: () => {
-          if (this.speechInterval) clearInterval(this.speechInterval);
           options?.onViseme?.({ viseme: 'sil', amplitude: 0 });
           this.setState('IDLE');
           options?.onError?.();
         },
       });
     } catch {
-      if (this.speechInterval) clearInterval(this.speechInterval);
       this.setState('IDLE');
       options?.onError?.();
     }
   }
 
   stop(): void {
-    if (this.speechInterval) {
-      clearInterval(this.speechInterval);
-      this.speechInterval = null;
-    }
     speechService.stopSpeaking();
     this.setState('IDLE');
   }
@@ -305,6 +285,9 @@ class AvatarSystemManager {
   private activeLevel: AvatarProviderLevel = 'level2_interactive';
   private externalRealtimeProviderConfigured = false;
   private providers: Record<AvatarProviderLevel, AvatarProvider>;
+  private unsubscribeAudio: (() => void) | null = null;
+  private unsubscribeMetrics: (() => void) | null = null;
+  private lastAudioNotifyAt = 0;
   private listeners: Set<AvatarListener> = new Set();
   private characterConfig: CharacterDesignConfig = DEFAULT_LINA_CHARACTER_CONFIG;
 
@@ -317,6 +300,27 @@ class AvatarSystemManager {
 
     // Initialize default provider
     this.providers[this.activeLevel].initialize();
+
+    // Real audio-driven lip sync. If no audio element exists, no mouth movement is synthesized.
+    this.unsubscribeAudio = audioStreamController.subscribe({
+      onElement: (audio) => {
+        if (audio) audioAnalyzer.attachMediaElement(audio);
+        else {
+          audioAnalyzer.stop();
+          this.currentViseme = { viseme: 'sil', amplitude: 0 };
+          this.notify();
+        }
+      }
+    });
+    this.unsubscribeMetrics = audioAnalyzer.subscribe((metrics) => {
+      if (this.currentState !== 'SPEAKING') return;
+      const now = Date.now();
+      if (metrics.isSpeaking && now - this.lastAudioNotifyAt < 66) return;
+      this.lastAudioNotifyAt = now;
+      const frame = lipSyncEngine.fromAudio(metrics);
+      this.currentViseme = { viseme: frame.viseme, amplitude: frame.intensity };
+      this.notify();
+    });
   }
 
   getState(): AvatarState {

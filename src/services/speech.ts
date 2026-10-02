@@ -91,9 +91,12 @@ export const CHINESE_TONES: ToneItem[] = [
 
 import { fetchWithControl, isOfflineError } from './requestControl';
 
+export type PlaybackListener = (audio: HTMLAudioElement | null) => void;
+
 class SpeechService {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private recognition: any = null;
+  private playbackListeners = new Set<PlaybackListener>();
   private isListeningActive = false;
   private synth: SpeechSynthesis | null = null;
   private currentUtterance: SpeechSynthesisUtterance | null = null;
@@ -319,16 +322,19 @@ class SpeechService {
           (audio as any).preservesPitch = true;
 
           this.currentAudioElement = audio;
+          this.playbackListeners.forEach(listener => listener(audio));
           options?.onStart?.();
 
           audio.onended = () => {
             this.currentAudioElement = null;
+            this.playbackListeners.forEach(listener => listener(null));
             options?.onEnd?.();
             resolve();
           };
 
           audio.onerror = () => {
             this.currentAudioElement = null;
+            this.playbackListeners.forEach(listener => listener(null));
             options?.onError?.();
             options?.onEnd?.();
             resolve();
@@ -336,6 +342,7 @@ class SpeechService {
 
           audio.play().catch(() => {
             this.currentAudioElement = null;
+            this.playbackListeners.forEach(listener => listener(null));
             // fallback to speech synthesis if autoplay blocked
             this.speakWithSpeechSynthesis(text, options, resolve);
           });
@@ -410,11 +417,18 @@ class SpeechService {
     this.synth.speak(utterance);
   }
 
+  subscribePlayback(listener: PlaybackListener): () => void {
+    this.playbackListeners.add(listener);
+    listener(this.currentAudioElement);
+    return () => this.playbackListeners.delete(listener);
+  }
+
   stopSpeaking(): void {
     if (this.currentAudioElement) {
       this.currentAudioElement.pause();
       this.currentAudioElement.currentTime = 0;
       this.currentAudioElement = null;
+      this.playbackListeners.forEach(listener => listener(null));
     }
     if (this.synth) {
       this.synth.cancel();
