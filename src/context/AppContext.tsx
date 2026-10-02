@@ -67,6 +67,7 @@ interface AppContextType {
   learnerProfile: LearnerProfile;
   clearLearningMemory: () => void;
   resetProgress: () => void;
+  completeGeneratedLesson: (lesson: LessonEngineLesson, results: LessonQuizResult[]) => LessonCompletionResult;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -337,6 +338,38 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setMistakes(prev => recordMistake(prev, input));
     setAiMemory(prev => updateMemory(prev, { mistake: created, weakVocabulary: input.type === 'vocabulary' ? input.original : undefined, grammarWeakness: input.type === 'grammar' ? input.corrected : undefined, pronunciationWeakness: input.type === 'tone' || input.type === 'pronunciation' ? input.original : undefined }));
   };
+  const completeGeneratedLesson = (lesson: LessonEngineLesson, results: LessonQuizResult[]): LessonCompletionResult => {
+    const outcome = completeLesson(lesson, results, reviewSchedules);
+    setReviewSchedules(outcome.schedules);
+    const generatedMistakes = results.filter(result => !result.correct && result.mistake).map(result => ({
+      ...result.mistake!,
+      id: 'lesson-mistake-' + Date.now() + '-' + result.questionId,
+      frequency: 1,
+      firstSeen: new Date().toISOString(),
+      lastSeen: new Date().toISOString(),
+      severity: 'medium' as const,
+      resolved: false,
+      mastery: 0
+    } as MistakeRecord));
+    if (generatedMistakes.length) setMistakes(prev => generatedMistakes.reduce((acc, mistake) => recordMistake(acc, mistake), prev));
+    setAiMemory(prev => {
+      let next = updateMemory(prev, { lessonId: lesson.id, preference: lesson.title });
+      for (const mistake of generatedMistakes) next = updateMemory(next, { mistake });
+      return next;
+    });
+    setUser(prev => ({ ...prev, lessonsCompletedCount: prev.lessonsCompletedCount + 1, todayMinutesSpent: Math.min(prev.dailyGoalMinutes, prev.todayMinutesSpent + Math.max(1, Math.round(lesson.estimatedMinutes / 5))) }));
+    setStructuredProgress(prev => {
+      const current = prev[lesson.id] || { mastery: 0, speaking: 0, listening: 0, grammar: 0 };
+      return { ...prev, [lesson.id]: {
+        mastery: Math.max(current.mastery, outcome.completion.mastery),
+        speaking: lesson.speaking.length ? Math.max(current.speaking, outcome.completion.accuracy) : current.speaking,
+        listening: lesson.listening.length ? Math.max(current.listening, outcome.completion.accuracy) : current.listening,
+        grammar: lesson.grammar.length ? Math.max(current.grammar, outcome.completion.accuracy) : current.grammar
+      }};
+    });
+    return outcome.completion;
+  };
+
   const getDueReviewCount = () => Object.values(reviewSchedules).filter(s => isDue(s.nextReview)).length;
   const learnerProfileMemory = () => buildLearnerMemory({ level: user.currentHsk, goal: 'conversation', dailyMinutes: user.dailyGoalMinutes, weakGrammar: aiMemory.grammarWeaknesses, weakVocabulary: aiMemory.weakVocabulary, weakTones: aiMemory.pronunciationWeaknesses, preferredTopics: aiMemory.preferences, recentMistakes: aiMemory.mistakes.slice(-5).map(m=>m.original) }, aiMemory.mistakes);
 
@@ -414,7 +447,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         aiMemory,
         learnerProfile,
         clearLearningMemory: () => { memoryRepoRef.current!.clear(); setAiMemory(emptyMemory()); setMistakes([]); },
-        resetProgress: () => { setStructuredProgress({}); setReviewSchedules({}); setMistakes([]); memoryRepoRef.current!.clear(); setAiMemory(emptyMemory()); }
+        resetProgress: () => { setStructuredProgress({}); setReviewSchedules({}); setMistakes([]); memoryRepoRef.current!.clear(); setAiMemory(emptyMemory()); },
+        completeGeneratedLesson
       }}
     >
       {children}
