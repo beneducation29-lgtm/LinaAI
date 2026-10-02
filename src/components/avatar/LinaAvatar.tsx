@@ -6,6 +6,7 @@ import {
   AVATAR_STATE_DESCRIPTIONS 
 } from '../../services/avatarService';
 import { AvatarState, AvatarProviderLevel } from '../../types';
+import { avatarAnimationEngine, type AvatarMotionFrame } from '../../services/avatarAnimationEngine';
 import linaStylizedAvatarImg from '../../assets/images/lina_avatar_stylized_1790862594850.jpg';
 import { 
   Sparkles, 
@@ -41,6 +42,7 @@ export const LinaAvatar: React.FC<LinaAvatarProps> = ({
   const [isBlinking, setIsBlinking] = useState(false);
   const [showTestControls, setShowTestControls] = useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  const [motion, setMotion] = useState<AvatarMotionFrame>(() => avatarAnimationEngine.frame());
   const hasRealtimeProvider = avatarService.hasRealtimeProvider();
 
   // Subscribe to central Avatar Manager updates
@@ -53,31 +55,9 @@ export const LinaAvatar: React.FC<LinaAvatarProps> = ({
     return unsubscribe;
   }, []);
 
-  // Natural Eye-Blink Loop, disabled when the user requests reduced motion.
-  useEffect(() => {
-    if (typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
-      setPrefersReducedMotion(true);
-      return;
-    }
-    let blinkTimeout: any = null;
-    const scheduleNextBlink = () => {
-      const delay = Math.random() * 3000 + 2500;
-      blinkTimeout = setTimeout(() => {
-        setIsBlinking(true);
-        setTimeout(() => {
-          setIsBlinking(false);
-          scheduleNextBlink();
-        }, 160);
-      }, delay);
-    };
+  // Procedural motion lifecycle: randomized gaze/blink + subtle head/breathing.\n  // This is intentionally not claimed as real eye tracking.\n  useEffect(() => {\n    const reduced = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;\n    setPrefersReducedMotion(Boolean(reduced));\n    if (reduced || typeof window === 'undefined') return;\n    let frameId = 0;\n    const tick = (now:number) => {\n      const next = avatarAnimationEngine.frame(now);\n      setMotion(next);\n      setIsBlinking(next.blink > 0);\n      frameId = window.requestAnimationFrame(tick);\n    };\n    frameId = window.requestAnimationFrame(tick);\n    return () => window.cancelAnimationFrame(frameId);\n  }, []);
 
-    scheduleNextBlink();
-    return () => {
-      if (blinkTimeout) clearTimeout(blinkTimeout);
-    };
-  }, []);
-
-  const stateInfo = AVATAR_STATE_DESCRIPTIONS[avatarState] || AVATAR_STATE_DESCRIPTIONS.IDLE;
+  const stateInfo = AVATAR_STATE_DESCRIPTIONS[avatarState] || AVATAR_STATE_DESCRIPTIONS.IDLE;\n  useEffect(() => { avatarAnimationEngine.setState(avatarState); }, [avatarState]);
 
   // State-specific visual styling
   const stateAuraStyles: Record<AvatarState, string> = {
@@ -293,7 +273,7 @@ export const LinaAvatar: React.FC<LinaAvatarProps> = ({
           )}
 
           {/* Portrait Container */}
-          <div className={`relative w-full max-w-[430px] aspect-[3/4] rounded-[2rem] overflow-hidden border-3 shadow-lg transition-all duration-300 ${stateBorderColors[avatarState]} ${prefersReducedMotion ? '' : 'animate-[avatarBreath_4s_ease-in-out_infinite]'}`}>
+          <div className={`relative w-full max-w-[430px] aspect-[3/4] rounded-[2rem] overflow-hidden border-3 shadow-lg transition-all duration-300 ${stateBorderColors[avatarState]} ${prefersReducedMotion ? '' : 'animate-[avatarBreath_4s_ease-in-out_infinite]'}`} style={prefersReducedMotion ? undefined : { transform: 'translate3d(' + (motion.headX * 100) + 'px,' + (motion.headY * 100) + 'px,0) rotate(' + motion.headTilt + 'deg) scale(' + (1 + motion.breathing * 0.004) + ')' }}>
             {!imageError ? (
               <img
                 src={linaStylizedAvatarImg}
@@ -304,7 +284,7 @@ export const LinaAvatar: React.FC<LinaAvatarProps> = ({
                   avatarState === 'HAPPY' ? 'scale-102' :
                   'scale-100'
                 }`}
-                onError={() => setImageError(true)}
+                onError={() => setImageError(true)}\n                style={prefersReducedMotion ? undefined : { transform: 'translate3d(' + (motion.gazeX * 8) + 'px,' + (motion.gazeY * 6) + 'px,0)' }}
               />
             ) : (
               /* Fallback Clean Stylized Vector Avatar (Level 1 Fallback Guarantee) */
