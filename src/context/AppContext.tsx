@@ -169,6 +169,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const syncReadyRef = React.useRef(false);
   const applyingRemoteRef = React.useRef(false);
 
+  const [conversation, setConversation] = useState<Conversation>(() => {
+    try {
+      const saved = storage.getItem(STORAGE_KEYS.CONVERSATION);
+      if (saved) return JSON.parse(saved);
+    } catch {
+      // fallback
+    }
+    return INITIAL_CONVERSATION;
+  });
+
+  const [flashcards, setFlashcards] = useState<Flashcard[]>(() => {
+    try {
+      const saved = storage.getItem(STORAGE_KEYS.FLASHCARDS);
+      if (saved) return JSON.parse(saved);
+    } catch {
+      // fallback
+    }
+    return INITIAL_FLASHCARDS;
+  });
+
   useEffect(() => syncEngine.subscribe(setSyncState), []);
   useEffect(() => {
     let mounted = true;
@@ -225,26 +245,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     enqueue('motivation', motivation);
     enqueue('learnerMemory', learnerMemory);
   }, [authUser, user, preferences, conversation, flashcards, structuredProgress, reviewSchedules, mistakes, structuredSavedVocabularyIds, aiMemory, motivation, learnerMemory]);
-
-  const [conversation, setConversation] = useState<Conversation>(() => {
-    try {
-      const saved = storage.getItem(STORAGE_KEYS.CONVERSATION);
-      if (saved) return JSON.parse(saved);
-    } catch {
-      // fallback
-    }
-    return INITIAL_CONVERSATION;
-  });
-
-  const [flashcards, setFlashcards] = useState<Flashcard[]>(() => {
-    try {
-      const saved = storage.getItem(STORAGE_KEYS.FLASHCARDS);
-      if (saved) return JSON.parse(saved);
-    } catch {
-      // fallback
-    }
-    return INITIAL_FLASHCARDS;
-  });
 
   const [showOnboarding, setShowOnboarding] = useState<boolean>(() => {
     return !user.onboardingCompleted;
