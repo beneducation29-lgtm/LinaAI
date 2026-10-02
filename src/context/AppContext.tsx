@@ -433,7 +433,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (lesson) setStructuredProgress(prev => updateLessonProgress(prev, lesson.id, itemId, correct));
     const isSpeaking = itemId.includes('-sp') || itemId.includes('-rp');
     recordMotivationActivity({ id: `learning:${itemId}:${Date.now()}`, type: isSpeaking ? 'speaking' : 'review', minutes: 1, lessonId: lesson?.id, metadata: { correct } });
-    if (lesson?.vocabulary.some(v => v.id === itemId)) recordMotivationActivity({ id: `vocabulary:${itemId}:${Date.now()}`, type: 'vocabulary', minutes: 1, lessonId: lesson.id, vocabularyCount: 1, metadata: { correct } });
+    if (lesson?.vocabulary.some(v => v.id === itemId)) { recordMotivationActivity({ id: `vocabulary:${itemId}:${Date.now()}`, type: 'vocabulary', minutes: 1, lessonId: lesson.id, vocabularyCount: 1, metadata: { correct } }); analytics.track('vocabulary_review', { vocabularyId: itemId, lessonId: lesson.id, correct, rating }); if (correct && rating !== 'again') analytics.track('vocabulary_mastered', { vocabularyId: itemId, lessonId: lesson.id }); }
   };
   const addMistake = (input: { type: MistakeType; original: string; corrected: string; explanation: string; mastery?: number; severity?: 'low'|'medium'|'high'; resolved?: boolean; relatedVocabulary?: string[]; relatedGrammar?: string[]; relatedPronunciation?: string[] }) => {
     const created = { ...input, id: 'mistake-' + Date.now(), frequency: 1, firstSeen: new Date().toISOString(), lastSeen: new Date().toISOString() } as MistakeRecord;
