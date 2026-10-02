@@ -12,6 +12,8 @@ import { audioStreamController } from './audioStreamController';
 import { audioAnalyzer } from './audioAnalyzer';
 import { lipSyncEngine } from './lipSyncEngine';
 import { AvatarStateMachine } from './avatarStateMachine';
+import { avatarAnimationEngine } from './avatarAnimationEngine';
+import { avatarTurnController } from './avatarTurnController';
 
 export type VisemeEvent = {
   viseme: 'sil' | 'aa' | 'ee' | 'oo' | 'mm' | 'oh' | 'f' | 's';
@@ -288,6 +290,7 @@ class AvatarSystemManager {
   private lastAudioNotifyAt = 0;
   private listeners: Set<AvatarListener> = new Set();
   private characterConfig: CharacterDesignConfig = DEFAULT_LINA_CHARACTER_CONFIG;
+  private activeSpeakToken = 0;
 
   constructor() {
     this.providers = {
@@ -360,8 +363,26 @@ class AvatarSystemManager {
     if (this.currentState === state) return;
     if (!this.stateMachine.transition(state)) return;
     this.currentState = state;
+    avatarAnimationEngine.setState(state);
     this.providers[this.activeLevel].setState(state);
     this.notify();
+  }
+
+  setEmotion(emotion: import('../types').TutorEmotion | undefined): void {
+    avatarAnimationEngine.setEmotion(emotion);
+    this.notify();
+  }
+
+  getMotionFrame(now = Date.now()) {
+    return avatarAnimationEngine.frame(now);
+  }
+
+  beginTurn(): string {
+    return avatarTurnController.beginTurn();
+  }
+
+  isCurrentTurn(turnId: string | null): boolean {
+    return avatarTurnController.isCurrent(turnId);
   }
 
   setViseme(viseme: VisemeEvent): void {
@@ -371,6 +392,8 @@ class AvatarSystemManager {
 
   async speak(text: string, options?: SpeakOptions): Promise<void> {
     const provider = this.providers[this.activeLevel];
+    const token = ++this.activeSpeakToken;
+    const turnId = avatarTurnController.beginTurn();
     try {
       await provider.speak(text, {
         ...options,
@@ -380,11 +403,15 @@ class AvatarSystemManager {
           this.notify();
         },
         onEnd: () => {
+          if (token !== this.activeSpeakToken || !avatarTurnController.isCurrent(turnId)) return;
           this.setState('IDLE');
+          avatarTurnController.cancel(turnId);
           options?.onEnd?.();
         },
         onError: () => {
+          if (token !== this.activeSpeakToken || !avatarTurnController.isCurrent(turnId)) return;
           this.setState('IDLE');
+          avatarTurnController.cancel(turnId);
           options?.onError?.();
         },
       });
@@ -401,6 +428,8 @@ class AvatarSystemManager {
   }
 
   stop(): void {
+    this.activeSpeakToken += 1;
+    avatarTurnController.cancel();
     this.providers[this.activeLevel].stop();
     this.setState('IDLE');
     this.currentViseme = { viseme: 'sil', amplitude: 0 };
