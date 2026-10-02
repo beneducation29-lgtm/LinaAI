@@ -1,4 +1,4 @@
-import { speechService, PronunciationScore } from './speech';
+import { PronunciationScore } from './speech';
 
 export type PronunciationInput = { targetText: string; recognizedText?: string; audio?: Blob | ArrayBuffer | Float32Array; };
 export type PronunciationAnalysis = PronunciationScore & { confidence?: number; providerAvailable: boolean; };
@@ -23,9 +23,7 @@ class SpeechPronunciationEngine implements PronunciationEngine {
   async comparePronunciation(input:PronunciationInput){return this.analyze(input);}
   private async analyze(input:PronunciationInput):Promise<PronunciationAnalysis>{
     const recognized=input.recognizedText || '';
-    // The existing Voice Service currently exposes STT/TTS, not acoustic pitch/formant analysis.
-    // Do not infer tone, initials, finals or numeric pronunciation scores from transcript matching.
-    if(!input.audio || input.audio instanceof Blob && input.audio.size===0) return unavailable(recognized);
+    if(!input.audio || (input.audio instanceof Blob && input.audio.size===0)) return unavailable(recognized);
     return unavailable(recognized);
   }
 }
