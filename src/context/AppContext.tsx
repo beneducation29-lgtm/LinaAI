@@ -204,7 +204,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     syncEngine.setUser(authUser?.id || null);
     syncReadyRef.current = false;
     if (!authUser) return;
-    setUser(prev => prev.id === authUser.id ? prev : { ...prev, id: authUser.id, name: authUser.name || prev.name });
+    // Never merge anonymous/previous-account local state into a different cloud account.
+    // Each authenticated account starts from its own remote snapshot, then resumes syncing.
+    resetLocalAccountState(authUser.id, authUser.name);
     void syncEngine.initialSync().then(() => { syncReadyRef.current = true; });
   }, [authUser?.id]);
   useEffect(() => {
@@ -234,7 +236,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const loginAccount = async (email: string, password: string) => { const account = await loginAccountRequest(email, password); setAuthUser(account); };
   const loginWithGoogleAccount = () => loginWithGoogle();
   const signupAccount = async (email: string, password: string, name?: string) => { const account = await signupAccountRequest(email, password, name); if (account) setAuthUser(account); };
-  const logoutAccount = async () => { await logoutAccountRequest(); syncEngine.setUser(null); setAuthUser(null); };
+  const logoutAccount = async () => {
+    await logoutAccountRequest();
+    syncEngine.setUser(null);
+    setAuthUser(null);
+    resetLocalAccountState();
+  };
   const syncNow = async () => { await syncEngine.sync(); };
   useEffect(() => {
     if (!authUser || !syncReadyRef.current || applyingRemoteRef.current) return;
@@ -255,6 +262,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [showOnboarding, setShowOnboarding] = useState<boolean>(() => {
     return !user.onboardingCompleted;
   });
+
+  function resetLocalAccountState(accountId?: string, displayName?: string) {
+    const profile = { ...INITIAL_USER_PROFILE, ...(accountId ? { id: accountId } : {}), ...(displayName ? { name: displayName } : {}) };
+    setUser(profile);
+    setPreferences(profile.preferences);
+    setTutorModeState('conversation');
+    setLearnerMemory([`Học viên tên là: ${profile.name}`, 'Quốc tịch: Việt Nam', 'Mục tiêu: Giao tiếp']);
+    setConversation(INITIAL_CONVERSATION);
+    setFlashcards(INITIAL_FLASHCARDS);
+    setStructuredProgress({});
+    setReviewSchedules({});
+    setMistakes([]);
+    setStructuredSavedVocabularyIds([]);
+    setAiMemory(emptyMemory());
+    setMotivation(loadMotivationState(profile.dailyGoalMinutes, profile.streakDays));
+    setShowOnboarding(!profile.onboardingCompleted);
+  }
 
   const learnerProfile: LearnerProfile = {
     id: user.id, displayName: user.name, nativeLanguage: 'vi', targetLanguage: 'zh-CN', currentLevel: user.currentLevel, hskLevel: user.currentHsk,
