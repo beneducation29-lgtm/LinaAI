@@ -7,14 +7,30 @@ import { TutorScreen } from '../tutor/TutorScreen';
 import { LearningSystemScreen } from '../learning/LearningSystemScreen';
 import { ReviewScreen } from '../review/ReviewScreen';
 import { Profile } from '../profile/Profile';
-import { Onboarding } from '../onboarding/Onboarding';import { AdminCMS } from '../admin/AdminCMS';
+import { Onboarding } from '../onboarding/Onboarding';
 import { Flame, Moon, Sun } from 'lucide-react';
 import linaAvatarImg from '../../assets/images/tutor_lina_avatar_1790861417833.jpg';
+
+const AdminCMS = React.lazy(() =>
+  import('../admin/AdminCMS').then((module) => ({ default: module.AdminCMS })),
+);
 
 export const AppShell: React.FC = () => {
   const { currentTab, setCurrentTab, user, preferences, toggleTheme, showOnboarding } = useApp();
 
-  if (window.location.pathname.startsWith('/admin')) return <AdminCMS />;
+  if (window.location.pathname.startsWith('/admin')) {
+    return (
+      <React.Suspense
+        fallback={
+          <div className="min-h-screen grid place-items-center bg-slate-950 text-white">
+            Đang tải Admin CMS…
+          </div>
+        }
+      >
+        <AdminCMS />
+      </React.Suspense>
+    );
+  }
 
   const renderActiveScreen = () => {
     switch (currentTab) {
