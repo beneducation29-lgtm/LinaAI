@@ -61,13 +61,20 @@ class AITutorClientService {
     const requestKey = `${options.conversationId}:${options.mode}:${userText.trim()}`;
     const existing = this.inFlight.get(requestKey);
     if (existing) return existing;
+    const promise = this.sendMessageInternal(options, userText);
+    this.inFlight.set(requestKey, promise);
+    void promise.finally(() => this.inFlight.delete(requestKey));
+    return promise;
+  }
+
+  private async sendMessageInternal(options: SendMessageOptions, userText: string): Promise<StructuredTutorResponse> {
     const controller = new AbortController();
     this.controllers.set(options.conversationId, controller);
     const requestId = `${options.conversationId}:${Date.now()}`;
     const history = options.history.slice(-6).map(m => ({ sender:m.sender, hanzi:m.hanzi, text:m.hanzi, pinyin:m.pinyin, vietnamese:m.vietnamese }));
     const memoryFacts = (options.memoryFacts || []).slice(-6);
     try {
-      const response = await fetchWithControl('/api/tutor/chat',
+      const response = await fetchWithControl('/api/tutor/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -97,7 +104,6 @@ class AITutorClientService {
       if ((err as Error)?.name === 'AbortError') throw err;
       return this.getLocalFallbackResponse(userText, options.mode, options.userName);
     } finally {
-      this.inFlight.delete(requestKey);
       if (this.controllers.get(options.conversationId) === controller) this.controllers.delete(options.conversationId);
     }
   }
