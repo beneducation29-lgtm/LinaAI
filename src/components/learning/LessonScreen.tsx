@@ -42,14 +42,14 @@ export const LessonScreen: React.FC = () => {
       setSpeakingFeedback(null);
     } else {
       recordMotivationActivity({
-        id: `lesson:${currentLesson.id}:completed`,
+        id: `lesson:${currentLesson.id}:${Date.now()}`,
         type: 'lesson',
         minutes: Math.max(1, currentLesson.estimatedMinutes),
         lessonId: currentLesson.id,
         metadata: { hskLevel: currentLesson.hskLevel, lessonNumber: currentLesson.lessonNumber }
       });
       const vocabularyCount = currentLesson.sections.reduce((sum, section) => sum + (section.vocabularies?.length || 0), 0);
-      if (vocabularyCount) recordMotivationActivity({ id: `vocabulary:lesson:${currentLesson.id}:completed`, type: 'vocabulary', minutes: 0, lessonId: currentLesson.id, vocabularyCount, metadata: { source: 'lesson-completion' } });
+      if (vocabularyCount) recordMotivationActivity({ id: `vocabulary:lesson:${currentLesson.id}:${Date.now()}`, type: 'vocabulary', minutes: 0, lessonId: currentLesson.id, vocabularyCount, metadata: { source: 'lesson-completion' } });
       // Keep the existing user progress counter in sync with the real completion event.
       // The motivation ledger is the source of truth for minutes and streaks.
     }

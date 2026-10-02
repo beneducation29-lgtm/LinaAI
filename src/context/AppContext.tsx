@@ -188,7 +188,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   useEffect(() => { memoryRepoRef.current!.save(aiMemory); }, [aiMemory]);
   useEffect(() => { saveMotivationState(motivation); }, [motivation]);
-  useEffect(() => { const today=getTodayStats(motivation); setUser(prev=>({...prev,dailyGoalMinutes:motivation.dailyGoalMinutes,todayMinutesSpent:today.minutes,streakDays:motivation.streakDays})); }, [motivation]);
+  useEffect(() => {
+    const today=getTodayStats(motivation);
+    const lessonCount=motivation.activities.filter(a=>a.type==='lesson').length;
+    const vocabularyCount=motivation.activities.reduce((sum,a)=>sum+(a.type==='vocabulary'?Math.max(1,a.vocabularyCount||1):0),0);
+    setUser(prev=>({...prev,dailyGoalMinutes:motivation.dailyGoalMinutes,todayMinutesSpent:today.minutes,streakDays:motivation.streakDays,
+      ...(lessonCount ? { lessonsCompletedCount: lessonCount } : {}),
+      ...(vocabularyCount ? { vocabularyLearnedCount: Math.max(prev.vocabularyLearnedCount, vocabularyCount) } : {})
+    }));
+  }, [motivation]);
 
   // Sync dark class on document element
   useEffect(() => {
@@ -256,7 +264,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const updateUser = (partial: Partial<UserProfile>) => { setUser(prev => ({ ...prev, ...partial })); };
   const setDailyGoalMinutes = (minutes: DailyGoalMinutes) => {
-    setMotivation(prev => ({ ...prev, dailyGoalMinutes: minutes }));
+    setMotivation(prev => {
+      const next = { ...prev, dailyGoalMinutes: minutes };
+      const today = getTodayStats(next);
+      if (today.minutes >= minutes && !next.activities.some(a => a.id === `daily-goal:${next.lastStudyDate || 'today'}`)) {
+        return applyMotivationActivity(next, { id: `daily-goal:${next.lastStudyDate || 'today'}`, type: 'daily_goal', minutes: 0 });
+      }
+      return next;
+    });
     setUser(prev => ({ ...prev, dailyGoalMinutes: minutes, learningGoal: { ...prev.learningGoal, targetMinutesPerDay: minutes } }));
   };
   const recordMotivationActivity = (input: { id: string; type: MotivationActivityType; minutes: number; lessonId?: string; vocabularyCount?: number; metadata?: Record<string, string | number | boolean> }) => {
