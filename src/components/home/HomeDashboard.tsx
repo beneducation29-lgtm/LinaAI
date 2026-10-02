@@ -4,7 +4,7 @@ import { generateDailyPlan } from '../../services/personalization';
 import { ProgressCard } from './ProgressCard';
 import { LayerToggles } from '../common/LayerToggles';
 import { ToneTrainingModal } from '../voice/ToneTrainingModal';
-import { getMotivationSnapshot, motivationMessage, ACHIEVEMENTS } from '../../services/motivationEngine';
+import { motivationMessage, ACHIEVEMENTS } from '../../services/motivationEngine';
 import { 
   ArrowRight, 
   Mic, 

@@ -10,7 +10,7 @@ import { aiTutor } from '../../services/aiTutor';
 type Section = 'learn' | 'listen' | 'speak' | 'roleplay' | 'review';
 
 export const LearningSystemScreen: React.FC = () => {
-  const { user, setCurrentTab, recordLearningResult, addMistake, getDueReviewCount, structuredProgress, learnerProfileMemory } = useApp();
+  const { user, setCurrentTab, recordLearningResult, addMistake, getDueReviewCount, structuredProgress, learnerProfileMemory, recordMotivationActivity } = useApp();
   const [lessonId,setLessonId] = useState('hsk1-lesson-1');
   const [section,setSection] = useState<Section>('learn');
   const [reviewIndex,setReviewIndex] = useState(0);
@@ -33,6 +33,7 @@ export const LearningSystemScreen: React.FC = () => {
     const result = speechService.analyzePronunciation(target,speechText);
     setFeedback(result.feedback + ' Điểm phản hồi: ' + result.overall + '/100.');
     recordLearningResult(lesson.speaking[0].id,result.overall >= 80);
+    recordMotivationActivity({ id: `pronunciation:learning:${lesson.id}:${Date.now()}`, type: 'pronunciation', minutes: 1, lessonId: lesson.id, metadata: { score: result.overall } });
     if(result.overall < 80) addMistake({type:'pronunciation',original:speechText || '(chưa nhận diện)',corrected:target,explanation:result.feedback,mastery:0});
   };
 

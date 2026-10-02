@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 
 export const LessonScreen: React.FC = () => {
-  const { currentLesson, lessonSectionIndex, setLessonSectionIndex, updateUser, user, setCurrentTab } = useApp();
+  const { currentLesson, lessonSectionIndex, setLessonSectionIndex, user, setCurrentTab, recordMotivationActivity } = useApp();
   
   const [completedSections, setCompletedSections] = useState<number[]>([0]);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
@@ -41,10 +41,17 @@ export const LessonScreen: React.FC = () => {
       setAnswerSubmitted(false);
       setSpeakingFeedback(null);
     } else {
-      updateUser({
-        lessonsCompletedCount: user.lessonsCompletedCount + 1,
-        todayMinutesSpent: Math.min(user.dailyGoalMinutes, user.todayMinutesSpent + 3)
+      recordMotivationActivity({
+        id: `lesson:${currentLesson.id}:completed`,
+        type: 'lesson',
+        minutes: Math.max(1, currentLesson.estimatedMinutes),
+        lessonId: currentLesson.id,
+        metadata: { hskLevel: currentLesson.hskLevel, lessonNumber: currentLesson.lessonNumber }
       });
+      const vocabularyCount = currentLesson.sections.reduce((sum, section) => sum + (section.vocabularies?.length || 0), 0);
+      if (vocabularyCount) recordMotivationActivity({ id: `vocabulary:lesson:${currentLesson.id}:completed`, type: 'vocabulary', minutes: 0, lessonId: currentLesson.id, vocabularyCount, metadata: { source: 'lesson-completion' } });
+      // Keep the existing user progress counter in sync with the real completion event.
+      // The motivation ledger is the source of truth for minutes and streaks.
     }
   };
 
@@ -74,6 +81,8 @@ export const LessonScreen: React.FC = () => {
           setIsSpeakingMicActive(false);
           const score = speechService.analyzePronunciation(targetText, targetText);
           setSpeakingFeedback(score);
+          recordMotivationActivity({ id: `pronunciation:${Date.now()}`, type: 'pronunciation', minutes: 1, metadata: { score: score.overall } });
+          recordMotivationActivity({ id: `pronunciation:${Date.now()}`, type: 'pronunciation', minutes: 1, metadata: { score: score.overall } });
         }, 1600);
         return;
       }
@@ -85,6 +94,7 @@ export const LessonScreen: React.FC = () => {
             setIsSpeakingMicActive(false);
             const score = speechService.analyzePronunciation(targetText, res.transcript);
             setSpeakingFeedback(score);
+            recordMotivationActivity({ id: `pronunciation:${Date.now()}`, type: 'pronunciation', minutes: 1, metadata: { score: score.overall } });
           }
         },
         onError: () => {

@@ -342,7 +342,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const speaking = itemId.includes('-sp') || itemId.includes('-rp') ? Math.min(100, current.speaking + (correct ? 15 : 0)) : current.speaking;
       return { ...prev, [lesson.id]: { ...current, mastery: next, speaking } };
     });
-    recordMotivationActivity({ id: `learning:${itemId}:${Date.now()}`, type: itemId.includes('-sp') || itemId.includes('-rp') ? 'speaking' : 'review', minutes: 1, lessonId: lesson?.id, metadata: { correct } });
+    const isSpeaking = itemId.includes('-sp') || itemId.includes('-rp');
+    recordMotivationActivity({ id: `learning:${itemId}:${Date.now()}`, type: isSpeaking ? 'speaking' : 'review', minutes: 1, lessonId: lesson?.id, metadata: { correct } });
+    if (lesson?.vocabulary.some(v => v.id === itemId)) recordMotivationActivity({ id: `vocabulary:${itemId}:${Date.now()}`, type: 'vocabulary', minutes: 1, lessonId: lesson.id, vocabularyCount: 1, metadata: { correct } });
   };
   const addMistake = (input: { type: MistakeType; original: string; corrected: string; explanation: string; mastery?: number; severity?: 'low'|'medium'|'high'; resolved?: boolean; relatedVocabulary?: string[]; relatedGrammar?: string[]; relatedPronunciation?: string[] }) => {
     const created = { ...input, id: 'mistake-' + Date.now(), frequency: 1, firstSeen: new Date().toISOString(), lastSeen: new Date().toISOString() } as MistakeRecord;
