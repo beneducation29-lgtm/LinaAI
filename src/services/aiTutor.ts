@@ -3,6 +3,9 @@
  * Handles structured conversation, progressive hints, grammar analysis, and test scenarios.
  */
 
+import { fetchWithControl } from './requestControl';
+import { sanitizePlainText } from './inputGuards';
+import type { AITutorProvider } from './providers';
 import { 
   ConversationMessage, 
   HSKLevel, 
@@ -21,6 +24,7 @@ export interface SendMessageOptions {
   history: ConversationMessage[];
   mode: TutorMode;
   memoryFacts?: string[];
+  signal?: AbortSignal;
 }
 
 export interface TestScenario {
