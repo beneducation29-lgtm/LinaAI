@@ -18,7 +18,7 @@ export class AudioAnalyzer {
     if (this.element === element && this.analyser) return true;
     this.detach();
     try {
-      this.context = new AudioContextCtor();
+      this.context = this.context || new AudioContextCtor();
       this.analyser = this.context.createAnalyser();
       this.analyser.fftSize = 512;
       this.analyser.smoothingTimeConstant = 0.72;
@@ -83,16 +83,16 @@ export class AudioAnalyzer {
     this.stop();
     try { this.source?.disconnect(); } catch {}
     try { this.analyser?.disconnect(); } catch {}
-    if (this.context) void this.context.close().catch(() => undefined);
     this.source = null;
     this.analyser = null;
     this.data = null;
-    this.context = null;
     this.element = null;
   }
 
   destroy(): void {
     this.detach();
+    if (this.context) void this.context.close().catch(() => undefined);
+    this.context = null;
     this.listeners.clear();
   }
 

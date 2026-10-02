@@ -21,7 +21,8 @@ import {
   avatarService,
   createRoleplayEngine,
   ROLEPLAY_SCENARIOS,
-  realtimeConversationController
+  realtimeConversationController,
+  realtimeSpeechOrchestrator
 } from '../../services';
 import { getQuickPinyin, getQuickVietnamese } from '../../utils/chinesePinyinMap';
 import { 
@@ -197,9 +198,29 @@ export const TutorScreen: React.FC = () => {
         `Điểm yếu: ${learnerProfile.weakAreas.slice(0,5).join(', ') || 'chưa xác định'}`,
         `Lỗi cần ưu tiên: ${relevantMemory.join(' | ') || 'chưa có'}`
       ];
-      const structuredRes = useRoleplay
-        ? await roleplayEngine.sendTurn({ conversationId: conversation.id, hskLevel: conversation.hskLevel, userLevel: user.currentLevel, userName: user.name, history: [...conversation.messages, userMsg] }, textToSend)
-        : await aiTutor.sendMessage({ conversationId: conversation.id, topicTitleVi: conversation.topicTitleVi, hskLevel: conversation.hskLevel, userLevel: user.currentLevel, userName: user.name, history: [...conversation.messages, userMsg], mode: tutorMode, memoryFacts: memoryContext }, textToSend);
+      let structuredRes;
+      if (useRoleplay) {
+        structuredRes = await roleplayEngine.sendTurn(
+          { conversationId: conversation.id, hskLevel: conversation.hskLevel, userLevel: user.currentLevel, userName: user.name, history: [...conversation.messages, userMsg] },
+          textToSend
+        );
+      } else {
+        structuredRes = await realtimeSpeechOrchestrator.startConversationTurn(
+          { conversationId: conversation.id, topicTitleVi: conversation.topicTitleVi, hskLevel: conversation.hskLevel, userLevel: user.currentLevel, userName: user.name, history: [...conversation.messages, userMsg], mode: tutorMode, memoryFacts: memoryContext },
+          textToSend,
+          {
+            onState: state => {
+              if (state === 'THINKING') { setMicState('PROCESSING'); avatarService.setState('THINKING'); }
+              else if (state === 'SPEAKING') { setMicState('AI_SPEAKING'); avatarService.setState('SPEAKING'); }
+              else if (state === 'IDLE') { setMicState('IDLE'); avatarService.setState('IDLE'); }
+              else { setMicState('ERROR'); avatarService.setState('ERROR'); }
+            },
+            onError: () => {}
+          },
+          voiceSettings.playbackSpeed,
+          voiceSettings.autoPlayAiResponse
+        );
+      }
 
       if (structuredRes.correction?.hasMistake) {
         const c = structuredRes.correction;
@@ -241,11 +262,12 @@ export const TutorScreen: React.FC = () => {
       recordMotivationActivity({ id: `conversation:${aiMsg.id}`, type: useRoleplay ? 'speaking' : 'conversation', minutes: 1, metadata: { roleplay: useRoleplay } });
       avatarService.setState(mappedEmotion);
 
-      // 4. Centralized realtime speech lifecycle. TTS failures do not break the text conversation.
-      if (voiceSettings.autoPlayAiResponse) {
+      // Normal conversation audio is owned by RealtimeSpeechOrchestrator.
+      // Roleplay keeps the established centralized speech lifecycle.
+      if (useRoleplay && voiceSettings.autoPlayAiResponse) {
         setMicState('AI_SPEAKING');
         await realtimeConversationController.speakResponse(structuredRes, {
-          onState: (state) => {
+          onState: state => {
             if (state.audioState === 'playing' || state.audioState === 'buffering') {
               setMicState('AI_SPEAKING');
               avatarService.setState('SPEAKING');
@@ -254,14 +276,9 @@ export const TutorScreen: React.FC = () => {
               avatarService.setState('IDLE');
             }
           },
-          onError: () => {
-            setMicState('IDLE');
-            avatarService.setState('IDLE');
-          }
+          onError: () => { setMicState('IDLE'); avatarService.setState('IDLE'); }
         }, voiceSettings.playbackSpeed);
-        setMicState('IDLE');
-        if (avatarService.getState() === 'SPEAKING') avatarService.setState('IDLE');
-      } else {
+      } else if (useRoleplay) {
         setMicState('IDLE');
         avatarService.setState(mappedEmotion);
       }

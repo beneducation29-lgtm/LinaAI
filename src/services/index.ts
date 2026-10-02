@@ -17,3 +17,7 @@ export * from './facialAnimationEngine';
 export * from './streamingTTS';
 export * from './realtimeConversationController';
 export * from './avatarStateMachine';
+
+export * from './speechChunker';
+export * from './ttsQueue';
+export * from './realtimeSpeechOrchestrator';

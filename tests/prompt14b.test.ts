@@ -31,3 +31,16 @@ import { AvatarStateMachine } from '../src/services/avatarStateMachine';
 const machine = new AvatarStateMachine();
 if (!machine.transition('LISTENING') || !machine.transition('THINKING') || !machine.transition('SPEAKING')) throw new Error('Avatar lifecycle transition failed');
 if (machine.transition('IDLE') !== true || machine.getState() !== 'IDLE') throw new Error('Avatar completion transition failed');
+
+import { SpeechChunker } from '../src/services/speechChunker';
+import { AvatarStateMachine } from '../src/services/avatarStateMachine';
+
+const chunks = new SpeechChunker().split('你好！很高兴认识你。今天想学习什么？');
+if (chunks.length !== 3 || chunks[0] !== '你好！' || chunks[1] !== '很高兴认识你。') throw new Error('Chinese sentence chunking failed');
+
+const state = new AvatarStateMachine();
+if (!state.transition('LISTENING') || !state.transition('THINKING') || !state.transition('SPEAKING')) throw new Error('Realtime lifecycle failed');
+state.force('SPEAKING');
+if (!state.transition('LISTENING')) throw new Error('Barge-in transition failed');
+
+console.log('Prompt 14c streaming architecture tests passed');

@@ -27,6 +27,11 @@ export interface SendMessageOptions {
   signal?: AbortSignal;
 }
 
+export interface StreamingTutorCallbacks {
+  onText?: (text: string) => void;
+  onSpeech?: (text: string) => void;
+}
+
 export interface TestScenario {
   id: string;
   title: string;
@@ -74,6 +79,70 @@ class AITutorClientService implements AITutorProvider {
       console.warn('Network call failed, utilizing graceful local fallback:', err);
       return this.getLocalFallbackResponse(userText, options.mode, options.userName);
     }
+  }
+
+  async sendMessageStreaming(
+    options: SendMessageOptions,
+    userText: string,
+    callbacks: StreamingTutorCallbacks = {}
+  ): Promise<StructuredTutorResponse> {
+    const response = await fetchWithControl('/api/tutor/chat/stream', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
+      body: JSON.stringify({
+        message: sanitizePlainText(userText, 2000),
+        history: options.history.slice(-8).map(m => ({
+          sender: m.sender,
+          hanzi: sanitizePlainText(m.hanzi, 700),
+          text: sanitizePlainText(m.hanzi, 700),
+          pinyin: sanitizePlainText(m.pinyin, 300),
+          vietnamese: sanitizePlainText(m.vietnamese, 700)
+        })),
+        mode: options.mode,
+        hskLevel: options.hskLevel,
+        userLevel: options.userLevel || 'Cơ bản',
+        userName: sanitizePlainText(options.userName, 120) || 'Bạn',
+        topicTitle: sanitizePlainText(options.topicTitleVi, 240),
+        memoryFacts: (options.memoryFacts || []).slice(-12).map(f => sanitizePlainText(f, 240)).filter(Boolean)
+      })
+    }, { timeoutMs: 30000, retries: 0, signal: options.signal });
+
+    if (!response.ok || !response.body) throw new Error(`Streaming tutor unavailable (HTTP ${response.status})`);
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let finalResponse: StructuredTutorResponse | null = null;
+    let fallbackResponse: StructuredTutorResponse | null = null;
+
+    const consume = (payload: any) => {
+      if (!payload || typeof payload.type !== 'string') return;
+      if (payload.type === 'text' && typeof payload.text === 'string') callbacks.onText?.(payload.text);
+      if (payload.type === 'speech' && typeof payload.text === 'string') callbacks.onSpeech?.(payload.text);
+      if (payload.type === 'response' && payload.response) finalResponse = payload.response as StructuredTutorResponse;
+      if (payload.type === 'fallback' && payload.response) fallbackResponse = payload.response as StructuredTutorResponse;
+      if (payload.type === 'error') throw new Error(payload.error || 'Streaming tutor error');
+    };
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const events = buffer.split('\n\n');
+      buffer = events.pop() || '';
+      for (const event of events) {
+        const line = event.split('\n').find(item => item.startsWith('data:'));
+        if (line) consume(JSON.parse(line.slice(5).trim()));
+      }
+    }
+    if (buffer.trim()) {
+      const line = buffer.split('\n').find(item => item.startsWith('data:'));
+      if (line) consume(JSON.parse(line.slice(5).trim()));
+    }
+
+    if (finalResponse) return finalResponse;
+    if (fallbackResponse) return fallbackResponse;
+    throw new Error('Streaming tutor ended without a structured response.');
   }
 
   /**
