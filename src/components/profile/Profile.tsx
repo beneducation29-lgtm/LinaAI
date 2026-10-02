@@ -71,7 +71,7 @@ export const Profile: React.FC = () => {
         <button onClick={()=>setAccountMode(accountMode==='login'?'signup':'login')} className="mt-2 text-xs text-amber-700 dark:text-amber-400 hover:underline">{accountMode==='login'?'Chưa có tài khoản? Tạo tài khoản':'Đã có tài khoản? Đăng nhập'}</button>
       </div>}
 
-      {/* 1. PROFILE HEADER CARD */}}
+      {/* 1. PROFILE HEADER CARD */}
       <div className="p-6 rounded-3xl bg-white dark:bg-stone-900 border border-stone-200/90 dark:border-stone-800 shadow-xs flex flex-col sm:flex-row items-center sm:items-start gap-5 text-center sm:text-left">
         <div className="relative w-20 h-20 rounded-full bg-amber-100 dark:bg-stone-800 border-2 border-amber-400 dark:border-amber-600/80 flex items-center justify-center text-2xl font-bold text-amber-800 dark:text-amber-200 shrink-0 shadow-xs">
           {user.name.charAt(0)}
