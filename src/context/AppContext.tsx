@@ -12,6 +12,8 @@ import {
 } from '../types';
 import { ReviewSchedule, MistakeRecord, MistakeType, AIStoredMemory, LearnerProfile } from '../types/learning';
 import { LessonEngineLesson, LessonQuizResult, LessonCompletionResult } from '../types/lessonEngine';
+import { storage } from '../services/storage';
+import { findLessonForItem, updateLessonProgress } from '../services/progressService';
 import { createLocalMemoryRepository, emptyMemory, updateMemory } from '../services/aiMemory';
 import { buildLearnerMemory } from '../services/learningEngine';
 import { scheduleReview, isDue, recordMistake } from '../services/learningEngine';
@@ -94,7 +96,7 @@ const STORAGE_KEYS = {
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<UserProfile>(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEYS.USER);
+      const saved = storage.getItem(STORAGE_KEYS.USER);
       if (saved) return JSON.parse(saved);
     } catch {
       // fallback
@@ -104,7 +106,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [preferences, setPreferences] = useState<DisplayPreferences>(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEYS.PREFERENCES);
+      const saved = storage.getItem(STORAGE_KEYS.PREFERENCES);
       if (saved) return JSON.parse(saved);
     } catch {
       // fallback
@@ -114,7 +116,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [tutorMode, setTutorModeState] = useState<TutorMode>(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEYS.TUTOR_MODE);
+      const saved = storage.getItem(STORAGE_KEYS.TUTOR_MODE);
       if (saved === 'teacher' || saved === 'conversation') return saved;
     } catch {
       // fallback
@@ -124,7 +126,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [learnerMemory, setLearnerMemory] = useState<string[]>(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEYS.LEARNER_MEMORY);
+      const saved = storage.getItem(STORAGE_KEYS.LEARNER_MEMORY);
       if (saved) return JSON.parse(saved);
     } catch {
       // fallback
@@ -136,16 +138,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [lessonSectionIndex, setLessonSectionIndex] = useState<number>(0);
   const [currentLesson] = useState<Lesson>(LESSON_HSK1_1);
   const [structuredProgress, setStructuredProgress] = useState<Record<string, { mastery: number; speaking: number; listening: number; grammar: number }>>(() => {
-    try { const saved=localStorage.getItem(STORAGE_KEYS.STRUCTURED_PROGRESS); if(saved) return JSON.parse(saved); } catch {} return {};
+    try { const saved=storage.getItem(STORAGE_KEYS.STRUCTURED_PROGRESS); if(saved) return JSON.parse(saved); } catch {} return {};
   });
   const [reviewSchedules, setReviewSchedules] = useState<Record<string, ReviewSchedule>>(() => {
-    try { const saved=localStorage.getItem(STORAGE_KEYS.REVIEW_SCHEDULES); if(saved) return JSON.parse(saved); } catch {} return {};
+    try { const saved=storage.getItem(STORAGE_KEYS.REVIEW_SCHEDULES); if(saved) return JSON.parse(saved); } catch {} return {};
   });
   const [mistakes, setMistakes] = useState<MistakeRecord[]>(() => {
-    try { const saved=localStorage.getItem(STORAGE_KEYS.MISTAKES); if(saved) return JSON.parse(saved); } catch {} return [];
+    try { const saved=storage.getItem(STORAGE_KEYS.MISTAKES); if(saved) return JSON.parse(saved); } catch {} return [];
   });
   const [structuredSavedVocabularyIds, setStructuredSavedVocabularyIds] = useState<string[]>(() => {
-    try { const saved=localStorage.getItem(STORAGE_KEYS.STRUCTURED_SAVED); if(saved) return JSON.parse(saved); } catch {} return [];
+    try { const saved=storage.getItem(STORAGE_KEYS.STRUCTURED_SAVED); if(saved) return JSON.parse(saved); } catch {} return [];
   });
   const [allVocabularies] = useState<Vocabulary[]>(INITIAL_VOCABULARIES);
   const memoryRepoRef = React.useRef<MemoryRepository | null>(null);
@@ -155,7 +157,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [conversation, setConversation] = useState<Conversation>(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEYS.CONVERSATION);
+      const saved = storage.getItem(STORAGE_KEYS.CONVERSATION);
       if (saved) return JSON.parse(saved);
     } catch {
       // fallback
@@ -165,7 +167,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [flashcards, setFlashcards] = useState<Flashcard[]>(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEYS.FLASHCARDS);
+      const saved = storage.getItem(STORAGE_KEYS.FLASHCARDS);
       if (saved) return JSON.parse(saved);
     } catch {
       // fallback
@@ -206,7 +208,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       document.documentElement.classList.remove('dark');
     }
     try {
-      localStorage.setItem(STORAGE_KEYS.PREFERENCES, JSON.stringify(preferences));
+      storage.setItem(STORAGE_KEYS.PREFERENCES, JSON.stringify(preferences));
     } catch {
       // ignore
     }
@@ -215,7 +217,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Sync user to storage
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
+      storage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
     } catch {
       // ignore
     }
@@ -224,7 +226,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Sync conversation
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEYS.CONVERSATION, JSON.stringify(conversation));
+      storage.setItem(STORAGE_KEYS.CONVERSATION, JSON.stringify(conversation));
     } catch {
       // ignore
     }
@@ -233,7 +235,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Sync flashcards
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEYS.FLASHCARDS, JSON.stringify(flashcards));
+      storage.setItem(STORAGE_KEYS.FLASHCARDS, JSON.stringify(flashcards));
     } catch {
       // ignore
     }
@@ -242,21 +244,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Sync tutor mode
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEYS.TUTOR_MODE, tutorMode);
+      storage.setItem(STORAGE_KEYS.TUTOR_MODE, tutorMode);
     } catch {
       // ignore
     }
   }, [tutorMode]);
 
-  useEffect(() => { try { localStorage.setItem(STORAGE_KEYS.STRUCTURED_PROGRESS, JSON.stringify(structuredProgress)); } catch {} }, [structuredProgress]);
-  useEffect(() => { try { localStorage.setItem(STORAGE_KEYS.REVIEW_SCHEDULES, JSON.stringify(reviewSchedules)); } catch {} }, [reviewSchedules]);
-  useEffect(() => { try { localStorage.setItem(STORAGE_KEYS.MISTAKES, JSON.stringify(mistakes)); } catch {} }, [mistakes]);
-  useEffect(() => { try { localStorage.setItem(STORAGE_KEYS.STRUCTURED_SAVED, JSON.stringify(structuredSavedVocabularyIds)); } catch {} }, [structuredSavedVocabularyIds]);
+  useEffect(() => { try { storage.setItem(STORAGE_KEYS.STRUCTURED_PROGRESS, JSON.stringify(structuredProgress)); } catch {} }, [structuredProgress]);
+  useEffect(() => { try { storage.setItem(STORAGE_KEYS.REVIEW_SCHEDULES, JSON.stringify(reviewSchedules)); } catch {} }, [reviewSchedules]);
+  useEffect(() => { try { storage.setItem(STORAGE_KEYS.MISTAKES, JSON.stringify(mistakes)); } catch {} }, [mistakes]);
+  useEffect(() => { try { storage.setItem(STORAGE_KEYS.STRUCTURED_SAVED, JSON.stringify(structuredSavedVocabularyIds)); } catch {} }, [structuredSavedVocabularyIds]);
 
   // Sync learner memory
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEYS.LEARNER_MEMORY, JSON.stringify(learnerMemory));
+      storage.setItem(STORAGE_KEYS.LEARNER_MEMORY, JSON.stringify(learnerMemory));
     } catch {
       // ignore
     }
@@ -350,13 +352,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const isStructuredVocabularySaved = (id: string) => structuredSavedVocabularyIds.includes(id);
   const recordLearningResult = (itemId: string, correct: boolean, rating: ReviewRating = correct ? 'good' : 'again') => {
     setReviewSchedules(prev => ({ ...prev, [itemId]: scheduleReview({ ...(prev[itemId] || { itemId, lastReviewed: null, nextReview: new Date().toISOString(), interval: 0, ease: 2.5, correctCount: 0, incorrectCount: 0, mastery: 0 }) }, rating) }));
-    const lesson = HSK1_LESSONS.find(l => l.vocabulary.some(v => v.id === itemId) || l.roleplay.id === itemId || l.speaking.some(s => s.id === itemId));
-    if (lesson) setStructuredProgress(prev => {
-      const current = prev[lesson.id] || { mastery: 0, speaking: 0, listening: 0, grammar: 0 };
-      const next = Math.min(100, Math.max(0, current.mastery + (correct ? 10 : -5)));
-      const speaking = itemId.includes('-sp') || itemId.includes('-rp') ? Math.min(100, current.speaking + (correct ? 15 : 0)) : current.speaking;
-      return { ...prev, [lesson.id]: { ...current, mastery: next, speaking } };
-    });
+    const lesson = findLessonForItem(HSK1_LESSONS, itemId);
+    if (lesson) setStructuredProgress(prev => updateLessonProgress(prev, lesson.id, itemId, correct));
     const isSpeaking = itemId.includes('-sp') || itemId.includes('-rp');
     recordMotivationActivity({ id: `learning:${itemId}:${Date.now()}`, type: isSpeaking ? 'speaking' : 'review', minutes: 1, lessonId: lesson?.id, metadata: { correct } });
     if (lesson?.vocabulary.some(v => v.id === itemId)) recordMotivationActivity({ id: `vocabulary:${itemId}:${Date.now()}`, type: 'vocabulary', minutes: 1, lessonId: lesson.id, vocabularyCount: 1, metadata: { correct } });

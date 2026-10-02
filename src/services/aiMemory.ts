@@ -1,3 +1,4 @@
+import { storage } from './storage';
 import { AIStoredMemory, LearnerProfile, MistakeRecord, TutorContext, MemoryRepository } from '../types/learning';
 
 const KEY='lina_ai_memory_v2';
@@ -5,9 +6,9 @@ const now=()=>new Date().toISOString();
 const clean=(s:string)=>s.trim().slice(0,240);
 
 export const createLocalMemoryRepository=():MemoryRepository=>({
- load:()=>{try{const v=localStorage.getItem(KEY);return v?JSON.parse(v):emptyMemory();}catch{return emptyMemory();}},
- save:(m)=>{try{localStorage.setItem(KEY,JSON.stringify(m));}catch{}},
- clear:()=>{try{localStorage.removeItem(KEY);}catch{}}
+ load:()=>{try{const v=storage.getItem(KEY);return v?JSON.parse(v):emptyMemory();}catch{return emptyMemory();}},
+ save:(m)=>{try{storage.setItem(KEY,JSON.stringify(m));}catch{}},
+ clear:()=>{try{storage.removeItem(KEY);}catch{}}
 });
 
 export const emptyMemory=():AIStoredMemory=>({learnerFacts:[],learningHistory:[],mistakes:[],masteredVocabulary:[],weakVocabulary:[],grammarWeaknesses:[],pronunciationWeaknesses:[],conversationSummary:'',goals:[],preferences:[]});

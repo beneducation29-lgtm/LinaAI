@@ -50,32 +50,13 @@ export const TEST_SCENARIOS: TestScenario[] = [
   {id:'sc-15',title:'15. Nói về sở thích',category:'Giao tiếp',userPrompt:'我喜欢听音乐。',expectedGoal:'Hỏi đáp tự nhiên về sở thích.',recommendedMode:'conversation'}
 ];
 
-class AITutorClientService {
+class AITutorClientService implements AITutorProvider {
   /**
    * Send a user turn to Gemini via the server-side proxy
    */
   async sendMessage(options: SendMessageOptions, userText: string): Promise<StructuredTutorResponse> {
     try {
-      const response = await fetch('/api/tutor/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: userText,
-          history: options.history.map(m => ({
-            sender: m.sender,
-            hanzi: m.hanzi,
-            text: m.hanzi,
-            pinyin: m.pinyin,
-            vietnamese: m.vietnamese
-          })),
-          mode: options.mode,
-          hskLevel: options.hskLevel,
-          userLevel: options.userLevel || 'Cơ bản',
-          userName: options.userName,
-          topicTitle: options.topicTitleVi,
-          memoryFacts: options.memoryFacts || []
-        })
-      });
+      const response = await fetchWithControl('/api/tutor/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:sanitizePlainText(userText,2000),history:options.history.slice(-8).map(m=>({sender:m.sender,hanzi:sanitizePlainText(m.hanzi,700),text:sanitizePlainText(m.hanzi,700),pinyin:sanitizePlainText(m.pinyin,300),vietnamese:sanitizePlainText(m.vietnamese,700)})),mode:options.mode,hskLevel:options.hskLevel,userLevel:options.userLevel||'Cơ bản',userName:sanitizePlainText(options.userName,120)||'Bạn',topicTitle:sanitizePlainText(options.topicTitleVi,240),memoryFacts:(options.memoryFacts||[]).slice(-12).map(f=>sanitizePlainText(f,240)).filter(Boolean)})},{timeoutMs:30000,retries:1,signal:options.signal});
 
       if (!response.ok) {
         throw new Error(`Server returned HTTP ${response.status}`);
@@ -94,7 +75,7 @@ class AITutorClientService {
    */
   async getProgressiveHints(contextSentence: string, topicTitle: string, hskLevel: HSKLevel): Promise<ProgressiveHints> {
     try {
-      const response = await fetch('/api/tutor/hints', {
+      const response = await fetchWithControl('/api/tutor/hints', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -121,7 +102,7 @@ class AITutorClientService {
    */
   async explainSentence(sentence: string, hskLevel: HSKLevel) {
     try {
-      const response = await fetch('/api/tutor/explain', {
+      const response = await fetchWithControl('/api/tutor/explain', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sentence, hskLevel })
@@ -142,19 +123,9 @@ class AITutorClientService {
   /**
    * Evaluate spoken text pronunciation accuracy
    */
-  async evaluatePronunciation(targetHanzi: string, spokenText: string): Promise<{ score: number; feedbackVi: string }> {
-    const cleanTarget = targetHanzi.replace(/[^\u4e00-\u9fa5]/g, '');
-    const cleanSpoken = spokenText.replace(/[^\u4e00-\u9fa5]/g, '');
-
-    if (!cleanSpoken) {
-      return { score: 75, feedbackVi: 'Phát âm khá rõ, chú ý mở rộng khẩu hình và nhấn thanh 4 dứt khoát.' };
-    }
-
-    if (cleanTarget === cleanSpoken) {
-      return { score: 98, feedbackVi: 'Tuyệt vời! Phát âm chuẩn từng thanh điệu, ngữ điệu rất tự nhiên.' };
-    }
-
-    return { score: 88, feedbackVi: 'Rất tốt! Cố gắng kéo dài thanh 1 và bật hơi nhẹ nhàng hơn nhé.' };
+  async evaluatePronunciation(targetHanzi:string,spokenText:string):Promise<{score:number|null;feedbackVi:string}>{
+    const cleanSpoken=sanitizePlainText(spokenText,1200);
+    return {score:null,feedbackVi:cleanSpoken?'STT đã nhận diện nội dung, nhưng Lina chưa có acoustic provider đủ dữ liệu để chấm điểm phát âm.':'Chưa thể đánh giá chính xác. Cần microphone/audio analysis provider.'};
   }
 
   private getLocalFallbackResponse(userText: string, mode: TutorMode, userName: string): StructuredTutorResponse {

@@ -1,3 +1,4 @@
+import { storage } from './storage';
 import { MotivationActivity, MotivationActivityType, MotivationDailyStats, MotivationSnapshot, MotivationState, MotivationWeeklySummary } from '../types/motivation';
 
 export const MOTIVATION_STORAGE_KEY = 'lina_motivation_v1';
@@ -28,7 +29,7 @@ export const emptyMotivationState=(dailyGoalMinutes:DailyGoalMinutes=5,legacyStr
 
 export const loadMotivationState=(dailyGoalMinutes:DailyGoalMinutes,legacyStreakDays=0):MotivationState=>{
   try{
-    const raw=localStorage.getItem(MOTIVATION_STORAGE_KEY);
+    const raw=storage.getItem(MOTIVATION_STORAGE_KEY);
     if(raw){
       const parsed=JSON.parse(raw) as MotivationState;
       return {...emptyMotivationState(dailyGoalMinutes,legacyStreakDays),...parsed,
@@ -39,7 +40,7 @@ export const loadMotivationState=(dailyGoalMinutes:DailyGoalMinutes,legacyStreak
   }catch{}
   return emptyMotivationState(dailyGoalMinutes,legacyStreakDays);
 };
-export const saveMotivationState=(state:MotivationState)=>{try{localStorage.setItem(MOTIVATION_STORAGE_KEY,JSON.stringify(state));}catch{}};
+export const saveMotivationState=(state:MotivationState)=>{try{storage.setItem(MOTIVATION_STORAGE_KEY,JSON.stringify(state));}catch{}};
 
 export const getTodayStats=(state:MotivationState,date=localDate()):MotivationDailyStats=>{
   const a=state.activities.filter(x=>x.localDate===date);
