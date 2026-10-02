@@ -31,10 +31,14 @@ export class RoleplayEngine {
     return '[ROLEPLAY]\nTình huống: '+s.scenario.scenario+'. Context: '+s.scenario.context+'.\nLina đóng vai: '+s.scenario.aiRole+'. Người học: '+s.scenario.learnerRole+'.\nMục tiêu: '+s.scenario.successCriteria.join('; ')+'.\nTừ vựng mục tiêu: '+s.scenario.targetVocabulary.join(', ')+'.\nNgữ pháp mục tiêu: '+s.scenario.targetGrammar.join(' | ')+'.\nImmersion: '+immersion+'.\n'+memory+'\nLuôn phản ứng theo đúng câu người học vừa nói. Nếu câu khác dự kiến nhưng đúng ý, tiếp tục tình huống. Nếu sai: hiểu ý trước, sửa ngắn gọn, đưa một gợi ý nhỏ rồi tiếp tục roleplay. Phân biệt câu đúng ngữ pháp với cách nói tự nhiên; nếu câu đúng nhưng chưa tự nhiên, nói ngắn: Câu của bạn đúng. Trong hội thoại tự nhiên, có thể nói… Không hỏi lại thông tin đã được nói trong session. Không biến roleplay thành bài giảng.\nLượt hiện tại: '+userText;
   }
   async sendTurn(options:Omit<SendMessageOptions,'topicTitleVi'|'mode'>,userText:string){
-    if(!this.session)throw new Error('Roleplay session has not started'); this.session.turnCount++; this.session.choices.push(userText);
+    if(!this.session)throw new Error('Roleplay session has not started'); this.session.turnCount++; this.session.choices.push(userText); this.captureLearnerFacts(userText);
     const prompt=this.buildTurnPrompt(userText);
     const memoryFacts=['ROLEPLAY: '+this.session.scenario.scenario,'Context: '+this.session.scenario.context,'Vai Lina: '+this.session.scenario.aiRole,'Vai learner: '+this.session.scenario.learnerRole,'Immersion: '+this.session.immersion,...this.session.learnerFacts];
     return this.tutor.sendMessage({...options,topicTitleVi:'Roleplay · '+this.session.scenario.scenario,mode:'conversation',memoryFacts},prompt);
+  }
+  private captureLearnerFacts(text:string){
+    const patterns=[/我叫[^，。！？]+/,/我是[^，。！？]+/,/我来自[^，。！？]+/,/我喜欢[^，。！？]+/,/我的[^，。！？]+/];
+    patterns.forEach(p=>{const m=text.match(p);if(m)this.rememberFact(m[0]);});
   }
   rememberFact(fact:string){if(this.session&&fact.trim()&&!this.session.learnerFacts.includes(fact.trim()))this.session.learnerFacts.push(fact.trim());}
   setImmersion(level:ImmersionLevel){if(this.session)this.session.immersion=level;}
