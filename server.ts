@@ -296,7 +296,7 @@ async function ensureFreeSubscription(userId: string) {
   await fetch(SUPABASE_URL + '/rest/v1/lina_subscriptions?on_conflict=user_id', {
     method: 'POST',
     headers: { apikey: SUPABASE_SERVICE_ROLE_KEY, Authorization: 'Bearer ' + SUPABASE_SERVICE_ROLE_KEY, 'Content-Type': 'application/json', Prefer: 'resolution=ignore-duplicates,return=minimal' },
-    body: JSON.stringify({ user_id: userId, plan: 'FREE', status: 'trial' })
+    body: JSON.stringify({ user_id: userId, plan: 'FREE', status: 'active' })
   });
 }
 
