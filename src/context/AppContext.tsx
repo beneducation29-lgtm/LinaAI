@@ -581,6 +581,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       authUser,
       syncState,
       loginAccount,
+      loginWithGoogle: loginWithGoogleAccount,
       signupAccount,
       logoutAccount,
       syncNow,
