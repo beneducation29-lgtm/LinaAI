@@ -1,12 +1,11 @@
 import React from 'react';
 import { Sparkles } from 'lucide-react';
 import { LinaAvatar } from './LinaAvatar';
-import type { AvatarState, HSKLevel } from '../../types';
+import type { HSKLevel } from '../../types';
 
 interface AvatarStageProps {
   hskLevel: HSKLevel;
   topicTitle: string;
-  avatarState?: AvatarState;
   className?: string;
   onOpenCharacterDesign?: () => void;
 }
