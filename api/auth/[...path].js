@@ -71,11 +71,11 @@ export default async function handler(req,res){
     if(action==='logout' && req.method==='POST'){
       const blocked=guard(req,res,'logout'); if(blocked) return blocked;
       const cookies=parseCookies(req);
-      if(cookies.lina_access&&process.env.SUPABASE_URL&&process.env.SUPABASE_ANON_KEY){
+      if(cookies.lina_access&&process.env.SUPABASE_URL&&(process.env.SUPABASE_PUBLISHABLE_KEY||process.env.SUPABASE_ANON_KEY)){
         try{
           await fetch(process.env.SUPABASE_URL+'/auth/v1/logout',{
             method:'POST',
-            headers:{apikey:process.env.SUPABASE_ANON_KEY,Authorization:`Bearer ${cookies.lina_access}`}
+            headers:{apikey:(process.env.SUPABASE_PUBLISHABLE_KEY||process.env.SUPABASE_ANON_KEY),Authorization:`Bearer ${cookies.lina_access}`}
           });
         }catch{}
       }
