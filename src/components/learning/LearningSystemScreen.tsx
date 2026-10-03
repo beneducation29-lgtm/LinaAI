@@ -2,6 +2,8 @@ import React, { useMemo, useRef, useState } from 'react';
 import { BookOpen, CheckCircle2, ChevronRight, Headphones, Mic, MessageCircle, RotateCcw, Sparkles, Volume2 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { HSK1_LESSONS } from '../../data/hsk1Lessons';
+import { HSK_CURRICULUM_LEVELS } from '../../data/hskCurriculum';
+import type { HSKLevel } from '../../types';
 import { InteractiveChineseSentence } from '../common/InteractiveChineseSentence';
 import { LayerToggles } from '../common/LayerToggles';
 import { speechService } from '../../services/speech';
@@ -13,6 +15,7 @@ type Section = 'learn' | 'listen' | 'speak' | 'roleplay' | 'review';
 export const LearningSystemScreen: React.FC = () => {
   const { user, setCurrentTab, recordLearningResult, addMistake, getDueReviewCount, structuredProgress, learnerProfileMemory, recordMotivationActivity } = useApp();
   const [lessonId,setLessonId] = useState('hsk1-lesson-1');
+  const [selectedHsk,setSelectedHsk] = useState<HSKLevel>('HSK 1');
   const [section,setSection] = useState<Section>('learn');
   const [reviewIndex,setReviewIndex] = useState(0);
   const [reviewDone,setReviewDone] = useState(false);
@@ -25,6 +28,7 @@ export const LearningSystemScreen: React.FC = () => {
   const lessonStartedAt = useRef<Record<string, number>>({});
 
   const lesson = useMemo(() => HSK1_LESSONS.find(l => l.id === lessonId) || HSK1_LESSONS[0], [lessonId]);
+  const selectedCurriculum = HSK_CURRICULUM_LEVELS.find(x => x.level === selectedHsk) || HSK_CURRICULUM_LEVELS[0];
   React.useEffect(() => {
     lessonStartedAt.current[lesson.id] = Date.now();
     analytics.track('lesson_start', { lessonId: lesson.id, hskLevel: lesson.hskLevel });
@@ -84,19 +88,27 @@ export const LearningSystemScreen: React.FC = () => {
         <div>
           <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300"><Sparkles className="w-4 h-4"/>HSK Learning System</div>
           <h1 className="text-2xl sm:text-3xl font-bold mt-1">Lộ trình tiếng Trung có cấu trúc</h1>
-          <p className="text-sm text-stone-500 dark:text-stone-400 mt-1">HSK 1 triển khai đầy đủ 10 bài; HSK 2–6 dùng cùng kiến trúc dữ liệu.</p>
+          <p className="text-sm text-stone-500 dark:text-stone-400 mt-1">Chọn HSK để xem lộ trình, kỹ năng và nội dung đã có. Mục chưa có dữ liệu sẽ hiển thị rõ CONTENT_GAP thay vì khóa học.</p>
         </div>
         <div className="flex gap-2"><span className="px-3 py-1.5 rounded-xl bg-stone-100 dark:bg-stone-800 text-xs font-bold">{user.currentHsk}</span><span className="px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/30 text-xs font-bold text-amber-800 dark:text-amber-300">{getDueReviewCount()} cần ôn</span></div>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-6 gap-2">
-        {(['HSK 1','HSK 2','HSK 3','HSK 4','HSK 5','HSK 6'] as const).map(level => (
-          <button key={level} type="button" disabled={level !== 'HSK 1'} onClick={() => level === 'HSK 1' && setLessonId('hsk1-lesson-1')} className={'rounded-xl border p-3 text-left ' + (level === 'HSK 1' ? 'bg-stone-900 text-white border-stone-900' : 'bg-white/60 dark:bg-stone-900/40 text-stone-400 border-stone-200 dark:border-stone-800 cursor-not-allowed')}>
-            <div className="text-xs font-bold">{level}</div><div className="text-[10px] mt-1">{level === 'HSK 1' ? 'MVP' : 'Sắp mở'}</div>
+        {HSK_CURRICULUM_LEVELS.map(({ level, contentStatus }) => (
+          <button key={level} type="button" onClick={() => { setSelectedHsk(level); if (level === 'HSK 1') { setLessonId('hsk1-lesson-1'); setSection('learn'); setReviewIndex(0); setReviewDone(false); } }} className={'rounded-xl border p-3 text-left transition-all ' + (selectedHsk === level ? 'bg-stone-900 text-white border-stone-900 shadow-sm' : 'bg-white dark:bg-stone-900 text-stone-700 dark:text-stone-200 border-stone-200 dark:border-stone-800 hover:border-amber-400')}>
+            <div className="text-xs font-bold">{level}</div><div className="text-[10px] mt-1">{level === 'HSK 1' ? '45 từ · 10 bài' : contentStatus === 'CONTENT_GAP' ? 'Khung đã mở · đang bổ sung' : 'Đã có nội dung'}</div>
           </button>
         ))}
       </div>
 
+      {selectedHsk !== 'HSK 1' ? (
+        <div className="p-6 rounded-3xl bg-white dark:bg-stone-900 border border-amber-200 dark:border-amber-900/40 space-y-4">
+          <div className="flex items-start justify-between gap-4"><div><div className="text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300">{selectedHsk} · Curriculum Preview</div><h2 className="text-2xl font-bold mt-1">Khung học đã mở, không khóa</h2><p className="text-sm text-stone-600 dark:text-stone-400 mt-2">Các kỹ năng và chủ đề bên dưới đã được khai báo trong curriculum engine. Dữ liệu bài học chi tiết chưa được xác minh đầy đủ nên hệ thống đánh dấu CONTENT_GAP, không tự tạo nội dung HSK giả.</p></div><span className="px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 text-[11px] font-bold">CONTENT_GAP</span></div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">{selectedCurriculum.focus.map(item => <div key={item} className="p-3 rounded-xl bg-stone-50 dark:bg-stone-800/60 text-sm">{item}</div>)}</div>
+          <div className="flex flex-wrap gap-2">{['Từ vựng','Ngữ pháp','Phát âm','Nghe','Nói','Đọc','Viết','Chữ Hán','Hội thoại','Roleplay','Stories'].map(skill => <span key={skill} className="px-2.5 py-1 rounded-lg bg-stone-100 dark:bg-stone-800 text-[11px] font-semibold">{skill}</span>)}</div>
+          <button type="button" onClick={() => setSelectedHsk('HSK 1')} className="px-4 py-2.5 rounded-xl bg-stone-900 text-white text-xs font-bold">Mở nội dung HSK 1 đang có</button>
+        </div>
+      ) : (
       <div className="grid lg:grid-cols-[260px_1fr] gap-4">
         <aside className="space-y-2">
           <div className="p-4 rounded-2xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800">
@@ -168,3 +180,5 @@ export const LearningSystemScreen: React.FC = () => {
 };
 
 const Metric:React.FC<{label:string;value:number}> = ({label,value}) => <div className="p-3 rounded-xl bg-stone-50 dark:bg-stone-800/60"><div className="text-lg font-bold">{value}{label === 'Thanh điệu' ? '%' : ''}</div><div className="text-[11px] text-stone-500">{label}</div></div>;
+
+      )}
