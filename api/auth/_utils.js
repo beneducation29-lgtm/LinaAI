@@ -2,7 +2,7 @@ const SUPABASE_URL = process.env.SUPABASE_URL || '';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || '';
 
 export function json(res,status,payload){
-  res.status(status).setHeader('Content-Type','application/json; charset=utf-8').send(JSON.stringify(payload));
+  res.status(status).setHeader('Content-Type','application/json; charset=utf-8').setHeader('Cache-Control','no-store').setHeader('X-Content-Type-Options','nosniff').send(JSON.stringify(payload));
 }
 export function parseCookies(req){
   const raw=String(req.headers.cookie||'');
