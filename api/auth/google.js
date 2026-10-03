@@ -1,5 +1,6 @@
 import { createServerClient, parseCookieHeader, serializeCookieHeader } from '@supabase/ssr';
 import { json } from './_utils.js';
+import { setAuthCookies } from './_utils.js';
 
 const SUPABASE_URL = process.env.SUPABASE_URL || '';
 const SUPABASE_PUBLISHABLE_KEY =
@@ -38,8 +39,8 @@ function redirect(res, location){
 
 function cleanDetail(value){
   return String(value || '')
-    .replace(/[\\r\\n]/g, ' ')
-    .replace(/\\s+/g, ' ')
+    .replace(/[\r\n]/g, ' ')
+    .replace(/\s+/g, ' ')
     .slice(0,220);
 }
 
@@ -87,12 +88,23 @@ export default async function handler(req,res){
       return redirect(res, data.url);
     }
 
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
     if(error){
       console.error('[Lina][GOOGLE_EXCHANGE]', cleanDetail(error.message));
       return errorRedirect(res, 'google_exchange', error.message);
     }
+
+    const session = data?.session;
+    if(!session?.access_token || !session?.refresh_token){
+      const detail = 'Google callback completed but Supabase returned no session tokens.';
+      console.error('[Lina][GOOGLE_SESSION]', detail);
+      return errorRedirect(res, 'google_session', detail);
+    }
+
+    // The rest of Lina's auth API reads lina_access/lina_refresh.
+    // Bridge the successful Supabase SSR session into those HttpOnly cookies.
+    setAuthCookies(req, res, session.access_token, session.refresh_token);
 
     return redirect(res, '/');
   }catch(err){
