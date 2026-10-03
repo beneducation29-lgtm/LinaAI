@@ -3,8 +3,8 @@ import linaAvatarImg from '../assets/images/lina_avatar_stylized_1790862594850.j
 
 export const INITIAL_USER_PROFILE: UserProfile = {
   id: 'user-001',
-  name: 'Minh',
-  avatarUrl: 'https://api.dicebear.com/7.x/notionists/svg?seed=Minh',
+  name: 'Bạn',
+  avatarUrl: 'https://api.dicebear.com/7.x/notionists/svg?seed=LinaUser',
   currentLevel: 'Cơ bản',
   currentHsk: 'HSK 1',
   learningGoal: {
