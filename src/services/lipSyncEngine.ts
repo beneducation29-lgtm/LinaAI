@@ -5,7 +5,7 @@ export class LipSyncEngine {
  private lastFrame:VisemeFrame={timestamp:0,duration:0,viseme:'sil',intensity:0,source:'audio'};
  private smoothed=0;
  fromAudio(metrics:AudioMetrics):VisemeFrame{
-  if(!metrics.isSpeaking||metrics.energy<0.04){this.smoothed*=.58;return this.setFrame('sil',this.smoothed,'audio');}
+  if(!metrics.isSpeaking||metrics.energy<0.04){this.smoothed=0;return this.setFrame('sil',0,'audio');}
   let viseme:VisemeFrame['viseme']='aa';
   if(metrics.highFrequency>metrics.lowFrequency*1.25)viseme='ee';
   else if(metrics.lowFrequency>metrics.highFrequency*1.2)viseme='oo';
