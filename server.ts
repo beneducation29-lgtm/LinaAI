@@ -23,7 +23,7 @@ app.set('trust proxy', 1);
 const PORT = Number(process.env.PORT) || 3000;
 
 // Supabase is migrating from service_role to secret keys. Prefer the new key while keeping legacy compatibility.
-const SUPABASE_SERVER_KEY = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVER_KEY || '';
+const SUPABASE_SERVER_KEY = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
 app.use(express.json({ limit: '1mb', verify: (req, _res, buf) => { (req as any).rawBody = buf.toString('utf8'); } }));
 
