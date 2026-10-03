@@ -41,12 +41,12 @@ export const Profile: React.FC = () => {
     syncNow
   } = useApp();
 
-  const [accountOpen, setAccountOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(() => new URLSearchParams(window.location.search).has('auth_error'));
   const [accountMode, setAccountMode] = useState<'login'|'signup'>('login');
   const [accountEmail, setAccountEmail] = useState('');
   const [accountPassword, setAccountPassword] = useState('');
   const [accountName, setAccountName] = useState('');
-  const [accountError, setAccountError] = useState('');
+  const [accountError, setAccountError] = useState(() => new URLSearchParams(window.location.search).get('auth_error') ? 'Đăng nhập Google chưa hoàn tất. Hãy thử lại hoặc kiểm tra cấu hình Google trong Supabase.' : '');
   const [analyticsEnabled, setAnalyticsEnabled] = useState(() => analytics.getPreferences().enabled);
 
   const handleAccountSubmit = async (event: React.FormEvent) => { event.preventDefault(); setAccountError(''); try { if(accountMode==='login') await loginAccount(accountEmail,accountPassword); else await signupAccount(accountEmail,accountPassword,accountName); setAccountOpen(false); setAccountPassword(''); } catch(e) { setAccountError(e instanceof Error ? e.message : 'Không thể kết nối tài khoản.'); } };
@@ -64,6 +64,15 @@ export const Profile: React.FC = () => {
       <AccountSyncCard user={authUser} sync={syncState} onLogin={() => { setAccountMode('login'); setAccountOpen(true); }} onLogout={() => void logoutAccount()} onSync={() => void syncNow()} />
       {accountOpen && <div className="p-5 rounded-3xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800">
         <div className="flex items-center justify-between mb-3"><div className="text-sm font-bold">{accountMode==='login'?'Đăng nhập':'Tạo tài khoản'}</div><button onClick={()=>setAccountOpen(false)} className="text-xs text-stone-400">Đóng</button></div>
+        <button
+          type="button"
+          onClick={() => { setAccountError(''); window.location.assign('/api/auth/google'); }}
+          className="w-full py-2.5 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-950 text-stone-900 dark:text-stone-100 text-sm font-semibold flex items-center justify-center gap-2 hover:bg-stone-50 dark:hover:bg-stone-900 transition-colors"
+        >
+          <span className="w-5 h-5 rounded-full border border-stone-200 dark:border-stone-700 flex items-center justify-center text-xs font-bold">G</span>
+          Tiếp tục với Google
+        </button>
+        <div className="flex items-center gap-3 py-1"><div className="h-px flex-1 bg-stone-200 dark:bg-stone-800"/><span className="text-[11px] text-stone-400">hoặc email</span><div className="h-px flex-1 bg-stone-200 dark:bg-stone-800"/></div>
         <form onSubmit={handleAccountSubmit} className="space-y-2">
           {accountMode==='signup'&&<input value={accountName} onChange={e=>setAccountName(e.target.value)} placeholder="Tên hiển thị" className="w-full px-3 py-2 rounded-xl border border-stone-200 dark:border-stone-700 bg-transparent text-sm" />}
           <input type="email" required value={accountEmail} onChange={e=>setAccountEmail(e.target.value)} placeholder="Email" className="w-full px-3 py-2 rounded-xl border border-stone-200 dark:border-stone-700 bg-transparent text-sm" />
