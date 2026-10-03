@@ -160,7 +160,8 @@ export const LearningSystemScreen: React.FC = () => {
             {!reviewDone ? <><div className="text-xs text-stone-500">Review {reviewIndex + 1}/{lesson.review.length} · {currentReview.type}</div><div className="text-2xl font-bold mt-3">{currentReview.prompt}</div>{currentReview.sentence && <InteractiveChineseSentence chinese={currentReview.sentence.chinese} pinyin={currentReview.sentence.pinyin} vietnamese={currentReview.sentence.vietnamese} vocabulary={lesson.vocabulary} className="mt-3"/>}<div className="mt-4 flex gap-2"><button type="button" onClick={() => finishReview(true)} className="px-4 py-3 rounded-xl bg-emerald-700 text-white text-sm font-bold">Đúng</button><button type="button" onClick={() => finishReview(false)} className="px-4 py-3 rounded-xl bg-stone-100 dark:bg-stone-800 text-sm font-bold">Chưa nhớ</button></div></> : <div className="text-center py-8"><CheckCircle2 className="w-10 h-10 text-emerald-600 mx-auto"/><h3 className="text-xl font-bold mt-2">Đã hoàn thành review</h3><button type="button" onClick={() => {setReviewIndex(0);setReviewDone(false)}} className="mt-4 px-4 py-2 rounded-xl bg-stone-900 text-white text-xs font-bold"><RotateCcw className="w-4 h-4 inline mr-1"/>Làm lại</button></div>}
           </div>}
         </section>
-      
+      </div>
+
       <div className="p-5 rounded-2xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800">
         <div className="text-xs font-bold uppercase tracking-wider text-stone-500">Phản hồi tiến bộ</div>
         <div className="grid grid-cols-2 sm:grid-cols-6 gap-3 mt-3">
