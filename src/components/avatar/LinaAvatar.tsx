@@ -7,6 +7,7 @@ import {
 } from '../../services/avatarService';
 import { AvatarState, AvatarProviderLevel } from '../../types';
 import { avatarAnimationEngine, type AvatarMotionFrame } from '../../services/avatarAnimationEngine';
+import { avatarDebug, type AvatarDebugSnapshot } from '../../services/avatarDebug';
 import linaStylizedAvatarImg from '../../assets/images/lina_avatar_stylized_1790862594850.jpg';
 import { 
   Sparkles, 
@@ -44,6 +45,7 @@ export const LinaAvatar: React.FC<LinaAvatarProps> = ({
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const [motion, setMotion] = useState<AvatarMotionFrame>(() => avatarAnimationEngine.frame());
   const hasRealtimeProvider = avatarService.hasRealtimeProvider();
+  const [debugSnapshot, setDebugSnapshot] = useState<AvatarDebugSnapshot>(() => avatarDebug.get());
 
   // Subscribe to central Avatar Manager updates
   useEffect(() => {
@@ -74,6 +76,12 @@ export const LinaAvatar: React.FC<LinaAvatarProps> = ({
 
   const stateInfo = AVATAR_STATE_DESCRIPTIONS[avatarState] || AVATAR_STATE_DESCRIPTIONS.IDLE;
   useEffect(() => { avatarAnimationEngine.setState(avatarState); }, [avatarState]);
+
+  useEffect(() => {
+    if (!avatarDebug.enabled || typeof window === 'undefined') return;
+    const id = window.setInterval(() => setDebugSnapshot(avatarDebug.get()), 500);
+    return () => window.clearInterval(id);
+  }, []);
 
   // State-specific visual styling
   const stateAuraStyles: Record<AvatarState, string> = {
@@ -378,6 +386,21 @@ export const LinaAvatar: React.FC<LinaAvatarProps> = ({
           </p>
         </div>
       </div>
+
+      {avatarDebug.enabled && (
+        <details className="relative z-20 mt-2 rounded-xl border border-stone-200 bg-stone-50/90 p-2 text-[10px] text-stone-600 dark:border-stone-700 dark:bg-stone-800/90 dark:text-stone-300">
+          <summary className="cursor-pointer font-semibold">Avatar Debug Panel</summary>
+          <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 font-mono">
+            <span>Provider: {debugSnapshot.provider}</span><span>State: {debugSnapshot.state}</span>
+            <span>Turn: {debugSnapshot.turnId || '-'}</span><span>Sentence: {debugSnapshot.sentenceId || '-'}</span>
+            <span>TTS: {debugSnapshot.ttsStatus}</span><span>Audio: {debugSnapshot.audioStatus}</span>
+            <span>LipSync: {debugSnapshot.lipSyncStatus}</span><span>Energy: {debugSnapshot.audioEnergy.toFixed(2)}</span>
+            <span>Speech: {debugSnapshot.speechDetected ? 'yes' : 'no'}</span><span>Viseme: {debugSnapshot.visemeAvailable ? 'timing' : 'audio'}</span>
+            <span>Eye: {debugSnapshot.eyeContact}</span><span>FPS: {debugSnapshot.fps || '-'}</span>
+            <span>Queue: {debugSnapshot.queueLength}</span>
+          </div>
+        </details>
+      )}
 
       {/* Provider Level Footnote */}
       <div className="relative z-10 pt-2 border-t border-stone-200/60 dark:border-stone-800 flex items-center justify-between text-[11px] text-stone-500" role="status" aria-live="polite">
