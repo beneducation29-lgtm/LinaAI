@@ -20,7 +20,7 @@ for (const key of ['Strict-Transport-Security','X-Content-Type-Options','X-Frame
 }
 
 const env = readFileSync(new URL('../.env.example', import.meta.url), 'utf8');
-for (const required of ['GEMINI_API_KEY','SUPABASE_URL','SUPABASE_ANON_KEY','SUPABASE_SERVICE_ROLE_KEY']) {
+for (const required of ['GEMINI_API_KEY','SUPABASE_URL','SUPABASE_PUBLISHABLE_KEY','SUPABASE_SECRET_KEY']) {
   assert.match(env, new RegExp(required));
 }
 assert.doesNotMatch(env, /VITE_GEMINI_API_KEY/i);
