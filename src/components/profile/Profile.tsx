@@ -41,12 +41,17 @@ export const Profile: React.FC = () => {
     syncNow
   } = useApp();
 
-  const [accountOpen, setAccountOpen] = useState(() => new URLSearchParams(window.location.search).has('auth_error'));
+  const authParams = new URLSearchParams(window.location.search);
+  const authError = authParams.get('auth_error');
+  const authDetail = authParams.get('auth_detail');
+  const [accountOpen, setAccountOpen] = useState(() => Boolean(authError));
   const [accountMode, setAccountMode] = useState<'login'|'signup'>('login');
   const [accountEmail, setAccountEmail] = useState('');
   const [accountPassword, setAccountPassword] = useState('');
   const [accountName, setAccountName] = useState('');
-  const [accountError, setAccountError] = useState(() => new URLSearchParams(window.location.search).get('auth_error') ? 'Đăng nhập Google chưa hoàn tất. Hãy thử lại hoặc kiểm tra cấu hình Google trong Supabase.' : '');
+  const [accountError, setAccountError] = useState(() => authError
+    ? `Đăng nhập Google chưa hoàn tất. ${authDetail ? `Chi tiết: ${authDetail}` : 'Hãy thử lại hoặc kiểm tra cấu hình Google trong Supabase.'}`
+    : '');
   const [analyticsEnabled, setAnalyticsEnabled] = useState(() => analytics.getPreferences().enabled);
 
   const handleAccountSubmit = async (event: React.FormEvent) => { event.preventDefault(); setAccountError(''); try { if(accountMode==='login') await loginAccount(accountEmail,accountPassword); else await signupAccount(accountEmail,accountPassword,accountName); setAccountOpen(false); setAccountPassword(''); } catch(e) { setAccountError(e instanceof Error ? e.message : 'Không thể kết nối tài khoản.'); } };
