@@ -2,9 +2,14 @@ import assert from 'node:assert/strict';
 import { HSK_CURRICULUM_LEVELS } from '../src/data/hskCurriculum';
 import { buildKnowledgeGraph, calculateReadiness, chooseDifficulty, generateDailyHSKSession, masteryBand } from '../src/services/hskKnowledgeEngine';
 import { validateGrammar, validateKnowledgeGraph, validateVocabulary } from '../src/services/hskContentValidator';
+import { HSK2_TO_6_LESSONS, HSK_EXTENDED_KNOWLEDGE_NODES, HSK_EXTENDED_KNOWLEDGE_EDGES } from '../src/data/hsk2to6Lessons';
+assert.equal(HSK2_TO_6_LESSONS.length,15);
+assert.ok(HSK2_TO_6_LESSONS.every(x=>x.vocabulary.length===5 && x.grammar.length===2 && x.review.length===5));
+assert.ok(HSK_EXTENDED_KNOWLEDGE_NODES.length>100);
+assert.ok(HSK_EXTENDED_KNOWLEDGE_EDGES.length>20);
 
 assert.equal(HSK_CURRICULUM_LEVELS.length,6);
-assert.ok(HSK_CURRICULUM_LEVELS.every(x=>x.contentStatus==='CONTENT_GAP'));
+assert.ok(HSK_CURRICULUM_LEVELS.every(x=>x.contentStatus==='PARTIAL'));
 assert.equal(masteryBand(20,false,1,0),'LEARNING');
 assert.equal(masteryBand(90,false,4,0),'MASTERED');
 assert.equal(masteryBand(90,true,4,0),'REVIEW_DUE');
