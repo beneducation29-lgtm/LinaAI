@@ -7,7 +7,7 @@ export class EyeContactController {
  frame(now=Date.now(),mode:EyeContactMode='IDLE',reducedMotion=false):EyeContactFrame{
   if(!this.nextBlinkAt)this.reset(now);
   if(!reducedMotion&&now>=this.nextBlinkAt){this.blinkUntil=now+105;this.nextBlinkAt=now+2200+Math.random()*4300;}
-  if(!reducedMotion&&now>=this.nextGazeAt){const spread=mode==='THINKING'?.11:mode==='LISTENING'?.045:.055;this.targetX=(Math.random()*2-1)*spread;this.targetY=(Math.random()*2-1)*spread*.55;this.nextGazeAt=now+1300+Math.random()*2600;}
+  if(!reducedMotion&&now>=this.nextGazeAt){const spread = mode === 'THINKING' ? 0.11 : mode === 'LISTENING' ? 0.045 : 0.055;this.targetX=(Math.random()*2-1)*spread;this.targetY=(Math.random()*2-1)*spread*0.55;this.nextGazeAt=now+1300+Math.random()*2600;}
   if(mode!=='THINKING'){this.targetX*=.97;this.targetY*=.97;}
   const smoothing=reducedMotion?.18:.08;this.gazeX+=(this.targetX-this.gazeX)*smoothing;this.gazeY+=(this.targetY-this.gazeY)*smoothing;
   return{gazeX:clamp(this.gazeX),gazeY:clamp(this.gazeY),blink:now<this.blinkUntil?1:0,focus:mode==='LISTENING'||mode==='SPEAKING'?1:.86};
