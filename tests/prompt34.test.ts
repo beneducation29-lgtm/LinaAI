@@ -26,4 +26,6 @@ assert.match(orch,/startsWith/);
 assert.match(avatar,/resetAvatarState/);
 assert.match(avatar,/audioStreamController.subscribe/);
 assert.match(anim,/eyeContactController/);
+assert.doesNotMatch(eyes, /\?\.[0-9]/);
+assert.doesNotMatch(anim, /\?\.[0-9]/);
 console.log('Prompt 34 avatar consistency, audio sync, interruption and race-guard tests passed.');
