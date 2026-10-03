@@ -20,6 +20,7 @@ assert.match(server,/!privacy\.analyticsEnabled/);
 assert.match(server,/SUPABASE_SERVICE_ROLE_KEY/);
 assert.doesNotMatch(server,/console\.(log|error|warn).*access_token/i);
 assert.doesNotMatch(server,/console\.(log|error|warn).*refresh_token/i);
+assert.doesNotMatch(server,/console\.error\([^\n]*(?:,\s*)?err\s*\)/);
 assert.match(privacy,/DataClassification/);
 assert.match(privacy,/PRIVATE/);
 assert.match(privacy,/SECURITY-SENSITIVE/);
