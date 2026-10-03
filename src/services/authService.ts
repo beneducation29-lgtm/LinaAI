@@ -8,7 +8,7 @@ async function readResponse(response:Response):Promise<any>{
   if(contentType.toLowerCase().includes('application/json')){
     try{return JSON.parse(body);}catch{return {error:'Máy chủ trả về dữ liệu JSON không hợp lệ.'};}
   }
-  const compact=body.replace(/<[^>]*>/g,' ').replace(/\\s+/g,' ').trim().slice(0,240);
+  const compact=body.replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim().slice(0,240);
   return {error:compact||`Yêu cầu thất bại (HTTP ${response.status}).`};
 }
 async function request(path:string,init:RequestInit={}){
