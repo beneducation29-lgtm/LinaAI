@@ -1,4 +1,4 @@
-export interface AuthUser{id:string;email?:string;name?:string;}
+export interface AuthUser{id:string;email?:string;name?:string;avatarUrl?:string;authProvider?:string;emailVerified?:boolean;createdAt?:string;updatedAt?:string;lastLoginAt?:string;}
 export interface AuthState{user:AuthUser|null;loading:boolean;error:string|null;}
 export async function getCurrentUser():Promise<AuthUser|null>{let r=await fetch('/api/auth/me',{credentials:'include'});if(r.status===401){await fetch('/api/auth/refresh',{method:'POST',credentials:'include'});r=await fetch('/api/auth/me',{credentials:'include'});}if(!r.ok)return null;const d=await r.json();return d.user||null;}
 export async function login(email:string,password:string){const r=await fetch('/api/auth/login',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password})});const d=await r.json();if(!r.ok)throw new Error(d.error||'Đăng nhập thất bại.');return d.user as AuthUser;}
@@ -7,3 +7,5 @@ export function loginWithGoogle(): void {
   window.location.assign('/api/auth/google/start');
 }
 export async function logout(){await fetch('/api/auth/logout',{method:'POST',credentials:'include'});}
+
+export async function deleteAccount(): Promise<void>{const r=await fetch('/api/privacy/delete-account',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({confirmation:'DELETE'})});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'Không thể xóa tài khoản.');}
