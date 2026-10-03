@@ -1,8 +1,15 @@
 import { createHash, randomBytes } from 'node:crypto';
-import { json, parseCookies, setAuthCookies, publicUser } from './_utils.js';
+import { json, parseCookies } from './_utils.js';
 
 const SUPABASE_URL = process.env.SUPABASE_URL || '';
-const SUPABASE_PUBLISHABLE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY || '';
+const SUPABASE_PUBLISHABLE_KEY =
+  process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY || '';
+
+// Production is intentionally explicit so an OAuth flow started on a local
+// machine can never accidentally send the user back to a dead localhost URL.
+// Set LINA_SITE_URL to override this for another deployed environment.
+const DEFAULT_SITE_URL = 'https://lina-ai-lake.vercel.app';
+const SITE_URL = String(process.env.LINA_SITE_URL || DEFAULT_SITE_URL).replace(/\/$/, '');
 
 function secure(req){
   return process.env.NODE_ENV === 'production' ||
@@ -39,13 +46,6 @@ function redirect(res, location, cookies = []){
   res.status(302).setHeader('Location', location).setHeader('Cache-Control','no-store').end();
 }
 
-function origin(req){
-  const forwarded = String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim();
-  const protocol = forwarded || (secure(req) ? 'https' : 'http');
-  const host = String(req.headers.host || '');
-  return `${protocol}://${host}`;
-}
-
 function safeError(message){
   return String(message || 'Google sign-in failed.').slice(0,180);
 }
@@ -56,9 +56,10 @@ export default async function handler(req,res){
     if(!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY)
       return json(res,503,{error:'Cloud account chưa được cấu hình.'});
 
-    const currentOrigin = origin(req);
-    const redirectTo = `${currentOrigin}/api/auth/google`;
-    const query = new URL(req.url || '', currentOrigin).searchParams;
+    // Supabase PKCE callback. This must be the same URL registered in
+    // Supabase Authentication -> URL Configuration -> Redirect URLs.
+    const redirectTo = `${SITE_URL}/api/auth/google`;
+    const query = new URL(req.url || '', SITE_URL).searchParams;
     const code = query.get('code');
     const returnedState = query.get('state');
     const oauthError = query.get('error_description') || query.get('error');
@@ -67,6 +68,9 @@ export default async function handler(req,res){
       return redirect(res, '/?auth_error=google', clearOAuthCookies(req));
     }
 
+    // Start OAuth authorization with an application-owned PKCE verifier.
+    // The verifier is kept in a short-lived HttpOnly cookie and is required
+    // for the one-time authorization-code exchange below.
     if(!code){
       const verifier = randomUrlToken(48);
       const state = randomUrlToken(32);
@@ -90,6 +94,7 @@ export default async function handler(req,res){
           const data = body ? JSON.parse(body) : {};
           message = data.error_description || data.msg || data.message || message;
         }catch{}
+        console.error('[Lina][GOOGLE_START]', safeError(message));
         return redirect(res, '/?auth_error=google', clearOAuthCookies(req));
       }
 
@@ -106,6 +111,9 @@ export default async function handler(req,res){
     if(!cookies.lina_google_verifier)
       return redirect(res, '/?auth_error=google_session', clearOAuthCookies(req));
 
+    // Supabase's PKCE token endpoint exchanges the one-time auth code only
+    // when the original verifier is supplied. This is the server-side
+    // equivalent of the documented exchangeCodeForSession() step.
     const tokenResponse = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=pkce`,{
       method:'POST',
       headers:{
@@ -123,11 +131,10 @@ export default async function handler(req,res){
     try{ data = text ? JSON.parse(text) : {}; }catch{}
 
     if(!tokenResponse.ok || !data.access_token || !data.refresh_token){
-      console.error('[Lina][GOOGLE_AUTH]', safeError(data.error_description || data.msg || data.message));
+      console.error('[Lina][GOOGLE_EXCHANGE]', safeError(data.error_description || data.msg || data.message));
       return redirect(res, '/?auth_error=google_exchange', clearOAuthCookies(req));
     }
 
-    const user = data.user || null;
     const authCookies = [
       `lina_access=${encodeURIComponent(data.access_token)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=3600${secure(req)?'; Secure':''}`,
       `lina_refresh=${encodeURIComponent(data.refresh_token)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=2592000${secure(req)?'; Secure':''}`,
