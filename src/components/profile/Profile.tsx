@@ -69,20 +69,20 @@ export const Profile: React.FC = () => {
       <AccountSyncCard user={authUser} sync={syncState} onLogin={() => { setAccountMode('login'); setAccountOpen(true); }} onLogout={() => void logoutAccount()} onSync={() => void syncNow()} />
       {accountOpen && <div className="p-5 rounded-3xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800">
         <div className="flex items-center justify-between mb-3"><div className="text-sm font-bold">{accountMode==='login'?'Đăng nhập':'Tạo tài khoản'}</div><button onClick={()=>setAccountOpen(false)} className="text-xs text-stone-400">Đóng</button></div>
-        <button
-          type="button"
-          onClick={() => { setAccountError(''); window.location.assign('/api/auth/google'); }}
-          className="w-full py-2.5 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-950 text-stone-900 dark:text-stone-100 text-sm font-semibold flex items-center justify-center gap-2 hover:bg-stone-50 dark:hover:bg-stone-900 transition-colors"
+        {accountError && <div className="mb-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700 dark:border-rose-900/60 dark:bg-rose-950/30 dark:text-rose-300">{accountError}</div>}
+        <a
+          href="/api/auth/google"
+          onClick={() => setAccountError('')}
+          className="w-full py-2.5 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-950 text-stone-900 dark:text-stone-100 text-sm font-semibold flex items-center justify-center gap-2 hover:bg-stone-50 dark:hover:bg-stone-900 transition-colors cursor-pointer"
         >
           <span className="w-5 h-5 rounded-full border border-stone-200 dark:border-stone-700 flex items-center justify-center text-xs font-bold">G</span>
           Tiếp tục với Google
-        </button>
+        </a>
         <div className="flex items-center gap-3 py-1"><div className="h-px flex-1 bg-stone-200 dark:bg-stone-800"/><span className="text-[11px] text-stone-400">hoặc email</span><div className="h-px flex-1 bg-stone-200 dark:bg-stone-800"/></div>
         <form onSubmit={handleAccountSubmit} className="space-y-2">
           {accountMode==='signup'&&<input value={accountName} onChange={e=>setAccountName(e.target.value)} placeholder="Tên hiển thị" className="w-full px-3 py-2 rounded-xl border border-stone-200 dark:border-stone-700 bg-transparent text-sm" />}
           <input type="email" required value={accountEmail} onChange={e=>setAccountEmail(e.target.value)} placeholder="Email" className="w-full px-3 py-2 rounded-xl border border-stone-200 dark:border-stone-700 bg-transparent text-sm" />
           <input type="password" required minLength={8} value={accountPassword} onChange={e=>setAccountPassword(e.target.value)} placeholder="Mật khẩu (tối thiểu 8 ký tự)" className="w-full px-3 py-2 rounded-xl border border-stone-200 dark:border-stone-700 bg-transparent text-sm" />
-          {accountError&&<div className="text-xs text-rose-600">{accountError}</div>}
           <button type="submit" className="w-full py-2.5 rounded-xl bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900 text-sm font-semibold">{accountMode==='login'?'Đăng nhập':'Tạo tài khoản'}</button>
         </form>
         <button onClick={()=>setAccountMode(accountMode==='login'?'signup':'login')} className="mt-2 text-xs text-amber-700 dark:text-amber-400 hover:underline">{accountMode==='login'?'Chưa có tài khoản? Tạo tài khoản':'Đã có tài khoản? Đăng nhập'}</button>
