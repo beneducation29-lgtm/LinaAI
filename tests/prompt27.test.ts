@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { buildRetrievalSequence, generatePracticeSession, getListeningLadder, getReadingSupport, scheduleActivityReview } from '../src/services/activityEngine';
+import { buildRetrievalSequence, generatePracticeSession, getListeningLadder, getReadingSupport, scheduleActivityReview, isReviewDue } from '../src/services/activityEngine';
 import { createActivity } from '../src/services/activityEngine';
 import type { ActivityItem, ActivitySRSItem } from '../src/types/activity';
 
@@ -7,6 +7,9 @@ const base=createActivity({id:'v1',type:'vocabulary-recall',hskLevel:'HSK 1',ski
 const seq=buildRetrievalSequence(base);
 assert.deepEqual(seq.map(x=>x.retrievalStage),['recognize','recall','produce']);
 const review:ActivitySRSItem={itemId:'v1',itemType:'vocabulary',schedule:{lastReviewed:null,nextReview:new Date(Date.now()-1000).toISOString(),interval:0,ease:2.5,correctCount:0,incorrectCount:0,mastery:0}};
+assert.equal(isReviewDue(review, new Date()), true);
+assert.equal(isReviewDue(review, Date.now()), true);
+assert.equal(isReviewDue(review, new Date().toISOString()), true);
 const updated=scheduleActivityReview(review,true,5);
 assert.ok(updated.schedule.nextReview);
 const catalog:ActivityItem[]=[
