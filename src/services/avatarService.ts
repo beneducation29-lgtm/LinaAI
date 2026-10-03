@@ -407,9 +407,19 @@ class AvatarSystemManager {
     }
   }
 
-  stop(): void {
+  resetAvatarState(): void {
     this.activeSpeakToken += 1;
     avatarTurnController.cancel();
+    lipSyncEngine.reset();
+    this.currentViseme = { viseme: 'sil', amplitude: 0 };
+    avatarAnimationEngine.reset();
+    this.stateMachine.force('IDLE');
+    this.currentState = 'IDLE';
+    this.notify();
+  }
+
+  stop(): void {
+    this.resetAvatarState();
     this.providers[this.activeLevel].stop();
     this.setState('IDLE');
     this.currentViseme = { viseme: 'sil', amplitude: 0 };
