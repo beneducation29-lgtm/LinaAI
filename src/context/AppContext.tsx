@@ -14,7 +14,7 @@ import { ReviewSchedule, MistakeRecord, MistakeType, AIStoredMemory, LearnerProf
 import { LessonEngineLesson, LessonQuizResult, LessonCompletionResult } from '../types/lessonEngine';
 import { syncEngine } from '../services/syncEngine';
 import { analytics } from '../services/analytics';
-import { getCurrentUser, login as loginAccountRequest, signup as signupAccountRequest, logout as logoutAccountRequest, loginWithGoogle } from '../services/authService';
+import { getCurrentUser, login as loginAccountRequest, signup as signupAccountRequest, logout as logoutAccountRequest, loginWithGoogle, deleteAccount as deleteAccountRequest } from '../services/authService';
 import type { AuthUser } from '../services/authService';
 import type { SyncState, SyncRecord } from '../types/sync';
 import { storage } from '../services/storage';
@@ -84,6 +84,7 @@ interface AppContextType {
   loginWithGoogle: () => void;
   signupAccount: (email: string, password: string, name?: string) => Promise<void>;
   logoutAccount: () => Promise<void>;
+  deleteAccount: () => Promise<void>;
   syncNow: () => Promise<void>;
   motivationSnapshot: ReturnType<typeof getMotivationSnapshot>;
   setDailyGoalMinutes: (minutes: DailyGoalMinutes) => void;
@@ -238,6 +239,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const signupAccount = async (email: string, password: string, name?: string) => { const account = await signupAccountRequest(email, password, name); if (account) setAuthUser(account); };
   const logoutAccount = async () => {
     await logoutAccountRequest();
+    syncEngine.setUser(null);
+    setAuthUser(null);
+    resetLocalAccountState();
+  };
+  const deleteAccount = async () => {
+    await syncEngine.sync();
+    await deleteAccountRequest();
     syncEngine.setUser(null);
     setAuthUser(null);
     resetLocalAccountState();
@@ -584,6 +592,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       loginWithGoogle: loginWithGoogleAccount,
       signupAccount,
       logoutAccount,
+      deleteAccount,
       syncNow,
         motivationSnapshot: getMotivationSnapshot(motivation, mistakes.map(m => m.original)),
         setDailyGoalMinutes,
