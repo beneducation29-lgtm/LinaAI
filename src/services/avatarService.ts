@@ -178,56 +178,25 @@ export class Level1FallbackAvatarProvider implements AvatarProvider {
 export class Level2InteractiveAvatarProvider implements AvatarProvider {
   readonly level: AvatarProviderLevel = 'level2_interactive';
   readonly name = 'Cấp 2: Tương tác thời gian thực (Interactive Canvas)';
-  readonly descriptionVi = 'Nhịp thở và biểu cảm cục bộ; khẩu hình chỉ chuyển động khi có audio metrics thật hoặc timing data từ provider.';
-
-  private ready = false;
-  private currentState: AvatarState = 'IDLE';
-
-  async initialize(): Promise<boolean> {
-    this.ready = true;
-    return true;
-  }
-
-  setState(state: AvatarState): void {
-    this.currentState = state;
-  }
-
-  async speak(text: string, options?: SpeakOptions): Promise<void> {
-    this.setState('SPEAKING');
-
+  readonly descriptionVi = 'Khẩu hình audio-driven từ audio playback thực; không tạo speaking animation giả.';
+  private ready=false;
+  async initialize():Promise<boolean>{this.ready=true;return true;}
+  setState(_state:AvatarState):void{}
+  async speak(text:string,options?:SpeakOptions):Promise<void>{
     try {
-      await speechService.speakChinese(text, {
-        rate: (options?.rate as any) || 1.0,
-        useGeminiTTS: options?.useGeminiTTS,
-        onEnd: () => {
-          options?.onViseme?.({ viseme: 'sil', amplitude: 0 });
-          this.setState('IDLE');
-          options?.onEnd?.();
-        },
-        onError: () => {
-          options?.onViseme?.({ viseme: 'sil', amplitude: 0 });
-          this.setState('IDLE');
-          options?.onError?.();
-        },
+      await streamingTTSProvider.start({
+        text, rate:(options?.rate as any)||1, lang:'zh-CN',
+        onStart:()=>options?.onViseme?.({viseme:'sil',amplitude:0}),
+        onEnd:()=>{options?.onViseme?.({viseme:'sil',amplitude:0});options?.onEnd?.();},
+        onError:()=>options?.onError?.()
       });
     } catch {
-      this.setState('IDLE');
-      options?.onError?.();
+      await speechService.speakChinese(text,{rate:(options?.rate as any)||1,useGeminiTTS:options?.useGeminiTTS,onEnd:()=>options?.onEnd?.(),onError:()=>options?.onError?.()});
     }
   }
-
-  stop(): void {
-    speechService.stopSpeaking();
-    this.setState('IDLE');
-  }
-
-  destroy(): void {
-    this.stop();
-  }
-
-  isReady(): boolean {
-    return this.ready;
-  }
+  stop():void{streamingTTSProvider.stop();speechService.stopSpeaking();}
+  destroy():void{this.stop();this.ready=false;}
+  isReady():boolean{return this.ready;}
 }
 
 // =========================================================================
