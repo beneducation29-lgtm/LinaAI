@@ -3,6 +3,7 @@ import { BookOpen, CheckCircle2, ChevronRight, Headphones, Mic, MessageCircle, R
 import { useApp } from '../../context/AppContext';
 import { HSK1_LESSONS } from '../../data/hsk1Lessons';
 import { HSK_CURRICULUM_LEVELS } from '../../data/hskCurriculum';
+import { HSK2_TO_6_LESSONS } from '../../data/hsk2to6Lessons';
 import type { HSKLevel } from '../../types';
 import { InteractiveChineseSentence } from '../common/InteractiveChineseSentence';
 import { LayerToggles } from '../common/LayerToggles';
@@ -27,7 +28,8 @@ export const LearningSystemScreen: React.FC = () => {
   const [pinyinMode,setPinyinMode] = useState<'marks'|'numbers'|'hidden'>('marks');
   const lessonStartedAt = useRef<Record<string, number>>({});
 
-  const lesson = useMemo(() => HSK1_LESSONS.find(l => l.id === lessonId) || HSK1_LESSONS[0], [lessonId]);
+  const lessonsForLevel = useMemo(() => selectedHsk === 'HSK 1' ? HSK1_LESSONS : HSK2_TO_6_LESSONS.filter(l => l.hskLevel === selectedHsk), [selectedHsk]);
+  const lesson = useMemo(() => lessonsForLevel.find(l => l.id === lessonId) || lessonsForLevel[0] || HSK1_LESSONS[0], [lessonId, lessonsForLevel]);
   const selectedCurriculum = HSK_CURRICULUM_LEVELS.find(x => x.level === selectedHsk) || HSK_CURRICULUM_LEVELS[0];
   React.useEffect(() => {
     lessonStartedAt.current[lesson.id] = Date.now();
@@ -88,40 +90,31 @@ export const LearningSystemScreen: React.FC = () => {
         <div>
           <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300"><Sparkles className="w-4 h-4"/>HSK Learning System</div>
           <h1 className="text-2xl sm:text-3xl font-bold mt-1">Lộ trình tiếng Trung có cấu trúc</h1>
-          <p className="text-sm text-stone-500 dark:text-stone-400 mt-1">Chọn HSK để xem lộ trình, kỹ năng và nội dung đã có. Mục chưa có dữ liệu sẽ hiển thị rõ CONTENT_GAP thay vì khóa học.</p>
+          <p className="text-sm text-stone-500 dark:text-stone-400 mt-1">HSK 1–6 dùng chung Knowledge Engine. Mỗi level có bài học, từ vựng, ngữ pháp, nghe, nói, roleplay và review; nội dung seed được đánh dấu rõ để tiếp tục QA theo curriculum source.</p>
         </div>
         <div className="flex gap-2"><span className="px-3 py-1.5 rounded-xl bg-stone-100 dark:bg-stone-800 text-xs font-bold">{user.currentHsk}</span><span className="px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/30 text-xs font-bold text-amber-800 dark:text-amber-300">{getDueReviewCount()} cần ôn</span></div>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-6 gap-2">
         {HSK_CURRICULUM_LEVELS.map(({ level, contentStatus }) => (
-          <button key={level} type="button" onClick={() => { setSelectedHsk(level); if (level === 'HSK 1') { setLessonId('hsk1-lesson-1'); setSection('learn'); setReviewIndex(0); setReviewDone(false); } }} className={'rounded-xl border p-3 text-left transition-all ' + (selectedHsk === level ? 'bg-stone-900 text-white border-stone-900 shadow-sm' : 'bg-white dark:bg-stone-900 text-stone-700 dark:text-stone-200 border-stone-200 dark:border-stone-800 hover:border-amber-400')}>
+          <button key={level} type="button" onClick={() => { setSelectedHsk(level); const next = level === 'HSK 1' ? HSK1_LESSONS[0] : HSK2_TO_6_LESSONS.find(l => l.hskLevel === level); if (next) { setLessonId(next.id); setSection('learn'); setReviewIndex(0); setReviewDone(false); } }} className={'rounded-xl border p-3 text-left transition-all ' + (selectedHsk === level ? 'bg-stone-900 text-white border-stone-900 shadow-sm' : 'bg-white dark:bg-stone-900 text-stone-700 dark:text-stone-200 border-stone-200 dark:border-stone-800 hover:border-amber-400')}>
             <div className="text-xs font-bold">{level}</div><div className="text-[10px] mt-1">{level === 'HSK 1' ? '45 từ · 10 bài' : contentStatus === 'CONTENT_GAP' ? 'Khung đã mở · đang bổ sung' : 'Đã có nội dung'}</div>
           </button>
         ))}
       </div>
 
-      {selectedHsk !== 'HSK 1' ? (
-        <div className="p-6 rounded-3xl bg-white dark:bg-stone-900 border border-amber-200 dark:border-amber-900/40 space-y-4">
-          <div className="flex items-start justify-between gap-4"><div><div className="text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300">{selectedHsk} · Curriculum Preview</div><h2 className="text-2xl font-bold mt-1">Khung học đã mở, không khóa</h2><p className="text-sm text-stone-600 dark:text-stone-400 mt-2">Các kỹ năng và chủ đề bên dưới đã được khai báo trong curriculum engine. Dữ liệu bài học chi tiết chưa được xác minh đầy đủ nên hệ thống đánh dấu CONTENT_GAP, không tự tạo nội dung HSK giả.</p></div><span className="px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 text-[11px] font-bold">CONTENT_GAP</span></div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">{selectedCurriculum.focus.map(item => <div key={item} className="p-3 rounded-xl bg-stone-50 dark:bg-stone-800/60 text-sm">{item}</div>)}</div>
-          <div className="flex flex-wrap gap-2">{['Từ vựng','Ngữ pháp','Phát âm','Nghe','Nói','Đọc','Viết','Chữ Hán','Hội thoại','Roleplay','Stories'].map(skill => <span key={skill} className="px-2.5 py-1 rounded-lg bg-stone-100 dark:bg-stone-800 text-[11px] font-semibold">{skill}</span>)}</div>
-          <button type="button" onClick={() => setSelectedHsk('HSK 1')} className="px-4 py-2.5 rounded-xl bg-stone-900 text-white text-xs font-bold">Mở nội dung HSK 1 đang có</button>
-        </div>
-      ) : (
       <div className="grid lg:grid-cols-[260px_1fr] gap-4">
         <aside className="space-y-2">
           <div className="p-4 rounded-2xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800">
-            <div className="text-xs font-bold uppercase tracking-wider text-stone-500 mb-2">10 bài HSK 1</div>
-            <div className="space-y-1.5">{HSK1_LESSONS.map(l => <button key={l.id} type="button" onClick={() => {setLessonId(l.id);setSection('learn');setReviewIndex(0);setReviewDone(false); analytics.track('lesson_start', { lessonId: l.id, hskLevel: l.hskLevel, source: 'lesson_selector' });}} className={'w-full text-left p-2.5 rounded-xl text-xs ' + (lesson.id === l.id ? 'bg-amber-100 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 font-bold' : 'hover:bg-stone-100 dark:hover:bg-stone-800')}><span className="font-bold mr-1">{l.lessonNumber}.</span>{l.titleVi}</button>)}</div>
+            <div className="text-xs font-bold uppercase tracking-wider text-stone-500 mb-2">{lessonsForLevel.length} bài {selectedHsk}</div>
+            <div className="space-y-1.5">{lessonsForLevel.map(l => <button key={l.id} type="button" onClick={() => {setLessonId(l.id);setSection('learn');setReviewIndex(0);setReviewDone(false);analytics.track('lesson_start',{lessonId:l.id,hskLevel:l.hskLevel,source:'lesson_selector'});}} className={'w-full text-left p-2.5 rounded-xl text-xs ' + (lesson.id === l.id ? 'bg-amber-100 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 font-bold' : 'hover:bg-stone-100 dark:hover:bg-stone-800')}><span className="font-bold mr-1">{l.lessonNumber}.</span>{l.titleVi}</button>)}</div>
           </div>
           <div className="p-4 rounded-2xl bg-stone-900 text-white">
-            <div className="text-xs text-amber-300 font-bold">TODAY · {user.dailyGoalMinutes} phút</div>
-            <div className="mt-2 text-sm">3 từ mới · 1 grammar · 5 flashcards · 2 speaking</div>
+            <div className="text-xs text-amber-300 font-bold">KNOWLEDGE ENGINE · {selectedHsk}</div>
+            <div className="mt-2 text-sm">{lesson.vocabulary.length} từ · {lesson.grammar.length} grammar · nghe · nói · roleplay · review</div>
             <button type="button" onClick={() => setCurrentTab('review')} className="mt-3 w-full min-h-10 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-semibold">Ôn tập ngay</button>
           </div>
         </aside>
-
         <section className="space-y-4">
           <div className="p-5 rounded-3xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800">
             <div className="flex flex-wrap items-start justify-between gap-3">
@@ -167,8 +160,7 @@ export const LearningSystemScreen: React.FC = () => {
             {!reviewDone ? <><div className="text-xs text-stone-500">Review {reviewIndex + 1}/{lesson.review.length} · {currentReview.type}</div><div className="text-2xl font-bold mt-3">{currentReview.prompt}</div>{currentReview.sentence && <InteractiveChineseSentence chinese={currentReview.sentence.chinese} pinyin={currentReview.sentence.pinyin} vietnamese={currentReview.sentence.vietnamese} vocabulary={lesson.vocabulary} className="mt-3"/>}<div className="mt-4 flex gap-2"><button type="button" onClick={() => finishReview(true)} className="px-4 py-3 rounded-xl bg-emerald-700 text-white text-sm font-bold">Đúng</button><button type="button" onClick={() => finishReview(false)} className="px-4 py-3 rounded-xl bg-stone-100 dark:bg-stone-800 text-sm font-bold">Chưa nhớ</button></div></> : <div className="text-center py-8"><CheckCircle2 className="w-10 h-10 text-emerald-600 mx-auto"/><h3 className="text-xl font-bold mt-2">Đã hoàn thành review</h3><button type="button" onClick={() => {setReviewIndex(0);setReviewDone(false)}} className="mt-4 px-4 py-2 rounded-xl bg-stone-900 text-white text-xs font-bold"><RotateCcw className="w-4 h-4 inline mr-1"/>Làm lại</button></div>}
           </div>}
         </section>
-      </div>
-
+      
       <div className="p-5 rounded-2xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800">
         <div className="text-xs font-bold uppercase tracking-wider text-stone-500">Phản hồi tiến bộ</div>
         <div className="grid grid-cols-2 sm:grid-cols-6 gap-3 mt-3">
