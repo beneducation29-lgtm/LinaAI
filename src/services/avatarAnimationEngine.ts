@@ -25,10 +25,10 @@ export class AvatarAnimationEngine {
   const eyes=eyeContactController.frame(now,mode,reducedMotion);
   const e=EMOTIONS[this.emotion]||EMOTIONS.neutral;const listening=this.state==='LISTENING',thinking=this.state==='THINKING',speaking=this.state==='SPEAKING';
   return{
-   gazeX:eyes.gazeX,gazeY:eyes.gazeY,headTilt:e.headTilt+(listening?.012:0)+(speaking&&!reducedMotion?.006*Math.sin(this.phase):0),
-   headX:reducedMotion?0:thinking?.006*Math.sin(this.phase*.55):0,headY:reducedMotion?0:(listening?.008:0)+(speaking?.004*Math.sin(this.phase*.8):0),
-   smile:clamp(e.smile+(listening?.03:0)),eyebrowLift:clamp(e.eyebrowLift+(thinking?.04:0)),
-   nod:clamp(e.nod*.12*Math.max(0,Math.sin(this.phase*.9))+(listening?.12:0)),breathing:reducedMotion?.5:.5+.5*Math.sin(this.phase*.75),blink:eyes.blink
+   gazeX:eyes.gazeX,gazeY:eyes.gazeY,headTilt: e.headTilt + (listening ? 0.012 : 0) + (speaking && !reducedMotion ? 0.006 * Math.sin(this.phase) : 0),
+   headX: reducedMotion ? 0 : (thinking ? 0.006 * Math.sin(this.phase * 0.55) : 0),headY: reducedMotion ? 0 : (listening ? 0.008 : 0) + (speaking ? 0.004 * Math.sin(this.phase * 0.8) : 0),
+   smile: clamp(e.smile + (listening ? 0.03 : 0)),eyebrowLift: clamp(e.eyebrowLift + (thinking ? 0.04 : 0)),
+   nod: clamp(e.nod * 0.12 * Math.max(0, Math.sin(this.phase * 0.9)) + (listening ? 0.12 : 0)),breathing: reducedMotion ? 0.5 : 0.5 + 0.5 * Math.sin(this.phase * 0.75),blink:eyes.blink
   };
  }
 }
