@@ -9,11 +9,11 @@ export class TTSQueue {
   private readonly maxPending=6;
   private generation=0;
 
-  enqueue(chunks:string[],rate=1,callbacks:TTSQueueCallbacks={}):void {
+  enqueue(chunks:string[],rate=1,callbacks:TTSQueueCallbacks={},turnId?:string):void {
     const generation=++this.generation;
     this.callbacks=callbacks; this.cancelled=false;
     for(const text of chunks){
-      if(text&&this.pending.length<this.maxPending)this.pending.push({sentenceId:`sentence_${String(++this.sequence).padStart(3,'0')}`,text,rate});
+      if(text&&this.pending.length<this.maxPending)this.pending.push({sentenceId:`${turnId||'turn'}_sentence_${String(++this.sequence).padStart(3,'0')}`,text,rate});
     }
     this.prefetchNext(generation);
     void this.drain(generation);
