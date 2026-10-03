@@ -1,6 +1,7 @@
 import express, { Request, Response } from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { createHash, createHmac, randomBytes } from 'node:crypto';
 import dotenv from 'dotenv';
 import { GoogleGenAI, Type } from '@google/genai';
 import { sanitizeTutorPayload, looksLikePromptInjection } from './src/services/inputGuards';
@@ -23,6 +24,7 @@ app.set('trust proxy', 1);
 const PORT = Number(process.env.PORT) || 3000;
 
 app.use(express.json({ limit: '1mb', verify: (req, _res, buf) => { (req as any).rawBody = buf.toString('utf8'); } }));
+app.use('/api', (req,res,next)=>{ if(req.path.startsWith('/auth/')||req.path.startsWith('/privacy/')||req.path.startsWith('/sync/')||req.path.startsWith('/tutor/')) res.setHeader('Cache-Control','private, no-store'); next(); });
 
 // Prompt 21 security boundary: same-origin state changes + lightweight abuse controls.
 const isStateChanging=(req:Request)=>['POST','PUT','PATCH','DELETE'].includes(req.method);
@@ -308,12 +310,74 @@ const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const getCookie=(req:Request,name:string)=>{const raw=req.headers.cookie||'';const match=raw.split(';').map(x=>x.trim()).find(x=>x.startsWith(name+'='));return match?decodeURIComponent(match.slice(name.length+1)):'';};
 const setAuthCookies=(res:Response,access:string,refresh:string)=>{const secure=process.env.NODE_ENV==='production'?'; Secure':'';res.setHeader('Set-Cookie',[`lina_access=${encodeURIComponent(access)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=3600${secure}`,`lina_refresh=${encodeURIComponent(refresh)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=2592000${secure}`]);};
 const clearAuthCookies=(res:Response)=>res.setHeader('Set-Cookie',['lina_access=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0','lina_refresh=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0']);
+const oauthCookie=(name:string,value:string,maxAge:number)=>name+'='+encodeURIComponent(value)+'; HttpOnly; SameSite=Lax; Path=/; Max-Age='+maxAge+(process.env.NODE_ENV==='production'?'; Secure':'');
+const appOrigin=(req:Request)=>{
+  const configured=process.env.APP_URL?.trim().replace(/\/$/,'');
+  if(configured)return configured;
+  const forwarded=req.get('x-forwarded-proto')?.split(',')[0]?.trim()||req.protocol;
+  const host=req.get('x-forwarded-host')?.split(',')[0]?.trim()||req.get('host');
+  return host?forwarded+'://'+host:'';
+};
+const pkceVerifier=()=>randomBytes(48).toString('base64url');
+const pkceChallenge=(verifier:string)=>createHash('sha256').update(verifier).digest('base64url');
+const oauthErrorRedirect=(req:Request,res:Response,reason:string)=>{
+  const safe=encodeURIComponent(reason.slice(0,120));
+  return res.redirect('/?auth=google-error&reason='+safe);
+};
+
 async function supabaseUser(access:string){if(!access||!SUPABASE_URL||!SUPABASE_ANON_KEY)return null;const r=await fetch(`${SUPABASE_URL}/auth/v1/user`,{headers:{apikey:SUPABASE_ANON_KEY,Authorization:`Bearer ${access}`}});if(!r.ok)return null;return await r.json();}
+const securityEventSecret=process.env.SECURITY_EVENT_HASH_SECRET||process.env.SUPABASE_SERVICE_ROLE_KEY||'lina-security-events';
+const hashSecurityValue=(value:string)=>createHmac('sha256',securityEventSecret).update(value).digest('hex');
+async function recordSecurityEvent(eventName:string,userId?:string,req?:Request,metadata:Record<string,unknown>={}){if(!SUPABASE_URL||!SUPABASE_SERVICE_ROLE_KEY)return;try{const ip=req?.ip||req?.socket.remoteAddress||'';await fetch(SUPABASE_URL+'/rest/v1/lina_security_events',{method:'POST',headers:{apikey:SUPABASE_SERVICE_ROLE_KEY,Authorization:'Bearer '+SUPABASE_SERVICE_ROLE_KEY,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify({user_id:userId||null,event_name:eventName,ip_hash:ip?hashSecurityValue(String(ip)):null,user_agent:req?.get('user-agent')?.slice(0,240)||null,metadata})});}catch{}}
+app.get('/api/auth/google/start',async(req:Request,res:Response)=>{
+  if(!SUPABASE_URL||!SUPABASE_ANON_KEY)return res.status(503).send('Google Sign-In chưa được cấu hình.');
+  const redirectUri=appOrigin(req)+'/api/auth/google/callback';
+  if(!redirectUri.startsWith('http'))return res.status(500).send('APP_URL chưa được cấu hình.');
+  const state=randomBytes(32).toString('base64url');
+  const verifier=pkceVerifier();
+  res.setHeader('Set-Cookie',[oauthCookie('lina_oauth_state',state,600),oauthCookie('lina_oauth_verifier',verifier,600)]);
+  const authorize=new URL(SUPABASE_URL+'/auth/v1/authorize');
+  authorize.searchParams.set('provider','google');
+  authorize.searchParams.set('redirect_to',redirectUri);
+  authorize.searchParams.set('response_type','code');
+  authorize.searchParams.set('state',state);
+  authorize.searchParams.set('code_challenge',pkceChallenge(verifier));
+  authorize.searchParams.set('code_challenge_method','S256');
+  authorize.searchParams.set('scope','openid email profile');
+  return res.redirect(authorize.toString());
+});
+app.get('/api/auth/google/callback',async(req:Request,res:Response)=>{
+  try{
+    if(!SUPABASE_URL||!SUPABASE_ANON_KEY)return oauthErrorRedirect(req,res,'Google Sign-In chưa được cấu hình.');
+    const code=String(req.query.code||'');
+    const state=String(req.query.state||'');
+    const savedState=getCookie(req,'lina_oauth_state');
+    const verifier=getCookie(req,'lina_oauth_verifier');
+    if(!code||!state||!savedState||state!==savedState||!verifier)return oauthErrorRedirect(req,res,'Phiên Google không hợp lệ hoặc đã hết hạn.');
+    const token=await fetch(SUPABASE_URL+'/auth/v1/token?grant_type=pkce',{
+      method:'POST',
+      headers:{apikey:SUPABASE_ANON_KEY,Authorization:'Bearer '+SUPABASE_ANON_KEY,'Content-Type':'application/json'},
+      body:JSON.stringify({auth_code:code,code_verifier:verifier})
+    });
+    const data=await token.json().catch(()=>({}));
+    if(!token.ok||!data.access_token||!data.refresh_token)return oauthErrorRedirect(req,res,'Không thể hoàn tất đăng nhập Google.');
+    setAuthCookies(res,data.access_token,data.refresh_token);
+    res.append('Set-Cookie',oauthCookie('lina_oauth_state','',0));
+    res.append('Set-Cookie',oauthCookie('lina_oauth_verifier','',0));
+    if(data.user?.id){await ensureFreeSubscription(data.user.id);void recordSecurityEvent('login_success',data.user.id,req,{provider:'google'});}
+    return res.redirect('/?auth=google-success');
+  }catch{
+    void recordSecurityEvent('login_failed',undefined,req,{provider:'google'});return oauthErrorRedirect(req,res,'Đăng nhập Google thất bại.');
+  }
+});
+
 app.post('/api/auth/signup',async(req:Request,res:Response)=>{try{if(!SUPABASE_URL||!SUPABASE_ANON_KEY){res.status(503).json({error:'Cloud account chưa được cấu hình.'});return;}const {email,password,name}=req.body;if(typeof email!=='string'||typeof password!=='string'||password.length<8){res.status(400).json({error:'Email và mật khẩu tối thiểu 8 ký tự là bắt buộc.'});return;}const r=await fetch(`${SUPABASE_URL}/auth/v1/signup`,{method:'POST',headers:{apikey:SUPABASE_ANON_KEY,'Content-Type':'application/json'},body:JSON.stringify({email,password,data:{name:typeof name==='string'?name.slice(0,80):undefined}})});const d=await r.json();if(!r.ok){res.status(r.status).json({error:d.msg||d.message||'Đăng ký thất bại.'});return;}if(d.access_token&&d.refresh_token)setAuthCookies(res,d.access_token,d.refresh_token);if(d.user?.id)await ensureFreeSubscription(d.user.id);res.json({user:d.user?{id:d.user.id,email:d.user.email,name:d.user.user_metadata?.name}:null,requiresEmailConfirmation:!d.access_token});}catch{res.status(500).json({error:'Đăng ký thất bại.'});}});
-app.post('/api/auth/login',async(req:Request,res:Response)=>{try{if(!SUPABASE_URL||!SUPABASE_ANON_KEY){res.status(503).json({error:'Cloud account chưa được cấu hình.'});return;}const {email,password}=req.body;if(typeof email!=='string'||typeof password!=='string'){res.status(400).json({error:'Email và mật khẩu là bắt buộc.'});return;}const r=await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`,{method:'POST',headers:{apikey:SUPABASE_ANON_KEY,'Content-Type':'application/json'},body:JSON.stringify({email,password})});const d=await r.json();if(!r.ok){res.status(401).json({error:d.error_description||d.msg||'Email hoặc mật khẩu không đúng.'});return;}setAuthCookies(res,d.access_token,d.refresh_token);await ensureFreeSubscription(d.user.id);res.json({user:{id:d.user.id,email:d.user.email,name:d.user.user_metadata?.name}});}catch{res.status(500).json({error:'Đăng nhập thất bại.'});}});
-app.post('/api/auth/refresh',async(req:Request,res:Response)=>{try{if(!SUPABASE_URL||!SUPABASE_ANON_KEY){res.status(503).json({error:'Cloud account chưa được cấu hình.'});return;}const refresh=getCookie(req,'lina_refresh');if(!refresh){res.status(401).json({error:'No refresh session'});return;}const r=await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`,{method:'POST',headers:{apikey:SUPABASE_ANON_KEY,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:refresh})});const d=await r.json();if(!r.ok){clearAuthCookies(res);res.status(401).json({error:'Phiên đăng nhập đã hết hạn.'});return;}setAuthCookies(res,d.access_token,d.refresh_token);res.json({user:{id:d.user.id,email:d.user.email,name:d.user.user_metadata?.name}});}catch{res.status(401).json({error:'Không thể làm mới phiên đăng nhập.'});}});
-app.get('/api/auth/me',async(req:Request,res:Response)=>{const user=await supabaseUser(getCookie(req,'lina_access'));if(!user){res.status(401).json({user:null});return;}res.json({user:{id:user.id,email:user.email,name:user.user_metadata?.name}});});
-app.post('/api/auth/logout',async(_req:Request,res:Response)=>{clearAuthCookies(res);res.json({ok:true});});
+app.post('/api/auth/login',async(req:Request,res:Response)=>{try{if(!SUPABASE_URL||!SUPABASE_ANON_KEY){res.status(503).json({error:'Cloud account chưa được cấu hình.'});return;}const {email,password}=req.body;if(typeof email!=='string'||typeof password!=='string'){res.status(400).json({error:'Email và mật khẩu là bắt buộc.'});return;}const r=await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`,{method:'POST',headers:{apikey:SUPABASE_ANON_KEY,'Content-Type':'application/json'},body:JSON.stringify({email,password})});const d=await r.json();if(!r.ok){void recordSecurityEvent('login_failed',undefined,req,{provider:'password'});res.status(401).json({error:d.error_description||d.msg||'Email hoặc mật khẩu không đúng.'});return;}setAuthCookies(res,d.access_token,d.refresh_token);await ensureFreeSubscription(d.user.id);void recordSecurityEvent('login_success',d.user.id,req,{provider:'password'});res.json({user:{id:d.user.id,email:d.user.email,name:d.user.user_metadata?.name}});}catch{res.status(500).json({error:'Đăng nhập thất bại.'});}});
+app.post('/api/auth/refresh',async(req:Request,res:Response)=>{try{if(!SUPABASE_URL||!SUPABASE_ANON_KEY){res.status(503).json({error:'Cloud account chưa được cấu hình.'});return;}const refresh=getCookie(req,'lina_refresh');if(!refresh){res.status(401).json({error:'No refresh session'});return;}const r=await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`,{method:'POST',headers:{apikey:SUPABASE_ANON_KEY,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:refresh})});const d=await r.json();if(!r.ok){clearAuthCookies(res);void recordSecurityEvent('session_revoked',undefined,req,{reason:'refresh_failed'});res.status(401).json({error:'Phiên đăng nhập đã hết hạn.'});return;}setAuthCookies(res,d.access_token,d.refresh_token);res.json({user:{id:d.user.id,email:d.user.email,name:d.user.user_metadata?.name}});}catch{res.status(401).json({error:'Không thể làm mới phiên đăng nhập.'});}});
+app.get('/api/auth/me',async(req:Request,res:Response)=>{const user=await supabaseUser(getCookie(req,'lina_access'));if(!user){res.status(401).json({user:null});return;}const identity=Array.isArray(user.identities)?user.identities.find((x:any)=>x.provider==='google')||user.identities[0]:null;res.json({user:{id:user.id,email:user.email,name:user.user_metadata?.name,avatarUrl:user.user_metadata?.avatar_url||user.user_metadata?.picture||null,authProvider:identity?.provider||'email',emailVerified:Boolean(user.email_confirmed_at),createdAt:user.created_at||null,updatedAt:user.updated_at||null,lastLoginAt:user.last_sign_in_at||null}});});
+app.post('/api/auth/logout',async(req:Request,res:Response)=>{const access=getCookie(req,'lina_access');const user=access?await supabaseUser(access):null;if(access&&SUPABASE_URL&&SUPABASE_ANON_KEY){try{await fetch(`${SUPABASE_URL}/auth/v1/logout?scope=local`,{method:'POST',headers:{apikey:SUPABASE_ANON_KEY,Authorization:`Bearer ${access}`}});}catch{}}if(user?.id)void recordSecurityEvent('logout',user.id,req);clearAuthCookies(res);res.json({ok:true});});
+app.post('/api/auth/logout-others',async(req:Request,res:Response)=>{const access=getCookie(req,'lina_access');const user=access?await supabaseUser(access):null;if(!access||!user)return res.status(401).json({error:'Unauthorized'});const r=await fetch(`${SUPABASE_URL}/auth/v1/logout?scope=others`,{method:'POST',headers:{apikey:SUPABASE_ANON_KEY,Authorization:`Bearer ${access}`}});if(!r.ok)return res.status(503).json({error:'Không thể đăng xuất các phiên khác.'});void recordSecurityEvent('session_revoked',user.id,req,{scope:'others'});res.json({ok:true});});
+app.get('/api/auth/sessions',async(req,res)=>{const access=getCookie(req,'lina_access');const user=access?await supabaseUser(access):null;if(!user)return res.status(401).json({error:'Unauthorized'});res.json({sessions:[{current:true,userId:user.id,provider:Array.isArray(user.identities)?(user.identities[0]?.provider||'email'):'email',lastLoginAt:user.last_sign_in_at||null}],capability:'current-session-only'});});
 async function requireSyncUser(req:Request){return await supabaseUser(getCookie(req,'lina_access'));}
 
 
@@ -331,7 +395,7 @@ app.get('/api/privacy/export',async(req,res)=>{try{const user=await requireSyncU
 
 app.post('/api/privacy/delete-learning-data',async(req,res)=>{try{const user=await requireSyncUser(req);if(!user||!SUPABASE_URL||!SUPABASE_SERVICE_ROLE_KEY)return res.status(401).json({error:'Unauthorized'});const h={apikey:SUPABASE_SERVICE_ROLE_KEY,Authorization:'Bearer '+SUPABASE_SERVICE_ROLE_KEY};const keys=['conversation','flashcards','structuredProgress','reviewSchedules','mistakes','structuredSavedVocabulary','aiMemory','motivation','learnerMemory'];const url=new URL(SUPABASE_URL+'/rest/v1/lina_learning_sync_records');url.searchParams.set('user_id','eq.'+user.id);url.searchParams.set('record_key','in.('+keys.join(',')+')');const d=await fetch(url,{method:'DELETE',headers:h});const analyticsUrl=new URL(SUPABASE_URL+'/rest/v1/lina_analytics_events');analyticsUrl.searchParams.set('user_id','eq.'+user.id);const ad=await fetch(analyticsUrl,{method:'DELETE',headers:h});if(!d.ok||!ad.ok)return res.status(503).json({error:'Learning data deletion incomplete'});res.json({ok:true});}catch{res.status(503).json({error:'Learning data deletion unavailable'});}});
 
-app.post('/api/privacy/delete-account',async(req,res)=>{try{const user=await requireSyncUser(req);if(!user||!SUPABASE_URL||!SUPABASE_SERVICE_ROLE_KEY)return res.status(401).json({error:'Unauthorized'});if(String(req.body?.confirmation||'')!=='DELETE')return res.status(400).json({error:'Confirmation DELETE is required'});const r=await fetch(SUPABASE_URL+'/auth/v1/admin/users/'+encodeURIComponent(user.id),{method:'DELETE',headers:{apikey:SUPABASE_SERVICE_ROLE_KEY,Authorization:'Bearer '+SUPABASE_SERVICE_ROLE_KEY}});if(!r.ok)return res.status(503).json({error:'Account deletion unavailable'});clearAuthCookies(res);res.json({ok:true});}catch{res.status(503).json({error:'Account deletion unavailable'});}});
+app.post('/api/privacy/delete-account',async(req,res)=>{try{const user=await requireSyncUser(req);if(!user||!SUPABASE_URL||!SUPABASE_SERVICE_ROLE_KEY)return res.status(401).json({error:'Unauthorized'});if(String(req.body?.confirmation||'')!=='DELETE')return res.status(400).json({error:'Confirmation DELETE is required'});const h={apikey:SUPABASE_SERVICE_ROLE_KEY,Authorization:'Bearer '+SUPABASE_SERVICE_ROLE_KEY};const userId=encodeURIComponent(user.id);const cleanup=[`/rest/v1/lina_learning_sync_records?user_id=eq.${userId}`,`/rest/v1/lina_privacy_preferences?user_id=eq.${userId}`,`/rest/v1/lina_analytics_events?user_id=eq.${userId}`,`/rest/v1/lina_security_events?user_id=eq.${userId}`,`/rest/v1/lina_subscriptions?user_id=eq.${userId}`,`/rest/v1/lina_usage_events?user_id=eq.${userId}`,`/rest/v1/lina_usage_counters?user_id=eq.${userId}`];const results=await Promise.all(cleanup.map(url=>fetch(SUPABASE_URL+url,{method:'DELETE',headers:h})));if(results.some(r=>!r.ok))return res.status(503).json({error:'Account data deletion incomplete'});void recordSecurityEvent('account_deleted',undefined,req,{subjectHash:hashSecurityValue(user.id)});const r=await fetch(SUPABASE_URL+'/auth/v1/admin/users/'+userId,{method:'DELETE',headers:h});if(!r.ok)return res.status(503).json({error:'Account deletion unavailable'});clearAuthCookies(res);res.json({ok:true});}catch{res.status(503).json({error:'Account deletion unavailable'});}});
 
 
 const subscriptionProvider = new GenericHmacPaymentProvider(
@@ -542,12 +606,10 @@ function tutorFallbackExplain(sentence:string){return {sentence,pinyin:'',meanin
 
 app.post('/api/tutor/chat', async (req: Request,res: Response)=>{
   try{
-    const {message,history=[],mode='conversation',hskLevel='HSK 1',userName='Bạn',userLevel='Cơ bản',topicTitle='Tự do',memoryFacts=[]}=req.body;
-    if(typeof message!=='string'||!message.trim())return res.status(400).json({error:'Message string is required'});
+    const safe=sanitizeTutorPayload(req.body||{}); const {message,history,topicTitle,userName,memoryFacts}=safe; const mode=req.body?.mode==='teacher'?'teacher':'conversation'; const hskLevel=typeof req.body?.hskLevel==='string'?req.body.hskLevel.slice(0,40):'HSK 1'; const userLevel=typeof req.body?.userLevel==='string'?req.body.userLevel.slice(0,80):'Cơ bản'; if(!message)return res.status(400).json({error:'Message string is required'}); if(looksLikePromptInjection(message))return res.status(400).json({error:'INPUT_REJECTED'});
     const access=await requireAIEntitlement(req,'ai');
-    if('error' in access)return res.status(access.status).json({error:access.error,...(access.error==='LIMIT_REACHED'?{code:'LIMIT_REACHED'}:{})});
-    const fallback=generateFallbackResponse(message,mode,userName);
-    const result=await orchestrate({task:mode==='teacher'?'correction':'conversation',userId:access.user.id,learnerLevel:userLevel,hskLevel,input:message,context:'Topic: '+topicTitle+'; mode: '+mode+'; learner facts: '+(Array.isArray(memoryFacts)?memoryFacts.slice(-4).join('; '):''),history,schema:TUTOR_RESPONSE_SCHEMA,fallback,temperature:0.5,maxOutputTokens:1400});
+    if('error' in access)return res.status(access.status ?? 503).json({error:access.error,...(access.error==='LIMIT_REACHED'?{code:'LIMIT_REACHED'}:{})});
+    const privacy=await privacyFetch(access.user.id); const safeHistory=privacy.conversationHistoryEnabled?history:[]; const safeMemory=privacy.personalizationEnabled&&privacy.aiMemoryEnabled?memoryFacts:[]; const fallback=generateFallbackResponse(message,mode,userName); const result=await orchestrate({task:mode==='teacher'?'correction':'conversation',userId:access.user.id,learnerLevel:userLevel,hskLevel,input:message,context:'Topic: '+topicTitle+'; mode: '+mode+'; personalization:'+privacy.personalizationEnabled+'; relevant learner data: '+safeMemory.slice(-4).join('; '),history:safeHistory,schema:TUTOR_RESPONSE_SCHEMA,fallback,temperature:0.5,maxOutputTokens:1400});
     await recordAIUsage(access.user.id,result.model,result.purpose,result.raw||{});
     res.setHeader('X-Lina-Trace-Id',result.traceId);res.setHeader('X-Lina-Prompt-Version',result.promptVersion);res.json(result.value);
   }catch(err:any){if(err?.code==='AI_RATE_LIMITED')return res.status(429).json({error:'RATE_LIMITED',code:'RATE_LIMITED',traceId:err.traceId});console.error('[Lina][TUTOR_ORCHESTRATOR_ERROR]',{name:err?.name||'Error'});res.status(503).json({error:'Tutor temporarily unavailable'});}
@@ -555,7 +617,7 @@ app.post('/api/tutor/chat', async (req: Request,res: Response)=>{
 
 app.post('/api/tutor/hints', async (req:Request,res:Response)=>{
   try{
-    const {contextSentence='',topicTitle='Tự do',hskLevel='HSK 1',level=1}=req.body;
+    const contextSentence=sanitizeTutorPayload({message:req.body?.contextSentence}).message; const topicTitle=sanitizeTutorPayload({topicTitle:req.body?.topicTitle}).topicTitle; const hskLevel=typeof req.body?.hskLevel==='string'?req.body.hskLevel.slice(0,40):'HSK 1'; const level=Number.isFinite(Number(req.body?.level))?Math.max(1,Math.min(6,Number(req.body.level))):1;
     const access=await requireAIEntitlement(req,'ai'); if('error' in access)return res.status(access.status).json({error:access.error,...(access.error==='LIMIT_REACHED'?{code:'LIMIT_REACHED'}:{})});
     const result=await orchestrate({task:'conversation',userId:access.user.id,learnerLevel:String(level),hskLevel,input:'Create progressive hints for: '+String(contextSentence).slice(0,1200),context:'Topic: '+String(topicTitle).slice(0,300),schema:tutorHintSchema,fallback:tutorFallbackHints(),temperature:0.3,maxOutputTokens:500});
     await recordAIUsage(access.user.id,result.model,'tutor_hints',result.raw||{});res.setHeader('X-Lina-Trace-Id',result.traceId);res.json(result.value);
@@ -564,8 +626,7 @@ app.post('/api/tutor/hints', async (req:Request,res:Response)=>{
 
 app.post('/api/tutor/explain', async (req:Request,res:Response)=>{
   try{
-    const {sentence,hskLevel='HSK 1'}=req.body;
-    if(typeof sentence!=='string'||!sentence.trim())return res.status(400).json({error:'Sentence is required'});
+    const sentence=sanitizeTutorPayload({message:req.body?.sentence}).message; const hskLevel=typeof req.body?.hskLevel==='string'?req.body.hskLevel.slice(0,40):'HSK 1'; if(!sentence)return res.status(400).json({error:'Sentence is required'}); if(looksLikePromptInjection(sentence))return res.status(400).json({error:'INPUT_REJECTED'});
     const access=await requireAIEntitlement(req,'ai');if('error' in access)return res.status(access.status).json({error:access.error,...(access.error==='LIMIT_REACHED'?{code:'LIMIT_REACHED'}:{})});
     const result=await orchestrate({task:'grammar',userId:access.user.id,learnerLevel:hskLevel,hskLevel,input:sentence.slice(0,2000),schema:tutorExplainSchema,fallback:tutorFallbackExplain(sentence),temperature:0.2,maxOutputTokens:900});
     await recordAIUsage(access.user.id,result.model,'tutor_explain',result.raw||{});res.setHeader('X-Lina-Trace-Id',result.traceId);res.json(result.value);
@@ -574,12 +635,11 @@ app.post('/api/tutor/explain', async (req:Request,res:Response)=>{
 
 app.post('/api/tutor/chat/stream', async (req:Request,res:Response)=>{
   try{
-    const {message,history=[],mode='conversation',hskLevel='HSK 1',userName='Bạn',userLevel='Cơ bản',topicTitle='Tự do',memoryFacts=[]}=req.body;
-    if(typeof message!=='string'||!message.trim())return res.status(400).json({error:'Message string is required'});
+    const safe=sanitizeTutorPayload(req.body||{}); const {message,history,topicTitle,userName,memoryFacts}=safe; const mode=req.body?.mode==='teacher'?'teacher':'conversation'; const hskLevel=typeof req.body?.hskLevel==='string'?req.body.hskLevel.slice(0,40):'HSK 1'; const userLevel=typeof req.body?.userLevel==='string'?req.body.userLevel.slice(0,80):'Cơ bản'; if(!message)return res.status(400).json({error:'Message string is required'}); if(looksLikePromptInjection(message))return res.status(400).json({error:'INPUT_REJECTED'});
     const access=await requireAIEntitlement(req,'ai');if('error' in access)return res.status(access.status).json({error:access.error,...(access.error==='LIMIT_REACHED'?{code:'LIMIT_REACHED'}:{})});
     res.setHeader('Content-Type','text/event-stream; charset=utf-8');res.setHeader('Cache-Control','no-cache, no-transform');res.setHeader('Connection','keep-alive');res.flushHeaders?.();
     const send=(payload:Record<string,unknown>)=>{if(!res.writableEnded)res.write('data: '+JSON.stringify(payload)+'\\n\\n');};
-    const result=await orchestrate({task:mode==='teacher'?'correction':'conversation',userId:access.user.id,learnerLevel:userLevel,hskLevel,input:message,context:'Topic: '+topicTitle+'; mode: '+mode+'; learner facts: '+(Array.isArray(memoryFacts)?memoryFacts.slice(-4).join('; '):''),history,schema:TUTOR_RESPONSE_SCHEMA,fallback:generateFallbackResponse(message,mode,userName),temperature:0.5,maxOutputTokens:1400});
+    const privacy=await privacyFetch(access.user.id); const safeHistory=privacy.conversationHistoryEnabled?history:[]; const safeMemory=privacy.personalizationEnabled&&privacy.aiMemoryEnabled?memoryFacts:[]; const result=await orchestrate({task:mode==='teacher'?'correction':'conversation',userId:access.user.id,learnerLevel:userLevel,hskLevel,input:message,context:'Topic: '+topicTitle+'; mode: '+mode+'; personalization:'+privacy.personalizationEnabled+'; relevant learner data: '+safeMemory.slice(-4).join('; '),history:safeHistory,schema:TUTOR_RESPONSE_SCHEMA,fallback:generateFallbackResponse(message,mode,userName),temperature:0.5,maxOutputTokens:1400});
     await recordAIUsage(access.user.id,result.model,'tutor_chat_stream',result.raw||{});send({type:'response',response:result.value,traceId:result.traceId,promptVersion:result.promptVersion});send({type:'done'});res.end();
   }catch(err:any){if(!res.headersSent)return res.status(err?.code==='AI_RATE_LIMITED'?429:503).json({error:err?.code==='AI_RATE_LIMITED'?'RATE_LIMITED':'Streaming tutor unavailable',...(err?.traceId?{traceId:err.traceId}:{})});try{res.end();}catch{}}
 });
@@ -587,7 +647,7 @@ app.post('/api/tutor/chat/stream', async (req:Request,res:Response)=>{
 const ANALYTICS_EVENT_NAMES=new Set(['app_open','lesson_start','lesson_complete','vocabulary_review','vocabulary_mastered','mistake','correction','speaking_start','speaking_complete','roleplay_start','roleplay_complete','pronunciation_practice','quiz_answer','quiz_complete','subscription_start','subscription_cancel']);
 const ANALYTICS_BLOCKED_KEYS=new Set(['email','name','userName','displayName','rawAudio','audioBase64','audio','transcript','message','originalSentence','correctedSentence']);
 const sanitizeAnalyticsProperties=(input:any)=>{const out:any={};if(!input||typeof input!=='object')return out;for(const [k,v] of Object.entries(input)){if(ANALYTICS_BLOCKED_KEYS.has(k))continue;if(typeof v==='string')out[k]=v.slice(0,120);else if(typeof v==='number'&&Number.isFinite(v))out[k]=v;else if(typeof v==='boolean')out[k]=v;}return out;};
-app.post('/api/analytics/events',async(req,res)=>{try{const raw=Array.isArray(req.body?.events)?req.body.events.slice(0,50):[];if(!raw.length)return res.status(204).end();if(!SUPABASE_URL||!SUPABASE_SERVICE_ROLE_KEY)return res.status(202).json({accepted:0,queued:false});const user=await requireSyncUser(req);const rows=raw.map((e:any)=>({event_id:String(e.eventId||'').slice(0,100),user_id:user?.id||null,anonymous_id:String(e.anonymousId||'').slice(0,100),session_id:String(e.sessionId||'').slice(0,100),event_name:String(e.eventName||''),properties:sanitizeAnalyticsProperties(e.properties),occurred_at:new Date(e.occurredAt||Date.now()).toISOString()})).filter((e:any)=>e.event_id&&e.anonymous_id&&e.session_id&&ANALYTICS_EVENT_NAMES.has(e.event_name));if(!rows.length)return res.status(400).json({error:'No valid analytics events'});const r=await fetch(SUPABASE_URL+'/rest/v1/lina_analytics_events',{method:'POST',headers:{apikey:SUPABASE_SERVICE_ROLE_KEY,Authorization:'Bearer '+SUPABASE_SERVICE_ROLE_KEY,'Content-Type':'application/json',Prefer:'resolution=ignore-duplicates,return=minimal'},body:JSON.stringify(rows)});if(!r.ok){console.error('[Lina][ANALYTICS_ERROR]',{status:r.status});return res.status(503).json({error:'Analytics provider unavailable'});}res.status(202).json({accepted:rows.length});}catch(err){console.error('[Lina][ANALYTICS_ERROR]',{name:(err as any)?.name||'Error'});res.status(503).json({error:'Analytics unavailable'});}});
+app.post('/api/analytics/events',async(req,res)=>{try{const raw=Array.isArray(req.body?.events)?req.body.events.slice(0,50):[];if(!raw.length)return res.status(204).end();if(!SUPABASE_URL||!SUPABASE_SERVICE_ROLE_KEY)return res.status(202).json({accepted:0,queued:false});const user=await requireSyncUser(req);const privacy=user?await privacyFetch(user.id):DEFAULT_PRIVACY_PREFERENCES; if(user&&!privacy.analyticsEnabled)return res.status(204).end(); const rows=raw.map((e:any)=>({event_id:String(e.eventId||'').slice(0,100),user_id:user?.id||null,anonymous_id:String(e.anonymousId||'').slice(0,100),session_id:String(e.sessionId||'').slice(0,100),event_name:String(e.eventName||''),properties:sanitizeAnalyticsProperties(e.properties),occurred_at:new Date(e.occurredAt||Date.now()).toISOString()})).filter((e:any)=>e.event_id&&e.anonymous_id&&e.session_id&&ANALYTICS_EVENT_NAMES.has(e.event_name));if(!rows.length)return res.status(400).json({error:'No valid analytics events'});const r=await fetch(SUPABASE_URL+'/rest/v1/lina_analytics_events',{method:'POST',headers:{apikey:SUPABASE_SERVICE_ROLE_KEY,Authorization:'Bearer '+SUPABASE_SERVICE_ROLE_KEY,'Content-Type':'application/json',Prefer:'resolution=ignore-duplicates,return=minimal'},body:JSON.stringify(rows)});if(!r.ok){console.error('[Lina][ANALYTICS_ERROR]',{status:r.status});return res.status(503).json({error:'Analytics provider unavailable'});}res.status(202).json({accepted:rows.length});}catch(err){console.error('[Lina][ANALYTICS_ERROR]',{name:(err as any)?.name||'Error'});res.status(503).json({error:'Analytics unavailable'});}});
 app.get('/api/admin/analytics',async(req,res)=>{try{if(!await requireAdmin(req))return res.status(403).json({error:'Admin access required'});const days=Math.min(90,Math.max(7,Number(req.query.days)||30));if(!SUPABASE_URL||!SUPABASE_SERVICE_ROLE_KEY)return res.status(503).json({error:'Analytics database chưa được cấu hình.'});const since=new Date(Date.now()-days*86400000).toISOString();const url=new URL(SUPABASE_URL+'/rest/v1/lina_analytics_events');url.searchParams.set('select','event_id,user_id,anonymous_id,session_id,event_name,properties,occurred_at');url.searchParams.set('occurred_at','gte.'+since);url.searchParams.set('order','occurred_at.asc');url.searchParams.set('limit','20000');const r=await fetch(url,{headers:{apikey:SUPABASE_SERVICE_ROLE_KEY,Authorization:'Bearer '+SUPABASE_SERVICE_ROLE_KEY}});if(!r.ok)throw new Error('Analytics query failed');const rows=await r.json();const identity=(x:any)=>x.user_id||x.anonymous_id;const active=(windowDays:number)=>{const cutoff=Date.now()-windowDays*86400000;return new Set(rows.filter((x:any)=>new Date(x.occurred_at).getTime()>=cutoff).map(identity)).size;};const dau=active(1),wau=active(7),mau=active(30);const appOpens=rows.filter((x:any)=>x.event_name==='app_open');const first=new Map<string,number>();for(const e of appOpens){const id=identity(e),t=new Date(e.occurred_at).getTime();if(!first.has(id)||t<first.get(id)!)first.set(id,t);}const newUsers=[...first.entries()].filter(([,t])=>t>=new Date(since).getTime());const retained=(offset:number)=>{if(!newUsers.length)return 0;let kept=0;for(const [id,t] of newUsers){if(rows.some((e:any)=>identity(e)===id&&e.event_name==='app_open'&&new Date(e.occurred_at).getTime()>=t+offset*86400000))kept++;}return Math.round(kept/newUsers.length*100);};const starts=rows.filter((x:any)=>x.event_name==='lesson_start').length,completes=rows.filter((x:any)=>x.event_name==='lesson_complete').length;const lessons:any={};for(const e of rows.filter((x:any)=>x.event_name==='lesson_start')){const id=String(e.properties?.lessonId||'unknown');lessons[id]=(lessons[id]||0)+1;}const popularLessons=Object.entries(lessons).sort((a:any,b:any)=>b[1]-a[1]).slice(0,8).map(([id,count]:any)=>({id,label:id,count}));const dropOffPoints=popularLessons.map(x=>({point:x.label,count:Math.max(0,x.count-rows.filter((e:any)=>e.event_name==='lesson_complete'&&e.properties?.lessonId===x.id).length)})).sort((a,b)=>b.count-a.count).slice(0,8);const aiUsage=rows.filter((e:any)=>e.properties?.ai===true).length;const voiceUsage=rows.filter((e:any)=>['speaking_start','speaking_complete','roleplay_start','roleplay_complete','pronunciation_practice'].includes(e.event_name)).length;const cost=rows.reduce((sum:number,e:any)=>sum+(typeof e.properties?.costUsd==='number'?e.properties.costUsd:0),0);const subs=rows.filter((e:any)=>e.event_name==='subscription_start').length,cancels=rows.filter((e:any)=>e.event_name==='subscription_cancel').length;const activeUsers=Math.max(1,mau);res.json({rangeDays:days,dau,wau,mau,newUsers:newUsers.length,retentionD1:retained(1),retentionD7:retained(7),lessonCompletion:starts?Math.round(completes/starts*100):0,popularLessons,dropOffPoints,aiUsage,voiceUsage,costPerActiveUser:Number((cost/activeUsers).toFixed(4)),subscriptionConversion:newUsers.length?Math.round(subs/newUsers.length*100):0,churn:subs?Math.round(cancels/subs*100):0,events:rows.length});}catch(err){console.error('[Lina][ADMIN_ANALYTICS_ERROR]',{name:(err as any)?.name||'Error'});res.status(503).json({error:'Không thể tải analytics.'});}});
 
 const ADMIN_EMAILS=new Set((process.env.LINA_ADMIN_EMAILS||'').split(',').map(x=>x.trim().toLowerCase()).filter(Boolean));async function requireAdmin(req:Request){const u=await requireSyncUser(req);return u&&ADMIN_EMAILS.has(String(u.email||'').toLowerCase())?u:null}async function cmsRows(){const r=await fetch(SUPABASE_URL+'/rest/v1/lina_cms_content?select=id,type,slug,title,status,payload,content_version,updated_by,updated_at,created_at&order=updated_at.desc',{headers:{apikey:SUPABASE_SERVICE_ROLE_KEY,Authorization:'Bearer '+SUPABASE_SERVICE_ROLE_KEY}});if(!r.ok)throw new Error('CMS database unavailable');return await r.json()}app.get('/api/admin/me',async(req,res)=>{const u=await requireAdmin(req);if(!u)return res.status(403).json({admin:false});res.json({admin:true,user:{id:u.id,email:u.email}})});app.get('/api/admin/content',async(req,res)=>{try{if(!await requireAdmin(req))return res.status(403).json({error:'Admin access required'});let rows=await cmsRows();if(typeof req.query.type==='string')rows=rows.filter((x:any)=>x.type===req.query.type);if(typeof req.query.status==='string')rows=rows.filter((x:any)=>x.status===req.query.status);res.json({items:rows.map((x:any)=>({id:x.id,type:x.type,slug:x.slug,title:x.title,status:x.status,data:x.payload,contentVersion:x.content_version,updatedBy:x.updated_by,updatedAt:x.updated_at,createdAt:x.created_at}))})}catch(e){res.status(503).json({error:e instanceof Error?e.message:'CMS unavailable'})}});
@@ -604,7 +664,7 @@ app.post('/api/tts/speak', async (req: Request, res: Response) => {
   try {
     const { text, voice = 'Kore' } = req.body;
     const aiAccess = await requireAIEntitlement(req, 'voice', Math.max(0.1, Math.min(5, text && typeof text === 'string' ? text.length / 600 : 0.1)));
-    if ('error' in aiAccess) { res.status(aiAccess.status).json({ error: aiAccess.error, ...(aiAccess.error === 'LIMIT_REACHED' ? { code: 'LIMIT_REACHED' } : {}) }); return; }
+    if ('error' in aiAccess) { res.status(aiAccess.status ?? 503).json({ error: aiAccess.error, ...(aiAccess.error === 'LIMIT_REACHED' ? { code: 'LIMIT_REACHED' } : {}) }); return; }
     if (!text || typeof text !== 'string') {
       res.status(400).json({ error: 'Text string is required' });
       return;
@@ -651,7 +711,7 @@ app.post('/api/tts/speak', async (req: Request, res: Response) => {
       res.status(500).json({ error: 'No audio generated by model' });
     }
   } catch (err: any) {
-    console.error('Error in /api/tts/speak:', err);
+    console.error('[Lina][TTS_ERROR]', { name: (err as any)?.name || 'Error' });
     res.status(500).json({ error: 'TTS generation failed' });
   }
 });
@@ -749,7 +809,7 @@ app.post('/api/stt/transcribe', async (req: Request, res: Response) => {
     await recordAIUsage(aiAccess.user.id, 'gemini-3.5-transcribe', 'stt', response, { sttUsage: 1, voiceMinutes: 1 });
     res.json({ transcript });
   } catch (err: any) {
-    console.error('Error in /api/stt/transcribe:', err);
+    console.error('[Lina][STT_ERROR]', { name: (err as any)?.name || 'Error' });
     res.status(500).json({ error: 'Audio transcription failed' });
   }
 });

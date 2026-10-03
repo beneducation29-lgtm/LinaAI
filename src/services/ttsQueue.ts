@@ -1,4 +1,5 @@
 import { streamingTTSProvider } from './streamingTTS';
+import { avatarDebug } from './avatarDebug';
 
 export interface TTSQueueCallbacks { onStart?: (sentenceId?:string)=>void; onEnd?: (sentenceId?:string)=>void; onError?: (error:Error,sentenceId?:string)=>void; onPrefetch?: (sentenceId:string)=>void; }
 interface QueueItem { sentenceId:string; text:string; rate:number; prepared?:import('./audioBufferManager').PreparedAudio; }
@@ -9,12 +10,13 @@ export class TTSQueue {
   private readonly maxPending=6;
   private generation=0;
 
-  enqueue(chunks:string[],rate=1,callbacks:TTSQueueCallbacks={}):void {
+  enqueue(chunks:string[],rate=1,callbacks:TTSQueueCallbacks={},turnId?:string):void {
     const generation=++this.generation;
     this.callbacks=callbacks; this.cancelled=false;
     for(const text of chunks){
-      if(text&&this.pending.length<this.maxPending)this.pending.push({sentenceId:`sentence_${String(++this.sequence).padStart(3,'0')}`,text,rate});
+      if(text&&this.pending.length<this.maxPending)this.pending.push({sentenceId:`${turnId||'turn'}_sentence_${String(++this.sequence).padStart(3,'0')}`,text,rate});
     }
+    avatarDebug.update({queueLength:this.pending.length,ttsStatus:'queued'});
     this.prefetchNext(generation);
     void this.drain(generation);
   }
@@ -55,7 +57,7 @@ export class TTSQueue {
       while(this.pending.length&&!this.cancelled&&generation===this.generation){
         const item=this.pending.shift()!;
         try{
-          const opts={text:item.text,lang:'zh-CN',rate:item.rate,onStart:()=>{if(generation===this.generation)this.callbacks.onStart?.(item.sentenceId);},onEnd:()=>{if(generation===this.generation)this.callbacks.onEnd?.(item.sentenceId);},onError:(e:Error)=>{if(generation===this.generation)this.callbacks.onError?.(e,item.sentenceId);}};
+          const opts={text:item.text,lang:'zh-CN',rate:item.rate,onStart:()=>{if(generation===this.generation){avatarDebug.update({sentenceId:item.sentenceId,ttsStatus:'playing'});this.callbacks.onStart?.(item.sentenceId);}},onEnd:()=>{if(generation===this.generation){avatarDebug.update({sentenceId:item.sentenceId,ttsStatus:'ended'});this.callbacks.onEnd?.(item.sentenceId);}},onError:(e:Error)=>{if(generation===this.generation)this.callbacks.onError?.(e,item.sentenceId);}};
           if(item.prepared&&streamingTTSProvider.playPrepared) await streamingTTSProvider.playPrepared(item.prepared,opts);
           else await streamingTTSProvider.start(opts);
         }catch(error){
@@ -63,7 +65,7 @@ export class TTSQueue {
         }
         this.prefetchNext(generation);
       }
-    }finally{this.running=false;}
+    }finally{this.running=false;avatarDebug.update({queueLength:this.pending.length});}
   }
 }
 export const ttsQueue=new TTSQueue();

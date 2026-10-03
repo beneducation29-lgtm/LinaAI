@@ -7,7 +7,9 @@ import {
 } from '../../services/avatarService';
 import { AvatarState, AvatarProviderLevel } from '../../types';
 import { avatarAnimationEngine, type AvatarMotionFrame } from '../../services/avatarAnimationEngine';
-import linaStylizedAvatarImg from '../../assets/images/lina_avatar_stylized_1790862594850.jpg';
+import { avatarDebug, type AvatarDebugSnapshot } from '../../services/avatarDebug';
+import linaTutorAvatarImg from '../../assets/images/tutor_lina_avatar_1790861417833.jpg';
+import { LINA_VISUAL_CONFIG } from '../../services/linaAvatarConfig';
 import { 
   Sparkles, 
   Mic, 
@@ -44,6 +46,7 @@ export const LinaAvatar: React.FC<LinaAvatarProps> = ({
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const [motion, setMotion] = useState<AvatarMotionFrame>(() => avatarAnimationEngine.frame());
   const hasRealtimeProvider = avatarService.hasRealtimeProvider();
+  const [debugSnapshot, setDebugSnapshot] = useState<AvatarDebugSnapshot>(() => avatarDebug.get());
 
   // Subscribe to central Avatar Manager updates
   useEffect(() => {
@@ -74,6 +77,12 @@ export const LinaAvatar: React.FC<LinaAvatarProps> = ({
 
   const stateInfo = AVATAR_STATE_DESCRIPTIONS[avatarState] || AVATAR_STATE_DESCRIPTIONS.IDLE;
   useEffect(() => { avatarAnimationEngine.setState(avatarState); }, [avatarState]);
+
+  useEffect(() => {
+    if (!avatarDebug.enabled || typeof window === 'undefined') return;
+    const id = window.setInterval(() => setDebugSnapshot(avatarDebug.get()), 500);
+    return () => window.clearInterval(id);
+  }, []);
 
   // State-specific visual styling
   const stateAuraStyles: Record<AvatarState, string> = {
@@ -129,8 +138,8 @@ export const LinaAvatar: React.FC<LinaAvatarProps> = ({
         <div className={`relative w-10 h-10 rounded-full overflow-hidden border-2 shadow-xs transition-all ${stateBorderColors[avatarState]}`}>
           {!imageError ? (
             <img
-              src={linaStylizedAvatarImg}
-              alt="Lina"
+              src={linaTutorAvatarImg}
+              alt="Lina 林娜"
               className="w-full h-full object-cover"
               onError={() => setImageError(true)}
             />
@@ -166,8 +175,8 @@ export const LinaAvatar: React.FC<LinaAvatarProps> = ({
               <div className={`relative w-14 h-14 rounded-2xl overflow-hidden border-2 shadow-sm transition-all duration-300 ${stateBorderColors[avatarState]}`}>
                 {!imageError ? (
                   <img
-                    src={linaStylizedAvatarImg}
-                    alt="Lina AI Chinese Tutor"
+                    src={linaTutorAvatarImg}
+                    alt={`${LINA_VISUAL_CONFIG.name} 林娜 — gia sư tiếng Trung AI` }
                     className="w-full h-full object-cover"
                     onError={() => setImageError(true)}
                   />
@@ -277,6 +286,10 @@ export const LinaAvatar: React.FC<LinaAvatarProps> = ({
 
       {/* Hero Avatar Presentation Area */}
       <div className="relative z-10 flex-1 flex flex-col items-center justify-center py-4 my-auto">
+        <div className="mb-3 flex flex-wrap items-center justify-center gap-2 text-[10px] font-semibold text-stone-600 dark:text-stone-300">
+          <span className="px-2.5 py-1 rounded-full bg-white/85 dark:bg-stone-900/85 border border-stone-200 dark:border-stone-700">Lina · {LINA_VISUAL_CONFIG.framing}</span>
+          <span className="px-2.5 py-1 rounded-full bg-rose-50/95 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 text-rose-800 dark:text-rose-200">Dusty rose · ribbed knit · long sleeve</span>
+        </div>
         {/* Avatar Portrait Vessel */}
         <div className="relative group">
           {/* Attentive Listening & Thinking Glow Ring */}
@@ -292,7 +305,7 @@ export const LinaAvatar: React.FC<LinaAvatarProps> = ({
           <div className={`relative w-full max-w-[430px] aspect-[3/4] rounded-[2rem] overflow-hidden border-3 shadow-lg transition-all duration-300 ${stateBorderColors[avatarState]} ${prefersReducedMotion ? '' : 'animate-[avatarBreath_4s_ease-in-out_infinite]'}`} style={prefersReducedMotion ? undefined : { transform: 'translate3d(' + (motion.headX * 100) + 'px,' + (motion.headY * 100) + 'px,0) rotate(' + motion.headTilt + 'deg) scale(' + (1 + motion.breathing * 0.004) + ')' }}>
             {!imageError ? (
               <img
-                src={linaStylizedAvatarImg}
+                src={linaTutorAvatarImg}
                 alt="Lina 林娜 — gia sư tiếng Trung AI hư cấu"
                 className={`w-full h-full object-cover object-[50%_35%] transition-transform duration-700 ${
                   avatarState === 'THINKING' ? 'scale-105 rotate-1' :
@@ -378,6 +391,21 @@ export const LinaAvatar: React.FC<LinaAvatarProps> = ({
           </p>
         </div>
       </div>
+
+      {avatarDebug.enabled && (
+        <details className="relative z-20 mt-2 rounded-xl border border-stone-200 bg-stone-50/90 p-2 text-[10px] text-stone-600 dark:border-stone-700 dark:bg-stone-800/90 dark:text-stone-300">
+          <summary className="cursor-pointer font-semibold">Avatar Debug Panel</summary>
+          <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 font-mono">
+            <span>Provider: {debugSnapshot.provider}</span><span>State: {debugSnapshot.state}</span>
+            <span>Turn: {debugSnapshot.turnId || '-'}</span><span>Sentence: {debugSnapshot.sentenceId || '-'}</span>
+            <span>TTS: {debugSnapshot.ttsStatus}</span><span>Audio: {debugSnapshot.audioStatus}</span>
+            <span>LipSync: {debugSnapshot.lipSyncStatus}</span><span>Energy: {debugSnapshot.audioEnergy.toFixed(2)}</span>
+            <span>Speech: {debugSnapshot.speechDetected ? 'yes' : 'no'}</span><span>Viseme: {debugSnapshot.visemeAvailable ? 'timing' : 'audio'}</span>
+            <span>Eye: {debugSnapshot.eyeContact}</span><span>FPS: {debugSnapshot.fps || '-'}</span>
+            <span>Queue: {debugSnapshot.queueLength}</span>
+          </div>
+        </details>
+      )}
 
       {/* Provider Level Footnote */}
       <div className="relative z-10 pt-2 border-t border-stone-200/60 dark:border-stone-800 flex items-center justify-between text-[11px] text-stone-500" role="status" aria-live="polite">

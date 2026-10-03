@@ -1,0 +1,34 @@
+import fs from 'node:fs';
+import assert from 'node:assert/strict';
+
+const server=fs.readFileSync('server.ts','utf8');
+const privacy=fs.readFileSync('src/services/privacy.ts','utf8');
+const security=fs.readFileSync('src/services/security.ts','utf8');
+const sql=fs.readFileSync('supabase/privacy.sql','utf8');
+const headers=fs.readFileSync('vercel.json','utf8');
+
+assert.match(server,/recordSecurityEvent/);
+assert.match(server,/lina_security_events/);
+assert.match(server,/logout\?scope=local/);
+assert.match(server,/logout\?scope=others/);
+assert.match(server,/Cache-Control.*private, no-store/);
+assert.match(server,/sanitizeTutorPayload/);
+assert.match(server,/looksLikePromptInjection/);
+assert.match(server,/privacy\.conversationHistoryEnabled/);
+assert.match(server,/privacy\.personalizationEnabled&&privacy\.aiMemoryEnabled/);
+assert.match(server,/!privacy\.analyticsEnabled/);
+assert.match(server,/SUPABASE_SERVICE_ROLE_KEY/);
+assert.doesNotMatch(server,/console\.(log|error|warn).*access_token/i);
+assert.doesNotMatch(server,/console\.(log|error|warn).*refresh_token/i);
+assert.ok(!server.split('\n').some(line => /console\.error\(/.test(line) && /\berr\s*\)/.test(line) && !/\bname\s*:\s*\([^)]*err/.test(line)), 'production logs must not pass raw err objects');
+assert.match(privacy,/DataClassification/);
+assert.match(privacy,/PRIVATE/);
+assert.match(privacy,/SECURITY-SENSITIVE/);
+assert.match(sql,/lina_security_events/);
+assert.match(sql,/enable row level security/i);
+assert.match(sql,/revoke all on public\.lina_security_events from anon, authenticated/);
+assert.match(security,/SECURITY_LIMITS/);
+assert.match(headers,/Content-Security-Policy/);
+assert.match(headers,/Strict-Transport-Security/);
+assert.match(headers,/Permissions-Policy/);
+console.log('Prompt 32 security/privacy checks passed.');

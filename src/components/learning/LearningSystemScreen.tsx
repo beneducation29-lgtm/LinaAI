@@ -2,6 +2,9 @@ import React, { useMemo, useRef, useState } from 'react';
 import { BookOpen, CheckCircle2, ChevronRight, Headphones, Mic, MessageCircle, RotateCcw, Sparkles, Volume2 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { HSK1_LESSONS } from '../../data/hsk1Lessons';
+import { HSK_CURRICULUM_LEVELS } from '../../data/hskCurriculum';
+import { HSK2_TO_6_LESSONS } from '../../data/hsk2to6Lessons';
+import type { HSKLevel } from '../../types';
 import { InteractiveChineseSentence } from '../common/InteractiveChineseSentence';
 import { LayerToggles } from '../common/LayerToggles';
 import { speechService } from '../../services/speech';
@@ -13,6 +16,7 @@ type Section = 'learn' | 'listen' | 'speak' | 'roleplay' | 'review';
 export const LearningSystemScreen: React.FC = () => {
   const { user, setCurrentTab, recordLearningResult, addMistake, getDueReviewCount, structuredProgress, learnerProfileMemory, recordMotivationActivity } = useApp();
   const [lessonId,setLessonId] = useState('hsk1-lesson-1');
+  const [selectedHsk,setSelectedHsk] = useState<HSKLevel>('HSK 1');
   const [section,setSection] = useState<Section>('learn');
   const [reviewIndex,setReviewIndex] = useState(0);
   const [reviewDone,setReviewDone] = useState(false);
@@ -24,7 +28,9 @@ export const LearningSystemScreen: React.FC = () => {
   const [pinyinMode,setPinyinMode] = useState<'marks'|'numbers'|'hidden'>('marks');
   const lessonStartedAt = useRef<Record<string, number>>({});
 
-  const lesson = useMemo(() => HSK1_LESSONS.find(l => l.id === lessonId) || HSK1_LESSONS[0], [lessonId]);
+  const lessonsForLevel = useMemo(() => selectedHsk === 'HSK 1' ? HSK1_LESSONS : HSK2_TO_6_LESSONS.filter(l => l.hskLevel === selectedHsk), [selectedHsk]);
+  const lesson = useMemo(() => lessonsForLevel.find(l => l.id === lessonId) || lessonsForLevel[0] || HSK1_LESSONS[0], [lessonId, lessonsForLevel]);
+  const selectedCurriculum = HSK_CURRICULUM_LEVELS.find(x => x.level === selectedHsk) || HSK_CURRICULUM_LEVELS[0];
   React.useEffect(() => {
     lessonStartedAt.current[lesson.id] = Date.now();
     analytics.track('lesson_start', { lessonId: lesson.id, hskLevel: lesson.hskLevel });
@@ -84,15 +90,15 @@ export const LearningSystemScreen: React.FC = () => {
         <div>
           <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300"><Sparkles className="w-4 h-4"/>HSK Learning System</div>
           <h1 className="text-2xl sm:text-3xl font-bold mt-1">Lộ trình tiếng Trung có cấu trúc</h1>
-          <p className="text-sm text-stone-500 dark:text-stone-400 mt-1">HSK 1 triển khai đầy đủ 10 bài; HSK 2–6 dùng cùng kiến trúc dữ liệu.</p>
+          <p className="text-sm text-stone-500 dark:text-stone-400 mt-1">HSK 1–6 dùng chung Knowledge Engine. Mỗi level có bài học, từ vựng, ngữ pháp, nghe, nói, roleplay và review; nội dung seed được đánh dấu rõ để tiếp tục QA theo curriculum source.</p>
         </div>
         <div className="flex gap-2"><span className="px-3 py-1.5 rounded-xl bg-stone-100 dark:bg-stone-800 text-xs font-bold">{user.currentHsk}</span><span className="px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/30 text-xs font-bold text-amber-800 dark:text-amber-300">{getDueReviewCount()} cần ôn</span></div>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-6 gap-2">
-        {(['HSK 1','HSK 2','HSK 3','HSK 4','HSK 5','HSK 6'] as const).map(level => (
-          <button key={level} type="button" disabled={level !== 'HSK 1'} onClick={() => level === 'HSK 1' && setLessonId('hsk1-lesson-1')} className={'rounded-xl border p-3 text-left ' + (level === 'HSK 1' ? 'bg-stone-900 text-white border-stone-900' : 'bg-white/60 dark:bg-stone-900/40 text-stone-400 border-stone-200 dark:border-stone-800 cursor-not-allowed')}>
-            <div className="text-xs font-bold">{level}</div><div className="text-[10px] mt-1">{level === 'HSK 1' ? 'MVP' : 'Sắp mở'}</div>
+        {HSK_CURRICULUM_LEVELS.map(({ level, contentStatus }) => (
+          <button key={level} type="button" onClick={() => { setSelectedHsk(level); const next = level === 'HSK 1' ? HSK1_LESSONS[0] : HSK2_TO_6_LESSONS.find(l => l.hskLevel === level); if (next) { setLessonId(next.id); setSection('learn'); setReviewIndex(0); setReviewDone(false); } }} className={'rounded-xl border p-3 text-left transition-all ' + (selectedHsk === level ? 'bg-stone-900 text-white border-stone-900 shadow-sm' : 'bg-white dark:bg-stone-900 text-stone-700 dark:text-stone-200 border-stone-200 dark:border-stone-800 hover:border-amber-400')}>
+            <div className="text-xs font-bold">{level}</div><div className="text-[10px] mt-1">{level === 'HSK 1' ? '45 từ · 10 bài' : contentStatus === 'CONTENT_GAP' ? 'Khung đã mở · đang bổ sung' : 'Đã có nội dung'}</div>
           </button>
         ))}
       </div>
@@ -100,16 +106,15 @@ export const LearningSystemScreen: React.FC = () => {
       <div className="grid lg:grid-cols-[260px_1fr] gap-4">
         <aside className="space-y-2">
           <div className="p-4 rounded-2xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800">
-            <div className="text-xs font-bold uppercase tracking-wider text-stone-500 mb-2">10 bài HSK 1</div>
-            <div className="space-y-1.5">{HSK1_LESSONS.map(l => <button key={l.id} type="button" onClick={() => {setLessonId(l.id);setSection('learn');setReviewIndex(0);setReviewDone(false); analytics.track('lesson_start', { lessonId: l.id, hskLevel: l.hskLevel, source: 'lesson_selector' });}} className={'w-full text-left p-2.5 rounded-xl text-xs ' + (lesson.id === l.id ? 'bg-amber-100 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 font-bold' : 'hover:bg-stone-100 dark:hover:bg-stone-800')}><span className="font-bold mr-1">{l.lessonNumber}.</span>{l.titleVi}</button>)}</div>
+            <div className="text-xs font-bold uppercase tracking-wider text-stone-500 mb-2">{lessonsForLevel.length} bài {selectedHsk}</div>
+            <div className="space-y-1.5">{lessonsForLevel.map(l => <button key={l.id} type="button" onClick={() => {setLessonId(l.id);setSection('learn');setReviewIndex(0);setReviewDone(false);analytics.track('lesson_start',{lessonId:l.id,hskLevel:l.hskLevel,source:'lesson_selector'});}} className={'w-full text-left p-2.5 rounded-xl text-xs ' + (lesson.id === l.id ? 'bg-amber-100 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 font-bold' : 'hover:bg-stone-100 dark:hover:bg-stone-800')}><span className="font-bold mr-1">{l.lessonNumber}.</span>{l.titleVi}</button>)}</div>
           </div>
           <div className="p-4 rounded-2xl bg-stone-900 text-white">
-            <div className="text-xs text-amber-300 font-bold">TODAY · {user.dailyGoalMinutes} phút</div>
-            <div className="mt-2 text-sm">3 từ mới · 1 grammar · 5 flashcards · 2 speaking</div>
+            <div className="text-xs text-amber-300 font-bold">KNOWLEDGE ENGINE · {selectedHsk}</div>
+            <div className="mt-2 text-sm">{lesson.vocabulary.length} từ · {lesson.grammar.length} grammar · nghe · nói · roleplay · review</div>
             <button type="button" onClick={() => setCurrentTab('review')} className="mt-3 w-full min-h-10 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-semibold">Ôn tập ngay</button>
           </div>
         </aside>
-
         <section className="space-y-4">
           <div className="p-5 rounded-3xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800">
             <div className="flex flex-wrap items-start justify-between gap-3">

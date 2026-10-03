@@ -14,6 +14,9 @@ import { lipSyncEngine } from './lipSyncEngine';
 import { AvatarStateMachine } from './avatarStateMachine';
 import { avatarAnimationEngine } from './avatarAnimationEngine';
 import { avatarTurnController } from './avatarTurnController';
+import { LINA_DEFAULT_OUTFIT, LINA_VISUAL_CONFIG } from './linaAvatarConfig';
+import { streamingTTSProvider } from './streamingTTS';
+import { avatarDebug } from './avatarDebug';
 
 export type VisemeEvent = {
   viseme: 'sil' | 'aa' | 'ee' | 'oo' | 'mm' | 'oh' | 'f' | 's';
@@ -61,14 +64,14 @@ export const DEFAULT_LINA_CHARACTER_CONFIG: CharacterDesignConfig = {
   },
   hair: {
     color: 'Nâu đen bóng mượt (Soft Dark Brunette)',
-    style: 'Búi tóc thanh lịch sau gáy kèm vài lọn tóc mai buông tự nhiên',
+    style: 'Tóc bob ngắn màu nâu đen tự nhiên (dark short bob)',
   },
   outfit: {
-    top: 'Áo dệt kim cổ lọ thanh nhã màu kem be (Elegant Cream Knit)',
-    accessory: 'Ghim cài áo ngọc nhỏ hình hoa mai (Delicate blossom pin)',
+    top: 'Áo dệt kim gân tay dài màu hồng dusty-rose, cổ tròn scoop (Ribbed knit long-sleeve scoop-neck top)',
+    accessory: 'Không phụ kiện nổi bật',
   },
   background: {
-    environment: 'Phòng học hiện đại phong cách Bắc Âu tối giản (Minimalist Bright Studio)',
+    environment: 'Phòng học hiện đại ấm áp, tường trung tính, cây xanh nhỏ và chiều sâu nhẹ',
     ambientColor: 'Tone ấm kem Terracotta & Xanh ngọc nhạt (#FDFBF7 & #F5F1EB)',
   },
   expression: 'Nụ cười khích lệ tự nhiên, đôi mắt tập trung lắng nghe học viên',
@@ -175,56 +178,25 @@ export class Level1FallbackAvatarProvider implements AvatarProvider {
 export class Level2InteractiveAvatarProvider implements AvatarProvider {
   readonly level: AvatarProviderLevel = 'level2_interactive';
   readonly name = 'Cấp 2: Tương tác thời gian thực (Interactive Canvas)';
-  readonly descriptionVi = 'Nhịp thở và biểu cảm cục bộ; khẩu hình chỉ chuyển động khi có audio metrics thật hoặc timing data từ provider.';
-
-  private ready = false;
-  private currentState: AvatarState = 'IDLE';
-
-  async initialize(): Promise<boolean> {
-    this.ready = true;
-    return true;
-  }
-
-  setState(state: AvatarState): void {
-    this.currentState = state;
-  }
-
-  async speak(text: string, options?: SpeakOptions): Promise<void> {
-    this.setState('SPEAKING');
-
+  readonly descriptionVi = 'Khẩu hình audio-driven từ audio playback thực; không tạo speaking animation giả.';
+  private ready=false;
+  async initialize():Promise<boolean>{this.ready=true;return true;}
+  setState(_state:AvatarState):void{}
+  async speak(text:string,options?:SpeakOptions):Promise<void>{
     try {
-      await speechService.speakChinese(text, {
-        rate: (options?.rate as any) || 1.0,
-        useGeminiTTS: options?.useGeminiTTS,
-        onEnd: () => {
-          options?.onViseme?.({ viseme: 'sil', amplitude: 0 });
-          this.setState('IDLE');
-          options?.onEnd?.();
-        },
-        onError: () => {
-          options?.onViseme?.({ viseme: 'sil', amplitude: 0 });
-          this.setState('IDLE');
-          options?.onError?.();
-        },
+      await streamingTTSProvider.start({
+        text, rate:(options?.rate as any)||1, lang:'zh-CN',
+        onStart:()=>options?.onViseme?.({viseme:'sil',amplitude:0}),
+        onEnd:()=>{options?.onViseme?.({viseme:'sil',amplitude:0});options?.onEnd?.();},
+        onError:()=>options?.onError?.()
       });
     } catch {
-      this.setState('IDLE');
-      options?.onError?.();
+      await speechService.speakChinese(text,{rate:(options?.rate as any)||1,useGeminiTTS:options?.useGeminiTTS,onEnd:()=>options?.onEnd?.(),onError:()=>options?.onError?.()});
     }
   }
-
-  stop(): void {
-    speechService.stopSpeaking();
-    this.setState('IDLE');
-  }
-
-  destroy(): void {
-    this.stop();
-  }
-
-  isReady(): boolean {
-    return this.ready;
-  }
+  stop():void{streamingTTSProvider.stop();speechService.stopSpeaking();}
+  destroy():void{this.stop();this.ready=false;}
+  isReady():boolean{return this.ready;}
 }
 
 // =========================================================================
@@ -290,6 +262,7 @@ class AvatarSystemManager {
   private lastAudioNotifyAt = 0;
   private listeners: Set<AvatarListener> = new Set();
   private characterConfig: CharacterDesignConfig = DEFAULT_LINA_CHARACTER_CONFIG;
+  private readonly visualConfig = LINA_VISUAL_CONFIG;
   private activeSpeakToken = 0;
 
   constructor() {
@@ -304,6 +277,7 @@ class AvatarSystemManager {
 
     // Real audio-driven lip sync. If no audio element exists, no mouth movement is synthesized.
     this.unsubscribeAudio = audioStreamController.subscribe({
+      onState: (state) => { avatarDebug.update({audioStatus:state}); if(state==='playing'){ this.setState('SPEAKING'); avatarDebug.update({lipSyncStatus:'active'}); } if(state==='ended'||state==='idle'||state==='error'){ this.currentViseme=lipSyncEngine.silence() as any; if(this.currentState==='SPEAKING') this.setState('IDLE'); } },
       onElement: (audio) => {
         if (audio) audioAnalyzer.attachMediaElement(audio);
         else {
@@ -319,7 +293,7 @@ class AvatarSystemManager {
       if (metrics.isSpeaking && now - this.lastAudioNotifyAt < 66) return;
       this.lastAudioNotifyAt = now;
       const frame = lipSyncEngine.fromAudio(metrics);
-      this.currentViseme = { viseme: frame.viseme, amplitude: frame.intensity };
+      this.currentViseme = { viseme: frame.viseme, amplitude: frame.intensity }; avatarDebug.update({audioEnergy:metrics.energy,speechDetected:metrics.isSpeaking,visemeAvailable:frame.source==='timing'});
       this.notify();
     });
   }
@@ -339,6 +313,9 @@ class AvatarSystemManager {
   getCharacterConfig(): CharacterDesignConfig {
     return this.characterConfig;
   }
+
+  getVisualConfig(){ return this.visualConfig; }
+  getDefaultOutfit(){ return LINA_DEFAULT_OUTFIT; }
 
   getStateLabelVi(): string {
     return AVATAR_STATE_DESCRIPTIONS[this.currentState]?.titleVi || 'Lina đang sẵn sàng';
@@ -392,6 +369,7 @@ class AvatarSystemManager {
 
   async speak(text: string, options?: SpeakOptions): Promise<void> {
     const provider = this.providers[this.activeLevel];
+    avatarDebug.update({provider:provider.name,turnId:avatarTurnController.getActiveTurnId(),state:'THINKING'});
     const token = ++this.activeSpeakToken;
     const turnId = avatarTurnController.beginTurn();
     try {
@@ -399,6 +377,7 @@ class AvatarSystemManager {
         ...options,
         onViseme: (v) => {
           this.currentViseme = v;
+          avatarDebug.update({lipSyncStatus:v.amplitude>0?'active':'inactive'});
           options?.onViseme?.(v);
           this.notify();
         },
@@ -418,6 +397,7 @@ class AvatarSystemManager {
     } catch {
       // Never claim realtime avatar when no provider is configured. Use the local animated fallback.
       this.activeLevel = 'level2_interactive';
+      avatarDebug.update({provider:'animated-fallback',state:'IDLE',lipSyncStatus:'inactive'});
       this.stateMachine.force('IDLE');
       this.currentState = 'IDLE';
       this.providers.level2_interactive.initialize().then(() => this.providers.level2_interactive.speak(text, options)).catch(() => {
@@ -427,9 +407,19 @@ class AvatarSystemManager {
     }
   }
 
-  stop(): void {
+  resetAvatarState(): void {
     this.activeSpeakToken += 1;
     avatarTurnController.cancel();
+    lipSyncEngine.reset();
+    this.currentViseme = { viseme: 'sil', amplitude: 0 };
+    avatarAnimationEngine.reset();
+    this.stateMachine.force('IDLE');
+    this.currentState = 'IDLE';
+    this.notify();
+  }
+
+  stop(): void {
+    this.resetAvatarState();
     this.providers[this.activeLevel].stop();
     this.setState('IDLE');
     this.currentViseme = { viseme: 'sil', amplitude: 0 };

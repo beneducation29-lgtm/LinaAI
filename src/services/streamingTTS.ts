@@ -7,6 +7,12 @@ const configuredEndpoint = '/api/tts/elevenlabs/stream';
 const configuredMimeType = 'audio/mpeg';
 const streamingEnabled = typeof import.meta !== 'undefined' ? import.meta.env?.VITE_STREAMING_TTS_ENABLED !== 'false' : true;
 
+async function playWithRealAudioStart(run:()=>Promise<void>, onStart?:()=>void):Promise<void>{
+  let started=false;
+  const unsubscribe=audioStreamController.subscribe({onState:state=>{if(state==='playing'&&!started){started=true;onStart?.();}}});
+  try{await run();}finally{unsubscribe();}
+}
+
 export class BufferedGeminiTTSProvider implements StreamingTTSProvider {
   readonly name = 'Gemini TTS (buffered fallback)';
   readonly supportsStreaming = false;
@@ -15,10 +21,9 @@ export class BufferedGeminiTTSProvider implements StreamingTTSProvider {
   async start(options: StreamingTTSOptions): Promise<void> {
     this.stop(); this.speaking = true;
     try {
-      options.onStart?.();
       const source = await speechService.fetchGeminiTTSAudio(options.text);
-      if (source) await audioStreamController.playSource(source, options.rate || 1);
-      else await speechService.speakChinese(options.text, { rate: (options.rate || 1) as 0.75 | 1 | 1.25, lang: options.lang || 'zh-CN' });
+      if (source) await playWithRealAudioStart(()=>audioStreamController.playSource(source, options.rate || 1),options.onStart);
+      else { options.onStart?.(); await speechService.speakChinese(options.text, { rate: (options.rate || 1) as 0.75 | 1 | 1.25, lang: options.lang || 'zh-CN' }); }
       options.onEnd?.();
     } catch (error) { options.onError?.(error instanceof Error ? error : new Error('TTS failed')); throw error; }
     finally { this.speaking = false; }
@@ -51,8 +56,7 @@ export class ElevenLabsStreamingTTSProvider implements StreamingTTSProvider {
         signal
       });
       if (!response.ok || !response.body) throw new Error(`ElevenLabs streaming TTS unavailable (HTTP ${response.status}).`);
-      options.onStart?.();
-      await audioStreamController.playStream(response.body, options.audioMimeType || configuredMimeType, options.rate || 1);
+      await playWithRealAudioStart(()=>audioStreamController.playStream(response.body!, options.audioMimeType || configuredMimeType, options.rate || 1),options.onStart);
       options.onEnd?.();
       void startedAt;
     } catch (error) { options.onError?.(error instanceof Error ? error : new Error('ElevenLabs TTS failed')); throw error; }
@@ -85,8 +89,7 @@ export class ElevenLabsStreamingTTSProvider implements StreamingTTSProvider {
     this.speaking = true;
     const url = URL.createObjectURL(prepared.blob);
     try {
-      options.onStart?.();
-      await audioStreamController.playSource(url, options.rate || 1);
+      await playWithRealAudioStart(()=>audioStreamController.playSource(url, options.rate || 1),options.onStart);
       options.onEnd?.();
     } finally {
       URL.revokeObjectURL(url);

@@ -59,8 +59,12 @@ export function scheduleActivityReview(current: ActivitySRSItem | undefined, cor
   };
 }
 
-export function isReviewDue(item: ActivitySRSItem, now = new Date()): boolean {
-  return new Date(item.schedule.nextReview).getTime() <= now.getTime();
+export function isReviewDue(item: ActivitySRSItem, now: Date | number | string = new Date()): boolean {
+  const nowDate = now instanceof Date ? now : new Date(now);
+  if (Number.isNaN(nowDate.getTime())) return false;
+  const nextReview = new Date(item.schedule.nextReview);
+  if (Number.isNaN(nextReview.getTime())) return false;
+  return nextReview.getTime() <= nowDate.getTime();
 }
 
 function minutesFor(total:number, count:number): number { return Math.max(1, Math.floor(total / Math.max(1,count))); }
