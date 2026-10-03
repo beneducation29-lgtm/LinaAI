@@ -14,7 +14,7 @@ assert.match(outfit,/ribbed-knit-top/);
 assert.match(outfit,/scoop/);
 assert.match(outfit,/dark short bob/);
 assert.match(eyes,/nextBlinkAt/);
-assert.match(eyes,/mode==='THINKING'/);
+assert.match(eyes,/mode(?:\s*)={3}(?:'THINKING'|\"THINKING\")/);
 assert.match(lip,/metrics.isSpeaking/);
 assert.match(lip,/this.smoothed/);
 assert.match(lip,/jaw/);
