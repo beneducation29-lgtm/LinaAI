@@ -110,11 +110,11 @@ export class AudioStreamController {
       });
 
       if (token === this.token) {
-        this.listeners.forEach(l => l.onState?.('ended'));
         await new Promise<void>(resolve => {
           if (!this.audio || this.audio.ended) resolve();
           else this.audio.addEventListener('ended', () => resolve(), { once: true });
         });
+        if (token === this.token) this.listeners.forEach(l => l.onState?.('ended'));
       }
     } catch (error) {
       if (token === this.token) this.listeners.forEach(l => l.onState?.('error'));
