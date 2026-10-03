@@ -39,6 +39,7 @@ export const Profile: React.FC = () => {
     loginWithGoogle,
     signupAccount,
     logoutAccount,
+    deleteAccount,
     syncNow
   } = useApp();
 
@@ -62,7 +63,7 @@ export const Profile: React.FC = () => {
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 pb-24 md:pb-12 space-y-6">
-      <AccountSyncCard user={authUser} sync={syncState} onLogin={() => { setAccountMode('login'); setAccountOpen(true); }} onGoogleLogin={loginWithGoogle} onLogout={() => void logoutAccount()} onSync={() => void syncNow()} />
+      <AccountSyncCard user={authUser} sync={syncState} onLogin={() => { setAccountMode('login'); setAccountOpen(true); }} onGoogleLogin={loginWithGoogle} onLogout={() => void logoutAccount()} onDeleteAccount={() => { if (window.confirm('Xóa tài khoản sẽ xóa tài khoản đăng nhập và dữ liệu học tập cloud của bạn. Hành động này không thể hoàn tác. Bạn có chắc chắn không?')) void deleteAccount().catch(e => window.alert(e instanceof Error ? e.message : 'Không thể xóa tài khoản.')); }} onSync={() => void syncNow()} />
       {accountOpen && <div className="p-5 rounded-3xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800">
         <div className="flex items-center justify-between mb-3"><div className="text-sm font-bold">{accountMode==='login'?'Đăng nhập':'Tạo tài khoản'}</div><button onClick={()=>setAccountOpen(false)} className="text-xs text-stone-400">Đóng</button></div>
         <form onSubmit={handleAccountSubmit} className="space-y-2">
