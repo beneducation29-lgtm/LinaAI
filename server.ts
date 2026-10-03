@@ -536,7 +536,7 @@ app.post('/api/billing/checkout', async (req, res) => {
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
     const plan = req.body?.plan === 'PRO' ? 'PRO' : req.body?.plan === 'PREMIUM' ? 'PREMIUM' : 'FREE';
     if (plan === 'FREE') return res.status(400).json({ error: 'Paid plan required' });
-    const checkout = await subscriptionProvider.createCheckout();
+    const checkout = await subscriptionProvider.createCheckout({ userId: user.id, plan, email: user.email });
     res.json(checkout);
   } catch (err) {
     res.status(503).json({ error: 'Payment provider is not configured.' });
