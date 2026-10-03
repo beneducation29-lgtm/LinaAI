@@ -1,5 +1,5 @@
 const SUPABASE_URL = process.env.SUPABASE_URL || '';
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || '';
+const SUPABASE_PUBLISHABLE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY || '';
 
 export function json(res,status,payload){
   res.status(status).setHeader('Content-Type','application/json; charset=utf-8').setHeader('Cache-Control','no-store').setHeader('X-Content-Type-Options','nosniff').send(JSON.stringify(payload));
@@ -32,10 +32,10 @@ export function clearAuthCookies(res){
   ]);
 }
 async function supabase(path,options={}){
-  if(!SUPABASE_URL||!SUPABASE_ANON_KEY) return {ok:false,status:503,data:{msg:'Cloud account chưa được cấu hình.'}};
+  if(!SUPABASE_URL||!SUPABASE_PUBLISHABLE_KEY) return {ok:false,status:503,data:{msg:'Cloud account chưa được cấu hình.'}};
   const r=await fetch(SUPABASE_URL+path,{
     ...options,
-    headers:{apikey:SUPABASE_ANON_KEY,'Content-Type':'application/json',...(options.headers||{})}
+    headers:{apikey:SUPABASE_PUBLISHABLE_KEY,'Content-Type':'application/json',...(options.headers||{})}
   });
   const text=await r.text();
   let data={};
