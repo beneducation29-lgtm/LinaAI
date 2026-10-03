@@ -1,7 +1,7 @@
 import {json,parseCookies,setAuthCookies,clearAuthCookies,publicUser,getUser,signUp,signIn,refresh} from './_utils.js';
 
 function message(data,fallback){ return data?.error_description||data?.msg||data?.message||fallback; }
-function validEmail(value){ return typeof value==='string' && value.trim().length<=254 && /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(value.trim()); }
+function validEmail(value){ return typeof value==='string' && value.trim().length<=254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim()); }
 function sameOrigin(req){ const origin=req.headers.origin; if(!origin) return true; try{return new URL(origin).host===req.headers.host;}catch{return false;} }
 const buckets=new Map();
 function rateLimited(req,action){ const ip=String(req.headers['x-forwarded-for']||req.socket?.remoteAddress||'unknown').split(',')[0].trim(); const key=ip+':'+action; const now=Date.now(); const current=buckets.get(key)||{at:now,count:0}; if(now-current.at>=60000){current.at=now;current.count=0;} current.count++; buckets.set(key,current); if(buckets.size>2000){for(const [k,v] of buckets){if(now-v.at>120000)buckets.delete(k);}} return current.count>10; }
