@@ -199,7 +199,7 @@ export const Profile: React.FC = () => {
             Các thông tin cá nhân và ngữ cảnh Lina đã ghi nhớ để cá nhân hóa đàm thoại:
           </p>
           <div className="flex flex-wrap gap-1.5 pt-1">
-            {['Học viên tên là Minh', 'Quốc tịch: Việt Nam', 'Mục tiêu: Giao tiếp thực tế', 'Thích chủ đề ẩm thực & du lịch'].map((mem, i) => (
+            {['Tên học viên sẽ được cập nhật sau khi bạn đăng nhập', 'Quốc tịch: chưa thiết lập', 'Mục tiêu: sẽ được xác định trong quá trình học', 'Sở thích: sẽ được Lina ghi nhớ khi bạn cho phép'].map((mem, i) => (
               <span key={i} className="text-xs px-2.5 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200/60 dark:border-amber-900/60 text-amber-900 dark:text-amber-300 font-medium">
                 ✓ {mem}
               </span>
