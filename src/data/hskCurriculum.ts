@@ -16,6 +16,6 @@ const focus:Record<HSKLevel,string[]>={
  'HSK 5':['complex grammar','long texts','register','argument structure','inference','discussion','presentation','paragraph writing'],
  'HSK 6':['advanced reading','nuance','register','argumentation','summarization','inference','abstract discussion','structured writing']
 };
-export const HSK_CURRICULUM_LEVELS=levels.map(level=>({level,focus:focus[level],contentStatus:'CONTENT_GAP' as ContentHealthStatus,source:HSK_CURRICULUM_SOURCE}));
+export const HSK_CURRICULUM_LEVELS=levels.map(level=>({level,focus:focus[level],contentStatus:(level==='HSK 1'?'PARTIAL':'PARTIAL') as ContentHealthStatus,source:HSK_CURRICULUM_SOURCE}));
 export const HSK_SKILL_KEYS:Array<keyof HSKSkillCoverage>=['vocabulary','grammar','pronunciation','listening','speaking','reading','writing','characters','dialogue','roleplay','stories'];
 export function getHSKLevelConfig(level:HSKLevel){return HSK_CURRICULUM_LEVELS.find(x=>x.level===level)!;}
