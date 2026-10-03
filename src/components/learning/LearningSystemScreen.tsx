@@ -173,5 +173,3 @@ export const LearningSystemScreen: React.FC = () => {
 };
 
 const Metric:React.FC<{label:string;value:number}> = ({label,value}) => <div className="p-3 rounded-xl bg-stone-50 dark:bg-stone-800/60"><div className="text-lg font-bold">{value}{label === 'Thanh điệu' ? '%' : ''}</div><div className="text-[11px] text-stone-500">{label}</div></div>;
-
-      )}
