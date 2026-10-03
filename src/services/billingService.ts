@@ -12,7 +12,7 @@ export class GenericHmacPaymentProvider implements PaymentProvider {
   readonly name: string;
   private readonly secret: string;
   constructor(name: string, secret: string) { this.name = name; this.secret = secret; }
-  async createCheckout(): Promise<{ checkoutUrl: string }> {
+  async createCheckout(_input: { userId: string; plan: PlanId; email?: string }): Promise<{ checkoutUrl: string }> {
     throw new Error('Payment provider checkout is not configured');
   }
   verifyWebhook(rawBody: string, signature: string | undefined): boolean {
