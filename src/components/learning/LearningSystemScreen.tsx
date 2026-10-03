@@ -2,6 +2,7 @@ import React, { useMemo, useRef, useState } from 'react';
 import { BookOpen, CheckCircle2, ChevronRight, Headphones, Mic, MessageCircle, RotateCcw, Sparkles, Volume2 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { HSK1_LESSONS } from '../../data/hsk1Lessons';
+import { HSK2_6_LESSONS } from '../../data/hskExpandedLessons';
 import { InteractiveChineseSentence } from '../common/InteractiveChineseSentence';
 import { LayerToggles } from '../common/LayerToggles';
 import { speechService } from '../../services/speech';
@@ -12,6 +13,7 @@ type Section = 'learn' | 'listen' | 'speak' | 'roleplay' | 'review';
 
 export const LearningSystemScreen: React.FC = () => {
   const { user, setCurrentTab, recordLearningResult, addMistake, getDueReviewCount, structuredProgress, learnerProfileMemory, recordMotivationActivity } = useApp();
+  const [selectedHsk,setSelectedHsk] = useState(user.currentHsk);
   const [lessonId,setLessonId] = useState('hsk1-lesson-1');
   const [section,setSection] = useState<Section>('learn');
   const [reviewIndex,setReviewIndex] = useState(0);
@@ -24,7 +26,9 @@ export const LearningSystemScreen: React.FC = () => {
   const [pinyinMode,setPinyinMode] = useState<'marks'|'numbers'|'hidden'>('marks');
   const lessonStartedAt = useRef<Record<string, number>>({});
 
-  const lesson = useMemo(() => HSK1_LESSONS.find(l => l.id === lessonId) || HSK1_LESSONS[0], [lessonId]);
+  const allLessons = useMemo(() => [...HSK1_LESSONS, ...HSK2_6_LESSONS], []);
+  const lessonsForLevel = useMemo(() => allLessons.filter(l => l.hskLevel === selectedHsk), [allLessons, selectedHsk]);
+  const lesson = useMemo(() => allLessons.find(l => l.id === lessonId) || lessonsForLevel[0] || HSK1_LESSONS[0], [allLessons, lessonId, lessonsForLevel]);
   React.useEffect(() => {
     lessonStartedAt.current[lesson.id] = Date.now();
     analytics.track('lesson_start', { lessonId: lesson.id, hskLevel: lesson.hskLevel });
@@ -84,24 +88,30 @@ export const LearningSystemScreen: React.FC = () => {
         <div>
           <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300"><Sparkles className="w-4 h-4"/>HSK Learning System</div>
           <h1 className="text-2xl sm:text-3xl font-bold mt-1">Lộ trình tiếng Trung có cấu trúc</h1>
-          <p className="text-sm text-stone-500 dark:text-stone-400 mt-1">HSK 1 triển khai đầy đủ 10 bài; HSK 2–6 dùng cùng kiến trúc dữ liệu.</p>
+          <p className="text-sm text-stone-500 dark:text-stone-400 mt-1">HSK 1 có 10 bài nền tảng; HSK 2–6 đã mở thêm các module theo chủ đề, ngữ pháp, nghe, nói, roleplay và review.</p>
         </div>
         <div className="flex gap-2"><span className="px-3 py-1.5 rounded-xl bg-stone-100 dark:bg-stone-800 text-xs font-bold">{user.currentHsk}</span><span className="px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/30 text-xs font-bold text-amber-800 dark:text-amber-300">{getDueReviewCount()} cần ôn</span></div>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-6 gap-2">
-        {(['HSK 1','HSK 2','HSK 3','HSK 4','HSK 5','HSK 6'] as const).map(level => (
-          <button key={level} type="button" disabled={level !== 'HSK 1'} onClick={() => level === 'HSK 1' && setLessonId('hsk1-lesson-1')} className={'rounded-xl border p-3 text-left ' + (level === 'HSK 1' ? 'bg-stone-900 text-white border-stone-900' : 'bg-white/60 dark:bg-stone-900/40 text-stone-400 border-stone-200 dark:border-stone-800 cursor-not-allowed')}>
-            <div className="text-xs font-bold">{level}</div><div className="text-[10px] mt-1">{level === 'HSK 1' ? 'MVP' : 'Sắp mở'}</div>
-          </button>
-        ))}
+        {(['HSK 1','HSK 2','HSK 3','HSK 4','HSK 5','HSK 6'] as const).map(level => {
+          const count = allLessons.filter(l => l.hskLevel === level).length;
+          const active = selectedHsk === level;
+          return <button key={level} type="button" onClick={() => {
+            setSelectedHsk(level);
+            const first = allLessons.find(l => l.hskLevel === level);
+            if(first){ setLessonId(first.id); setSection('learn'); setReviewIndex(0); setReviewDone(false); }
+          }} className={'rounded-xl border p-3 text-left transition-all ' + (active ? 'bg-stone-900 text-white border-stone-900' : 'bg-white/60 dark:bg-stone-900/40 text-stone-700 dark:text-stone-300 border-stone-200 dark:border-stone-800 hover:border-amber-300')}>
+            <div className="text-xs font-bold">{level}</div><div className="text-[10px] mt-1">{count ? count + ' bài' : 'Đang cập nhật'}</div>
+          </button>;
+        })}
       </div>
 
       <div className="grid lg:grid-cols-[260px_1fr] gap-4">
         <aside className="space-y-2">
           <div className="p-4 rounded-2xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800">
-            <div className="text-xs font-bold uppercase tracking-wider text-stone-500 mb-2">10 bài HSK 1</div>
-            <div className="space-y-1.5">{HSK1_LESSONS.map(l => <button key={l.id} type="button" onClick={() => {setLessonId(l.id);setSection('learn');setReviewIndex(0);setReviewDone(false); analytics.track('lesson_start', { lessonId: l.id, hskLevel: l.hskLevel, source: 'lesson_selector' });}} className={'w-full text-left p-2.5 rounded-xl text-xs ' + (lesson.id === l.id ? 'bg-amber-100 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 font-bold' : 'hover:bg-stone-100 dark:hover:bg-stone-800')}><span className="font-bold mr-1">{l.lessonNumber}.</span>{l.titleVi}</button>)}</div>
+            <div className="text-xs font-bold uppercase tracking-wider text-stone-500 mb-2">{lessonsForLevel.length} bài {selectedHsk}</div>
+            <div className="space-y-1.5">{lessonsForLevel.map(l => <button key={l.id} type="button" onClick={() => {setLessonId(l.id);setSection('learn');setReviewIndex(0);setReviewDone(false); analytics.track('lesson_start', { lessonId: l.id, hskLevel: l.hskLevel, source: 'lesson_selector' });}} className={'w-full text-left p-2.5 rounded-xl text-xs ' + (lesson.id === l.id ? 'bg-amber-100 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 font-bold' : 'hover:bg-stone-100 dark:hover:bg-stone-800')}><span className="font-bold mr-1">{l.lessonNumber}.</span>{l.titleVi}</button>)}</div>
           </div>
           <div className="p-4 rounded-2xl bg-stone-900 text-white">
             <div className="text-xs text-amber-300 font-bold">TODAY · {user.dailyGoalMinutes} phút</div>
