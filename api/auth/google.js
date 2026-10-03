@@ -36,8 +36,19 @@ function redirect(res, location){
   res.status(302).setHeader('Location', location).end();
 }
 
-function safeError(message){
-  return String(message || 'Google sign-in failed.').slice(0,180);
+function cleanDetail(value){
+  return String(value || '')
+    .replace(/[\\r\\n]/g, ' ')
+    .replace(/\\s+/g, ' ')
+    .slice(0,220);
+}
+
+function errorRedirect(res, code, detail){
+  const params = new URLSearchParams({
+    auth_error: code,
+    auth_detail: cleanDetail(detail)
+  });
+  return redirect(res, '/?' + params.toString());
 }
 
 export default async function handler(req,res){
@@ -50,10 +61,11 @@ export default async function handler(req,res){
     const query = new URL(req.url || '', SITE_URL).searchParams;
     const code = query.get('code');
     const oauthError = query.get('error_description') || query.get('error');
+    const oauthErrorCode = query.get('error_code') || query.get('error');
 
     if(oauthError){
-      console.error('[Lina][GOOGLE_CALLBACK]', safeError(oauthError));
-      return redirect(res, '/?auth_error=google');
+      console.error('[Lina][GOOGLE_CALLBACK]', cleanDetail(oauthError));
+      return errorRedirect(res, 'google_provider', oauthErrorCode + ': ' + oauthError);
     }
 
     const supabase = makeServerClient(req, res);
@@ -67,8 +79,9 @@ export default async function handler(req,res){
       });
 
       if(error || !data?.url){
-        console.error('[Lina][GOOGLE_START]', safeError(error?.message));
-        return redirect(res, '/?auth_error=google');
+        const detail = error?.message || 'Supabase did not return an OAuth URL.';
+        console.error('[Lina][GOOGLE_START]', cleanDetail(detail));
+        return errorRedirect(res, 'google_start', detail);
       }
 
       return redirect(res, data.url);
@@ -77,13 +90,13 @@ export default async function handler(req,res){
     const { error } = await supabase.auth.exchangeCodeForSession(code);
 
     if(error){
-      console.error('[Lina][GOOGLE_EXCHANGE]', safeError(error.message));
-      return redirect(res, '/?auth_error=google_exchange');
+      console.error('[Lina][GOOGLE_EXCHANGE]', cleanDetail(error.message));
+      return errorRedirect(res, 'google_exchange', error.message);
     }
 
     return redirect(res, '/');
   }catch(err){
-    console.error('[Lina][GOOGLE_AUTH_ERROR]',err?.message||err);
-    return redirect(res, '/?auth_error=google');
+    console.error('[Lina][GOOGLE_AUTH_ERROR]',cleanDetail(err?.message||err));
+    return errorRedirect(res, 'google_runtime', err?.message || err);
   }
 }
