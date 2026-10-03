@@ -15,7 +15,8 @@ export default async function handler(req, res) {
   try {
     if (req.method !== 'GET') return json(res, 405, { error: 'Method Not Allowed' });
     if (!SUPABASE_URL || !SUPABASE_SERVER_KEY) {
-      return json(res, 503, { error: 'Sync database chưa được cấu hình.' });
+      console.error('[Lina][SYNC_PULL_CONFIG]', { hasSupabaseUrl: Boolean(SUPABASE_URL), hasServerKey: Boolean(SUPABASE_SERVER_KEY) });
+      return json(res, 503, { error: 'Sync database chưa được cấu hình.', code: 'SYNC_SERVER_KEY_MISSING' });
     }
 
     const cookies = parseCookies(req);
@@ -29,8 +30,9 @@ export default async function handler(req, res) {
 
     const response = await fetch(url, { headers: headers() });
     if (!response.ok) {
-      console.error('[Lina][SYNC_PULL]', response.status);
-      return json(res, 503, { error: 'Sync database unavailable' });
+      const detail = await response.text().catch(() => '');
+      console.error('[Lina][SYNC_PULL]', response.status, detail.slice(0, 500));
+      return json(res, 503, { error: 'Sync database unavailable', code: 'SYNC_DB_REQUEST_FAILED', status: response.status });
     }
 
     const rows = await response.json();
