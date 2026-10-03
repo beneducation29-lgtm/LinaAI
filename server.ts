@@ -635,8 +635,7 @@ app.post('/api/tutor/explain', async (req:Request,res:Response)=>{
 
 app.post('/api/tutor/chat/stream', async (req:Request,res:Response)=>{
   try{
-    const {message,history=[],mode='conversation',hskLevel='HSK 1',userName='Bạn',userLevel='Cơ bản',topicTitle='Tự do',memoryFacts=[]}=req.body;
-    if(typeof message!=='string'||!message.trim())return res.status(400).json({error:'Message string is required'});
+    const safe=sanitizeTutorPayload(req.body||{}); const {message,history,topicTitle,userName,memoryFacts}=safe; const mode=req.body?.mode==='teacher'?'teacher':'conversation'; const hskLevel=typeof req.body?.hskLevel==='string'?req.body.hskLevel.slice(0,40):'HSK 1'; const userLevel=typeof req.body?.userLevel==='string'?req.body.userLevel.slice(0,80):'Cơ bản'; if(!message)return res.status(400).json({error:'Message string is required'}); if(looksLikePromptInjection(message))return res.status(400).json({error:'INPUT_REJECTED'});
     const access=await requireAIEntitlement(req,'ai');if('error' in access)return res.status(access.status).json({error:access.error,...(access.error==='LIMIT_REACHED'?{code:'LIMIT_REACHED'}:{})});
     res.setHeader('Content-Type','text/event-stream; charset=utf-8');res.setHeader('Cache-Control','no-cache, no-transform');res.setHeader('Connection','keep-alive');res.flushHeaders?.();
     const send=(payload:Record<string,unknown>)=>{if(!res.writableEnded)res.write('data: '+JSON.stringify(payload)+'\\n\\n');};
