@@ -8,8 +8,13 @@ function rateLimited(req,action){ const ip=String(req.headers['x-forwarded-for']
 function guard(req,res,action){ if(!sameOrigin(req)) return json(res,403,{error:'Cross-origin request blocked.'}); if(rateLimited(req,action)){res.setHeader('Retry-After','60');return json(res,429,{error:'Quá nhiều yêu cầu. Vui lòng thử lại sau.'});} return null; }
 
 export default async function handler(req,res){
-  const path=req.query?.path;
-  const action=Array.isArray(path)?path.join('/'):String(path||'');
+  const queryPath=req.query?.path;
+  const queryAction=Array.isArray(queryPath)?queryPath.join('/'):String(queryPath||'');
+  // Vercel may expose catch-all params differently across runtimes/configurations.
+  // Fall back to the actual request URL so /api/auth/signup is always normalized to "signup".
+  const requestPath=String(req.url||'').split('?')[0].replace(/^\\/+|\\/+$/g,'');
+  const urlAction=requestPath.replace(/^api\\/auth\\/?/i,'');
+  const action=(queryAction||urlAction).replace(/^\\/+|\\/+$/g,'');
   try{
     if(action==='signup' && req.method==='POST'){
       const blocked=guard(req,res,'signup'); if(blocked) return blocked;
