@@ -8,7 +8,8 @@ import {
 import { AvatarState, AvatarProviderLevel } from '../../types';
 import { avatarAnimationEngine, type AvatarMotionFrame } from '../../services/avatarAnimationEngine';
 import { avatarDebug, type AvatarDebugSnapshot } from '../../services/avatarDebug';
-import linaStylizedAvatarImg from '../../assets/images/lina_avatar_stylized_1790862594850.jpg';
+import linaTutorAvatarImg from '../../assets/images/tutor_lina_avatar_1790861417833.jpg';
+import { LINA_VISUAL_CONFIG } from '../../services/linaAvatarConfig';
 import { 
   Sparkles, 
   Mic, 
@@ -137,8 +138,8 @@ export const LinaAvatar: React.FC<LinaAvatarProps> = ({
         <div className={`relative w-10 h-10 rounded-full overflow-hidden border-2 shadow-xs transition-all ${stateBorderColors[avatarState]}`}>
           {!imageError ? (
             <img
-              src={linaStylizedAvatarImg}
-              alt="Lina"
+              src={linaTutorAvatarImg}
+              alt="Lina 林娜"
               className="w-full h-full object-cover"
               onError={() => setImageError(true)}
             />
@@ -174,8 +175,8 @@ export const LinaAvatar: React.FC<LinaAvatarProps> = ({
               <div className={`relative w-14 h-14 rounded-2xl overflow-hidden border-2 shadow-sm transition-all duration-300 ${stateBorderColors[avatarState]}`}>
                 {!imageError ? (
                   <img
-                    src={linaStylizedAvatarImg}
-                    alt="Lina AI Chinese Tutor"
+                    src={linaTutorAvatarImg}
+                    alt={`${LINA_VISUAL_CONFIG.name} 林娜 — gia sư tiếng Trung AI` }
                     className="w-full h-full object-cover"
                     onError={() => setImageError(true)}
                   />
@@ -285,6 +286,10 @@ export const LinaAvatar: React.FC<LinaAvatarProps> = ({
 
       {/* Hero Avatar Presentation Area */}
       <div className="relative z-10 flex-1 flex flex-col items-center justify-center py-4 my-auto">
+        <div className="mb-3 flex flex-wrap items-center justify-center gap-2 text-[10px] font-semibold text-stone-600 dark:text-stone-300">
+          <span className="px-2.5 py-1 rounded-full bg-white/85 dark:bg-stone-900/85 border border-stone-200 dark:border-stone-700">Lina · {LINA_VISUAL_CONFIG.framing}</span>
+          <span className="px-2.5 py-1 rounded-full bg-rose-50/95 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 text-rose-800 dark:text-rose-200">Dusty rose · ribbed knit · long sleeve</span>
+        </div>
         {/* Avatar Portrait Vessel */}
         <div className="relative group">
           {/* Attentive Listening & Thinking Glow Ring */}
@@ -300,7 +305,7 @@ export const LinaAvatar: React.FC<LinaAvatarProps> = ({
           <div className={`relative w-full max-w-[430px] aspect-[3/4] rounded-[2rem] overflow-hidden border-3 shadow-lg transition-all duration-300 ${stateBorderColors[avatarState]} ${prefersReducedMotion ? '' : 'animate-[avatarBreath_4s_ease-in-out_infinite]'}`} style={prefersReducedMotion ? undefined : { transform: 'translate3d(' + (motion.headX * 100) + 'px,' + (motion.headY * 100) + 'px,0) rotate(' + motion.headTilt + 'deg) scale(' + (1 + motion.breathing * 0.004) + ')' }}>
             {!imageError ? (
               <img
-                src={linaStylizedAvatarImg}
+                src={linaTutorAvatarImg}
                 alt="Lina 林娜 — gia sư tiếng Trung AI hư cấu"
                 className={`w-full h-full object-cover object-[50%_35%] transition-transform duration-700 ${
                   avatarState === 'THINKING' ? 'scale-105 rotate-1' :
