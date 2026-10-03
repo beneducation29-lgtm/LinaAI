@@ -19,3 +19,13 @@ assert.match(sync,/QUEUE_KEY,userId/);
 assert.match(sync,/META_KEY,userId/);
 assert.match(card,/onGoogleLogin/);
 console.log('Google account isolation tests passed');
+
+assert.match(auth,/deleteAccount/);
+assert.match(server,/\/api\/privacy\/delete-account/);
+assert.match(server,/auth\/v1\/logout/);
+assert.match(server,/lina_learning_sync_records/);
+assert.match(server,/lina_subscriptions/);
+assert.match(server,/lina_usage_events/);
+assert.match(card,/onDeleteAccount/);
+assert.match(card,/Tiếp tục với Google/);
+console.log('Account lifecycle and session invalidation tests passed');
