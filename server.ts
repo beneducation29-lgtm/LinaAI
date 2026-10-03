@@ -536,7 +536,7 @@ app.post('/api/billing/checkout', async (req, res) => {
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
     const plan = req.body?.plan === 'PRO' ? 'PRO' : req.body?.plan === 'PREMIUM' ? 'PREMIUM' : 'FREE';
     if (plan === 'FREE') return res.status(400).json({ error: 'Paid plan required' });
-    const checkout = await subscriptionProvider.createCheckout({ userId: user.id, plan, email: user.email });
+    const checkout = await subscriptionProvider.createCheckout();
     res.json(checkout);
   } catch (err) {
     res.status(503).json({ error: 'Payment provider is not configured.' });
@@ -608,7 +608,7 @@ app.post('/api/tutor/chat', async (req: Request,res: Response)=>{
   try{
     const safe=sanitizeTutorPayload(req.body||{}); const {message,history,topicTitle,userName,memoryFacts}=safe; const mode=req.body?.mode==='teacher'?'teacher':'conversation'; const hskLevel=typeof req.body?.hskLevel==='string'?req.body.hskLevel.slice(0,40):'HSK 1'; const userLevel=typeof req.body?.userLevel==='string'?req.body.userLevel.slice(0,80):'Cơ bản'; if(!message)return res.status(400).json({error:'Message string is required'}); if(looksLikePromptInjection(message))return res.status(400).json({error:'INPUT_REJECTED'});
     const access=await requireAIEntitlement(req,'ai');
-    if('error' in access)return res.status(access.status).json({error:access.error,...(access.error==='LIMIT_REACHED'?{code:'LIMIT_REACHED'}:{})});
+    if('error' in access)return res.status(access.status ?? 503).json({error:access.error,...(access.error==='LIMIT_REACHED'?{code:'LIMIT_REACHED'}:{})});
     const privacy=await privacyFetch(access.user.id); const safeHistory=privacy.conversationHistoryEnabled?history:[]; const safeMemory=privacy.personalizationEnabled&&privacy.aiMemoryEnabled?memoryFacts:[]; const fallback=generateFallbackResponse(message,mode,userName); const result=await orchestrate({task:mode==='teacher'?'correction':'conversation',userId:access.user.id,learnerLevel:userLevel,hskLevel,input:message,context:'Topic: '+topicTitle+'; mode: '+mode+'; personalization:'+privacy.personalizationEnabled+'; relevant learner data: '+safeMemory.slice(-4).join('; '),history:safeHistory,schema:TUTOR_RESPONSE_SCHEMA,fallback,temperature:0.5,maxOutputTokens:1400});
     await recordAIUsage(access.user.id,result.model,result.purpose,result.raw||{});
     res.setHeader('X-Lina-Trace-Id',result.traceId);res.setHeader('X-Lina-Prompt-Version',result.promptVersion);res.json(result.value);
@@ -664,7 +664,7 @@ app.post('/api/tts/speak', async (req: Request, res: Response) => {
   try {
     const { text, voice = 'Kore' } = req.body;
     const aiAccess = await requireAIEntitlement(req, 'voice', Math.max(0.1, Math.min(5, text && typeof text === 'string' ? text.length / 600 : 0.1)));
-    if ('error' in aiAccess) { res.status(aiAccess.status).json({ error: aiAccess.error, ...(aiAccess.error === 'LIMIT_REACHED' ? { code: 'LIMIT_REACHED' } : {}) }); return; }
+    if ('error' in aiAccess) { res.status(aiAccess.status ?? 503).json({ error: aiAccess.error, ...(aiAccess.error === 'LIMIT_REACHED' ? { code: 'LIMIT_REACHED' } : {}) }); return; }
     if (!text || typeof text !== 'string') {
       res.status(400).json({ error: 'Text string is required' });
       return;
