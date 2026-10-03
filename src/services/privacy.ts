@@ -49,7 +49,7 @@ export function clearLearningDataLocally(){
     'lina_conversation_v1','lina_flashcards_v1','lina_structured_progress_v1',
     'lina_review_schedules_v1','lina_mistakes_v1','lina_structured_saved_v1',
     'lina_tutor_mode_v1','lina_learner_memory_v1','lina_ai_memory_v2',
-    'lina_sync_queue_v1','lina_sync_meta_v1'
+    'lina_sync_queue_v1','lina_sync_meta_v1','lina_analytics_queue_v1','lina_analytics_preferences_v1','lina_analytics_anonymous_id_v1','lina_analytics_session_v1'
   ];
   for(const key of keys){try{localStorage.removeItem(key);}catch{}}
 }
