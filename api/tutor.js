@@ -177,7 +177,7 @@ async function generateTutor(body) {
 }
 
 function sendSse(res, payload) {
-  if (!res.writableEnded) res.write(`data: ${JSON.stringify(payload)}\\n\\n`);
+  if (!res.writableEnded) res.write(`data: ${JSON.stringify(payload)}\n\n`);
 }
 
 export default async function handler(req, res) {
