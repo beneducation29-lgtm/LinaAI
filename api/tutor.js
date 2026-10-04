@@ -160,7 +160,6 @@ async function generateTutor(body) {
       ],
       config: {
         systemInstruction: SYSTEM,
-        temperature: mode === 'teacher' ? 0.25 : 0.5,
         maxOutputTokens: 1400,
         responseMimeType: 'application/json',
         responseSchema: RESPONSE_SCHEMA
