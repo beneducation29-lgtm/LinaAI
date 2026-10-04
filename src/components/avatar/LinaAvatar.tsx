@@ -289,12 +289,12 @@ export const LinaAvatar: React.FC<LinaAvatarProps> = ({
           )}
 
           {/* Portrait Container */}
-          <div className={`relative w-full max-w-[430px] aspect-[3/4] rounded-[2rem] overflow-hidden border-3 shadow-lg transition-all duration-300 ${stateBorderColors[avatarState]} ${prefersReducedMotion ? '' : 'animate-[avatarBreath_4s_ease-in-out_infinite]'}`} style={prefersReducedMotion ? undefined : { transform: 'translate3d(' + (motion.headX * 100) + 'px,' + (motion.headY * 100) + 'px,0) rotate(' + motion.headTilt + 'deg) scale(' + (1 + motion.breathing * 0.004) + ')' }}>
+          <div className={`relative w-full max-w-[520px] aspect-[4/3] rounded-[1.5rem] overflow-hidden border-3 shadow-lg transition-all duration-300 ${stateBorderColors[avatarState]} ${prefersReducedMotion ? '' : 'animate-[avatarBreath_4s_ease-in-out_infinite]'}`} style={prefersReducedMotion ? undefined : { transform: 'translate3d(' + (motion.headX * 100) + 'px,' + (motion.headY * 100) + 'px,0) rotate(' + motion.headTilt + 'deg) scale(' + (1 + motion.breathing * 0.004) + ')' }}>
             {!imageError ? (
               <img
                 src={linaStylizedAvatarImg}
                 alt="Lina 林娜 — gia sư tiếng Trung AI hư cấu"
-                className={`w-full h-full object-cover object-[50%_35%] transition-transform duration-700 ${
+                className={`w-full h-full object-cover object-center transition-transform duration-700 ${
                   avatarState === 'THINKING' ? 'scale-105 rotate-1' :
                   avatarState === 'CONFUSED' ? '-rotate-2' :
                   avatarState === 'HAPPY' ? 'scale-102' :
