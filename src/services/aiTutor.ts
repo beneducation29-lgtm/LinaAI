@@ -247,8 +247,37 @@ class AITutorClientService implements AITutorProvider {
       };
     }
 
+    const text = sanitizePlainText(userText, 2000);
+    if (/^(你好|您好|嗨|哈喽|hello|hi)[！!。.?？ ]*$/i.test(text)) {
+      return {
+        chinese: `你好！很高兴见到你，${userName}。今天想练习什么？`,
+        pinyin: `Nǐ hǎo! Hěn gāoxìng jiàndào nǐ, ${userName}. Jīntiān xiǎng liànxí shénme?`,
+        vietnamese: `Xin chào! Rất vui được gặp bạn, ${userName}. Hôm nay bạn muốn luyện gì?`,
+        responseType: 'conversation', emotion: 'happy', correction: null, vocabulary: [], grammar: [],
+        progressiveHints: { hint1_semantic: 'Nói bạn muốn luyện chủ đề nào.', hint2_keywords: '练习, 中文, 口语', hint3_structure: '我想练习 + chủ đề', hint4_fullAnswer: '我想练习中文。' },
+        suggestedReplies: [
+          { hanzi: '我想练习中文。', pinyin: 'Wǒ xiǎng liànxí Zhōngwén.', vietnamese: 'Mình muốn luyện tiếng Trung.' },
+          { hanzi: '我想练习口语。', pinyin: 'Wǒ xiǎng liànxí kǒuyǔ.', vietnamese: 'Mình muốn luyện nói.' }
+        ]
+      };
+    }
+
+    if (/练习中文|luyện tiếng Trung/i.test(text)) {
+      return {
+        chinese: '当然可以！我们先从简单的日常对话开始。你可以先介绍一下自己。',
+        pinyin: 'Dāngrán kěyǐ! Wǒmen xiān cóng jiǎndān de rìcháng duìhuà kāishǐ. Nǐ kěyǐ xiān jièshào yíxià zìjǐ.',
+        vietnamese: 'Được chứ! Chúng ta bắt đầu bằng hội thoại hằng ngày đơn giản nhé. Bạn thử giới thiệu bản thân trước.',
+        responseType: 'lesson', emotion: 'encouraging', correction: null, vocabulary: [], grammar: [],
+        progressiveHints: { hint1_semantic: 'Giới thiệu tên của bạn.', hint2_keywords: '我叫, 名字', hint3_structure: '我叫 + tên', hint4_fullAnswer: '你好！我叫明。' },
+        suggestedReplies: [
+          { hanzi: '你好！我叫明。', pinyin: 'Nǐ hǎo! Wǒ jiào Míng.', vietnamese: 'Xin chào! Mình tên là Minh.' },
+          { hanzi: '我来自越南。', pinyin: 'Wǒ láizì Yuènán.', vietnamese: 'Mình đến từ Việt Nam.' }
+        ]
+      };
+    }
+
     return {
-      chinese: `你好，${userName}！很高兴认识你。我们今天一起练习中文吧！`,
+      chinese: `我明白了！关于“${text.slice(0, 40)}”，我们可以继续聊。你愿意再说一句吗？`,
       pinyin: `Nǐ hǎo, ${userName}! Hěn gāoxìng rènshi nǐ. Wǒmen jīntiān yìqǐ liànxí Zhōngwén ba!`,
       vietnamese: `Chào ${userName}! Rất vui được làm quen với bạn. Hôm nay chúng mình cùng luyện tiếng Trung nhé!`,
       responseType: 'conversation',
