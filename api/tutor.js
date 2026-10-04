@@ -1,4 +1,5 @@
 const MODEL = process.env.GEMINI_TUTOR_MODEL || 'gemini-3.7-flash';
+const MODEL_FALLBACKS = ['gemini-3.8-flash', 'gemini-3.6-flash', 'gemini-3.5-flash-lite'];
 const MAX_MESSAGE = 2000;
 const MAX_HISTORY = 8;
 const MAX_MEMORY_FACTS = 12;
@@ -189,17 +190,28 @@ async function generateTutor(body) {
     'Hãy trả lời trực tiếp tin nhắn mới nhất và thay đổi nội dung theo đúng ngữ cảnh.'
   ].filter(Boolean).join('\n');
 
-  try {
-    const text = await callGemini({ apiKey, model: MODEL, prompt });
-    return validateTutorResponse(parseTutorJson(text));
-  } catch (error) {
-    console.error('[Lina][TUTOR_API_ERROR]', {
-      model: MODEL,
-      name: error?.name || 'Error',
-      message: String(error?.message || 'Unknown error').slice(0, 800)
-    });
-    throw error;
+  const models = [MODEL, ...MODEL_FALLBACKS.filter((model) => model !== MODEL)];
+  let lastError = null;
+
+  for (const model of models) {
+    try {
+      const text = await callGemini({ apiKey, model, prompt });
+      return validateTutorResponse(parseTutorJson(text));
+    } catch (error) {
+      lastError = error;
+      const message = String(error?.message || 'Unknown error');
+      const retryable = /Gemini (429|500|502|503|504):/i.test(message);
+      console.error('[Lina][TUTOR_API_ERROR]', {
+        model,
+        name: error?.name || 'Error',
+        retryable,
+        message: message.slice(0, 800)
+      });
+      if (!retryable) break;
+    }
   }
+
+  throw lastError || new Error('Gemini tutor request failed');
 }
 
 function sendSse(res, payload) {
