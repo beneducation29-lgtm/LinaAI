@@ -210,12 +210,33 @@ export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
   res.setHeader('X-Content-Type-Options', 'nosniff');
 
+  const path = req.url?.split('?')[0] || '/api/tutor';
+  const action = new URL(req.url || '/api/tutor', 'http://localhost').searchParams.get('action');
+
+  // Safe runtime diagnostic: exposes configuration presence only, never secret values.
+  // This lets us distinguish Vercel environment configuration problems from auth/client issues
+  // without adding another serverless function (important for Vercel Hobby function limits).
+  if (req.method === 'GET' && action === 'health') {
+    const geminiConfigured = Boolean(cleanString(process.env.GEMINI_API_KEY, 500));
+    const supabaseConfigured = Boolean(
+      cleanString(process.env.SUPABASE_URL, 500) &&
+      cleanString(process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY, 500)
+    );
+    return res.status(200).json({
+      ok: geminiConfigured,
+      tutor: {
+        geminiConfigured,
+        model: MODEL
+      },
+      auth: {
+        supabaseConfigured
+      }
+    });
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
-
-  const path = req.url?.split('?')[0] || '/api/tutor';
-  const action = new URL(req.url || '/api/tutor', 'http://localhost').searchParams.get('action');
 
   if (path.endsWith('/hints') || action === 'hints') {
     const body = req.body || {};
