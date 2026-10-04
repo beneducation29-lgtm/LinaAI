@@ -26,91 +26,20 @@ const FALLBACK = (message, userName = 'Bạn') => ({
   ]
 });
 
-const RESPONSE_SCHEMA = {
-  type: 'object',
-  properties: {
-    chinese: { type: 'string' },
-    pinyin: { type: 'string' },
-    vietnamese: { type: 'string' },
-    responseType: { type: 'string', enum: ['conversation', 'lesson', 'roleplay', 'correction'] },
-    emotion: { type: 'string', enum: ['neutral', 'happy', 'encouraging', 'curious', 'confused', 'correcting'] },
-    correction: {
-      type: 'object',
-      properties: {
-        hasMistake: { type: 'boolean' },
-        originalSentence: { type: 'string' },
-        correctedSentence: { type: 'string' },
-        pinyin: { type: 'string' },
-        explanationVi: { type: 'string' },
-        tryAgainPromptVi: { type: 'string' }
-      }
-    },
-    vocabulary: {
-      type: 'array',
-      items: {
-        type: 'object',
-        properties: {
-          hanzi: { type: 'string' },
-          pinyin: { type: 'string' },
-          vietnamese: { type: 'string' },
-          partOfSpeech: { type: 'string' },
-          exampleSentence: { type: 'string' },
-          hskLevel: { type: 'string' }
-        }
-      }
-    },
-    grammar: {
-      type: 'array',
-      items: {
-        type: 'object',
-        properties: {
-          structure: { type: 'string' },
-          meaningVi: { type: 'string' },
-          exampleSentence: { type: 'string' },
-          examplePinyin: { type: 'string' },
-          exampleVietnamese: { type: 'string' }
-        }
-      }
-    },
-    progressiveHints: {
-      type: 'object',
-      properties: {
-        hint1_semantic: { type: 'string' },
-        hint2_keywords: { type: 'string' },
-        hint3_structure: { type: 'string' },
-        hint4_fullAnswer: { type: 'string' }
-      }
-    },
-    suggestedReplies: {
-      type: 'array',
-      items: {
-        type: 'object',
-        properties: {
-          hanzi: { type: 'string' },
-          pinyin: { type: 'string' },
-          vietnamese: { type: 'string' }
-        },
-        required: ['hanzi', 'pinyin', 'vietnamese']
-      }
-    },
-    memoryUpdate: {
-      type: 'object',
-      properties: {
-        learnedFact: { type: 'string' },
-        topicContext: { type: 'string' }
-      }
-    }
-  },
-  required: ['chinese', 'pinyin', 'vietnamese', 'responseType', 'suggestedReplies']
-};
-
 const SYSTEM = `Bạn là Lina (林娜), gia sư tiếng Trung cho người học Việt Nam.
 Luôn thân thiện, kiên nhẫn, ngắn gọn và khuyến khích. Không làm người học xấu hổ.
 Nếu người học sai, nói: “Bạn diễn đạt đúng ý rồi. Mình sửa một chút để câu tự nhiên hơn nhé.”
 Chế độ conversation: ưu tiên hội thoại tự nhiên, chỉ sửa lỗi quan trọng.
 Chế độ teacher: ưu tiên sửa lỗi, giải thích ngữ pháp/từ vựng bằng tiếng Việt dễ hiểu.
 Điều chỉnh câu và từ vựng theo HSK/user level. Không bịa pinyin, nghĩa hoặc cấp độ HSK.
-Trả về đúng JSON theo schema, không thêm markdown.`;
+
+QUAN TRỌNG:
+- Trả về DUY NHẤT một JSON object hợp lệ, không markdown, không code fence.
+- Các trường bắt buộc: chinese, pinyin, vietnamese, responseType, suggestedReplies.
+- suggestedReplies là mảng 2-4 object, mỗi object có hanzi, pinyin, vietnamese.
+- Có thể bỏ qua correction, vocabulary, grammar, progressiveHints, memoryUpdate nếu không cần.
+- Luôn trả lời dựa trên tin nhắn MỚI NHẤT của học viên và lịch sử được cung cấp.
+- Không lặp lại một câu trả lời chung chung nếu học viên vừa nói một câu khác.`;
 
 function cleanString(value, max) {
   return typeof value === 'string' ? value.replace(/[\u0000-\u001F\u007F]/g, '').slice(0, max) : '';
@@ -126,6 +55,50 @@ function normalizeHistory(history) {
   }));
 }
 
+function parseTutorJson(text) {
+  const raw = String(text || '').trim();
+  if (!raw) throw new Error('Gemini returned empty text');
+
+  const withoutFence = raw
+    .replace(/^\s*```(?:json)?\s*/i, '')
+    .replace(/\s*```\s*$/i, '')
+    .trim();
+
+  try {
+    return JSON.parse(withoutFence);
+  } catch {
+    const start = withoutFence.indexOf('{');
+    const end = withoutFence.lastIndexOf('}');
+    if (start >= 0 && end > start) return JSON.parse(withoutFence.slice(start, end + 1));
+    throw new Error('Gemini returned invalid JSON');
+  }
+}
+
+function validateTutorResponse(parsed) {
+  if (!parsed || typeof parsed !== 'object') throw new Error('Tutor response is not an object');
+  if (typeof parsed.chinese !== 'string' || !parsed.chinese.trim()) throw new Error('Missing chinese');
+  if (typeof parsed.pinyin !== 'string') throw new Error('Missing pinyin');
+  if (typeof parsed.vietnamese !== 'string') throw new Error('Missing vietnamese');
+  if (!Array.isArray(parsed.suggestedReplies)) throw new Error('Missing suggestedReplies');
+
+  parsed.responseType = ['conversation', 'lesson', 'roleplay', 'correction'].includes(parsed.responseType)
+    ? parsed.responseType
+    : 'conversation';
+
+  parsed.suggestedReplies = parsed.suggestedReplies
+    .filter((item) => item && typeof item === 'object')
+    .map((item) => ({
+      hanzi: cleanString(item.hanzi, 240),
+      pinyin: cleanString(item.pinyin, 240),
+      vietnamese: cleanString(item.vietnamese, 300)
+    }))
+    .filter((item) => item.hanzi && item.pinyin && item.vietnamese)
+    .slice(0, 4);
+
+  if (!parsed.suggestedReplies.length) throw new Error('No valid suggestedReplies');
+  return parsed;
+}
+
 async function generateTutor(body) {
   const message = cleanString(body.message, MAX_MESSAGE).trim();
   if (!message) throw Object.assign(new Error('Message string is required'), { status: 400 });
@@ -139,7 +112,10 @@ async function generateTutor(body) {
     ? body.memoryFacts.slice(-MAX_MEMORY_FACTS).map((x) => cleanString(x, 240)).filter(Boolean)
     : [];
 
-  if (!process.env.GEMINI_API_KEY) return FALLBACK(message, userName);
+  if (!process.env.GEMINI_API_KEY) {
+    console.error('[Lina][TUTOR_API_ERROR]', { reason: 'Missing GEMINI_API_KEY', model: MODEL });
+    return FALLBACK(message, userName);
+  }
 
   const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
   const history = normalizeHistory(body.history);
@@ -149,29 +125,36 @@ async function generateTutor(body) {
     `Trình độ: ${userLevel}; ${hskLevel}`,
     `Tên học viên: ${userName}`,
     memoryFacts.length ? `Thông tin đã nhớ: ${memoryFacts.join('; ')}` : '',
-    history.length ? `Lịch sử:\n${JSON.stringify(history)}` : ''
+    history.length ? `Lịch sử:${JSON.stringify(history)}` : ''
   ].filter(Boolean).join('\n');
 
   try {
     const result = await ai.models.generateContent({
       model: MODEL,
       contents: [
-        { role: 'user', parts: [{ text: `${context}\n\nTin nhắn mới của học viên:\n${message}` }] }
+        {
+          role: 'user',
+          parts: [{
+            text: `${context}\n\nTin nhắn MỚI NHẤT của học viên:\n${message}\n\nHãy trả lời đúng ngữ cảnh của tin nhắn mới nhất. JSON duy nhất.`
+          }]
+        }
       ],
       config: {
         systemInstruction: SYSTEM,
         maxOutputTokens: 1400,
-        responseMimeType: 'application/json',
-        responseSchema: RESPONSE_SCHEMA
+        responseMimeType: 'application/json'
       }
     });
-    const parsed = JSON.parse(result.text || '{}');
-    if (!parsed.chinese || !parsed.pinyin || !parsed.vietnamese || !Array.isArray(parsed.suggestedReplies)) {
-      throw new Error('Invalid tutor response schema');
-    }
+
+    const parsed = validateTutorResponse(parseTutorJson(result.text));
     return parsed;
   } catch (error) {
-    console.error('[Lina][TUTOR_API_ERROR]', { name: error?.name || 'Error', model: MODEL });
+    console.error('[Lina][TUTOR_API_ERROR]', {
+      name: error?.name || 'Error',
+      message: String(error?.message || 'Unknown error').slice(0, 500),
+      status: error?.status,
+      model: MODEL
+    });
     return FALLBACK(message, userName);
   }
 }
@@ -187,6 +170,7 @@ export default async function handler(req, res) {
 
   const path = req.url?.split('?')[0] || '/api/tutor';
   const action = new URL(req.url || '/api/tutor', 'http://localhost').searchParams.get('action');
+
   if (path.endsWith('/hints') || action === 'hints') {
     const body = req.body || {};
     const sentence = cleanString(body.contextSentence, 1200);
@@ -204,13 +188,17 @@ export default async function handler(req, res) {
       message: `Hãy tạo 4 tầng gợi ý cho câu: ${sentence}`,
       mode: 'teacher'
     });
-    return res.json(result.progressiveHints);
+    return res.json(result.progressiveHints || FALLBACK(sentence, body.userName).progressiveHints);
   }
 
   if (path.endsWith('/explain') || action === 'explain') {
     const sentence = cleanString(req.body?.sentence, 2000);
     if (!sentence) return res.status(400).json({ error: 'Sentence is required' });
-    const result = await generateTutor({ ...req.body, message: `Giải thích câu sau: ${sentence}`, mode: 'teacher' });
+    const result = await generateTutor({
+      ...req.body,
+      message: `Giải thích câu sau: ${sentence}`,
+      mode: 'teacher'
+    });
     return res.json({
       sentence,
       pinyin: result.pinyin,
