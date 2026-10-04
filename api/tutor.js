@@ -35,7 +35,7 @@ const RESPONSE_SCHEMA = {
     responseType: { type: 'string', enum: ['conversation', 'lesson', 'roleplay', 'correction'] },
     emotion: { type: 'string', enum: ['neutral', 'happy', 'encouraging', 'curious', 'confused', 'correcting'] },
     correction: {
-      type: ['object', 'null'],
+      type: 'object',
       properties: {
         hasMistake: { type: 'boolean' },
         originalSentence: { type: 'string' },
@@ -94,7 +94,7 @@ const RESPONSE_SCHEMA = {
       }
     },
     memoryUpdate: {
-      type: ['object', 'null'],
+      type: 'object',
       properties: {
         learnedFact: { type: 'string' },
         topicContext: { type: 'string' }
@@ -113,7 +113,7 @@ Chế độ teacher: ưu tiên sửa lỗi, giải thích ngữ pháp/từ vựn
 Trả về đúng JSON theo schema, không thêm markdown.`;
 
 function cleanString(value, max) {
-  return typeof value === 'string' ? value.replace(/[\\u0000-\\u001f\\u007f]/g, '').slice(0, max) : '';
+  return typeof value === 'string' ? value.replace(/[\u0000-\u001F\u007F]/g, '').slice(0, max) : '';
 }
 
 function normalizeHistory(history) {
