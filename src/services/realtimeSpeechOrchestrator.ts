@@ -17,7 +17,7 @@ export class RealtimeSpeechOrchestrator {
     const metrics: RealtimeTurnMetrics = { turnId, turnStartedAt: Date.now() };
     callbacks.onState?.('THINKING');
     try {
-      const response = await aiTutor.sendMessageStreaming({ ...options, signal: this.controller.signal }, userText, {
+      const response = await aiTutor.sendMessage({ ...options, signal: this.controller.signal }, userText, {
         onText: text => { if (!this.isCurrent(turnId)) return; metrics.geminiFirstTokenAt ??= Date.now(); callbacks.onText?.(text); callbacks.onMetrics?.({ ...metrics }); },
         onSpeech: text => {
           if (!enableSpeech || !this.isCurrent(turnId)) return;
