@@ -9,7 +9,7 @@
     "start": "node server.ts",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
-    "lint": "tsc --noEmit",
+    "lint": "npm run typecheck",
     "test": "tsx tests/prompt12.test.ts && tsx tests/prompt14b.test.ts && tsx tests/prompt14d.test.ts && tsx tests/prompt15.test.ts && tsx tests/prompt16.test.ts && tsx tests/prompt17.test.ts && tsx tests/prompt18.test.ts && tsx tests/prompt19.test.ts && tsx tests/prompt20.test.ts && tsx tests/avatarTutor.test.ts && tsx tests/prompt21-23.test.ts && tsx tests/prompt24.test.ts && tsx tests/prompt30.test.ts",
     "typecheck": "tsc --noEmit"
   },
