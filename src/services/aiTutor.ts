@@ -349,7 +349,6 @@ class AITutorClientService implements AITutorProvider {
       ]
     };
   }
-  }
 }
 
 export const aiTutor = new AITutorClientService();
