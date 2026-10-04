@@ -57,23 +57,23 @@ export const DEFAULT_LINA_CHARACTER_CONFIG: CharacterDesignConfig = {
   face: {
     eyeColor: 'Hổ phách ấm (Warm Amber, attentive & gentle)',
     skinTone: 'Á Đông tự nhiên, sáng ấm (Natural Warm Porcelain)',
-    style: 'Nhân vật 3D số hư cấu (Original Fictional 3D Digital Human)',
+    style: 'Chân dung AI hư cấu siêu chân thực (Photorealistic Fictional AI Tutor)',
   },
   hair: {
-    color: 'Nâu đen bóng mượt (Soft Dark Brunette)',
-    style: 'Búi tóc thanh lịch sau gáy kèm vài lọn tóc mai buông tự nhiên',
+    color: 'Nâu đen tự nhiên (Natural Dark Brunette)',
+    style: 'Tóc bob ngắn rẽ ngôi lệch, ôm nhẹ khuôn mặt (Soft Side-Parted Bob)',
   },
   outfit: {
-    top: 'Áo dệt kim cổ lọ thanh nhã màu kem be (Elegant Cream Knit)',
-    accessory: 'Ghim cài áo ngọc nhỏ hình hoa mai (Delicate blossom pin)',
+    top: 'Áo dệt kim gân màu hồng dusty-rose, cổ vuông mềm (Dusty-Rose Ribbed Knit)',
+    accessory: 'Phụ kiện tối giản, không làm phân tán khuôn mặt (Minimal accessory)',
   },
   background: {
-    environment: 'Phòng học hiện đại phong cách Bắc Âu tối giản (Minimalist Bright Studio)',
-    ambientColor: 'Tone ấm kem Terracotta & Xanh ngọc nhạt (#FDFBF7 & #F5F1EB)',
+    environment: 'Không gian học sáng tự nhiên với kệ gỗ, cây xanh; có thể chuyển sang classroom (Bright Natural Learning Space)',
+    ambientColor: 'Be ấm + hồng dusty-rose + xanh lá dịu (Warm Beige / Dusty Rose / Soft Green)',
   },
-  expression: 'Nụ cười khích lệ tự nhiên, đôi mắt tập trung lắng nghe học viên',
-  lighting: 'Ánh sáng studio chân dung mềm mại (Soft cinematic studio key & rim light)',
-  cameraAngle: 'Góc chụp ngang tầm mắt, trung cảnh chân dung (Eye-level portrait medium shot)',
+  expression: 'Nụ cười khích lệ tự nhiên, thân thiện, ánh mắt tập trung lắng nghe học viên',
+  lighting: 'Ánh sáng cửa sổ mềm, tự nhiên, da và tóc chân thực (Soft Natural Window Light)',
+  cameraAngle: 'Ngang tầm mắt, trung cảnh thân trên, bố cục 4:3 (Eye-level Upper-body Portrait)',
 };
 
 /**
