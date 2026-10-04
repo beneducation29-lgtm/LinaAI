@@ -1,4 +1,4 @@
-const MODEL = process.env.GEMINI_TUTOR_MODEL || 'gemini-3.8-flash';
+const MODEL = process.env.GEMINI_TUTOR_MODEL || 'gemini-3.7-flash';
 const MAX_MESSAGE = 2000;
 const MAX_HISTORY = 8;
 const MAX_MEMORY_FACTS = 12;
@@ -198,7 +198,7 @@ async function generateTutor(body) {
       name: error?.name || 'Error',
       message: String(error?.message || 'Unknown error').slice(0, 800)
     });
-    return FALLBACK(message, userName);
+    throw error;
   }
 }
 
@@ -261,7 +261,22 @@ export default async function handler(req, res) {
     });
   }
 
-  const response = await generateTutor(req.body || {});
+  let response;
+  try {
+    response = await generateTutor(req.body || {});
+  } catch (error) {
+    res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-cache, no-transform');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders?.();
+    sendSse(res, {
+      type: 'error',
+      error: String(error?.message || 'Gemini tutor request failed').slice(0, 800),
+      model: MODEL
+    });
+    sendSse(res, { type: 'done' });
+    return res.end();
+  }
 
   res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
   res.setHeader('Cache-Control', 'no-cache, no-transform');
