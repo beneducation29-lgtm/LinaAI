@@ -1,8 +1,8 @@
-const MODEL = process.env.GEMINI_TUTOR_MODEL || 'gemini-3.7-flash';
-const MODEL_FALLBACKS = ['gemini-3.8-flash', 'gemini-3.6-flash', 'gemini-3.5-flash-lite'];
+const MODEL = process.env.GEMINI_TUTOR_MODEL || 'gemini-3.8-flash';
+const MODEL_FALLBACKS = ['gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3.5-flash-lite'];
 const MAX_MESSAGE = 2000;
-const MAX_HISTORY = 8;
-const MAX_MEMORY_FACTS = 12;
+const MAX_HISTORY = 6;
+const MAX_MEMORY_FACTS = 8;
 
 const FALLBACK = (message, userName = 'Bạn') => ({
   chinese: `你好，${userName}！很高兴和你练习中文。你刚才说：“${message.slice(0, 80)}”。我们继续练习吧！`,
@@ -109,7 +109,7 @@ function validateTutorResponse(value) {
 
 async function callGemini({ apiKey, model, prompt }) {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 25000);
+  const timer = setTimeout(() => controller.abort(), 12000);
 
   try {
     const response = await fetch(
@@ -125,7 +125,8 @@ async function callGemini({ apiKey, model, prompt }) {
           contents: [{ role: 'user', parts: [{ text: prompt }] }],
           generationConfig: {
             responseMimeType: 'application/json',
-            maxOutputTokens: 1400
+            maxOutputTokens: 900,
+            ...(model === 'gemini-3.8-flash' ? { thinkingConfig: { thinkingLevel: 'low' } } : {})
           }
         }),
         signal: controller.signal
@@ -179,15 +180,12 @@ async function generateTutor(body) {
   const history = normalizeHistory(body.history);
   const prompt = [
     `Chủ đề: ${topicTitle}`,
-    `Chế độ: ${mode}`,
-    `Trình độ: ${userLevel}; ${hskLevel}`,
+    `Trình độ: ${userLevel}; ${hskLevel}; chế độ: ${mode}`,
     `Tên học viên: ${userName}`,
-    memoryFacts.length ? `Thông tin đã nhớ: ${memoryFacts.join('; ')}` : '',
-    history.length ? `Lịch sử hội thoại:\n${JSON.stringify(history)}` : '',
-    '',
-    `TIN NHẮN MỚI NHẤT CỦA HỌC VIÊN:\n${message}`,
-    '',
-    'Hãy trả lời trực tiếp tin nhắn mới nhất và thay đổi nội dung theo đúng ngữ cảnh.'
+    memoryFacts.length ? `Thông tin nhớ: ${memoryFacts.join('; ')}` : '',
+    history.length ? `Lịch sử gần đây:\n${JSON.stringify(history)}` : '',
+    `TIN NHẮN MỚI NHẤT:\n${message}`,
+    'Phản hồi ngay, tự nhiên và đúng ngữ cảnh; ưu tiên câu trả lời ngắn gọn. Không lặp lại câu mẫu.'
   ].filter(Boolean).join('\n');
 
   const models = [MODEL, ...MODEL_FALLBACKS.filter((model) => model !== MODEL)];
