@@ -278,44 +278,77 @@ class AITutorClientService implements AITutorProvider {
       };
     }
 
+    if (/你能教我一些新词吗|教我.*新词|教我.*词/i.test(text)) {
+      return {
+        chinese: '当然可以！我们先学三个很常用的词：“朋友”“喜欢”“学习”。你想先学哪一个？',
+        pinyin: 'Dāngrán kěyǐ! Wǒmen xiān xué sān ge hěn chángyòng de cí: “péngyou”, “xǐhuan”, “xuéxí”. Nǐ xiǎng xiān xué nǎ yí ge?',
+        vietnamese: 'Tất nhiên rồi! Mình học trước 3 từ rất thường dùng: “朋友” (bạn bè), “喜欢” (thích), “学习” (học). Bạn muốn học từ nào trước?',
+        responseType: 'lesson',
+        emotion: 'encouraging',
+        correction: null,
+        vocabulary: [],
+        grammar: [],
+        progressiveHints: {
+          hint1_semantic: 'Chọn một từ bạn muốn học trước.',
+          hint2_keywords: '朋友, 喜欢, 学习',
+          hint3_structure: '我喜欢 + ...',
+          hint4_fullAnswer: '我喜欢学习中文。'
+        },
+        suggestedReplies: [
+          { hanzi: '我想学“朋友”。', pinyin: 'Wǒ xiǎng xué “péngyou”.', vietnamese: 'Mình muốn học từ “bạn bè”.' },
+          { hanzi: '教我“喜欢”吧。', pinyin: 'Jiāo wǒ “xǐhuan” ba.', vietnamese: 'Dạy mình từ “thích” nhé.' },
+          { hanzi: '我想学日常口语。', pinyin: 'Wǒ xiǎng xué rìcháng kǒuyǔ.', vietnamese: 'Mình muốn học khẩu ngữ hằng ngày.' }
+        ]
+      };
+    }
+
+    if (/我喜欢学习中文|我喜欢学中文|喜欢学习中文/i.test(text)) {
+      return {
+        chinese: '很好！“喜欢”表示“thích”。你可以说：“我喜欢学习中文。” 你还喜欢什么？',
+        pinyin: 'Hěn hǎo! “Xǐhuan” biǎoshì “thích”. Nǐ kěyǐ shuō: “Wǒ xǐhuan xuéxí Zhōngwén.” Nǐ hái xǐhuan shénme?',
+        vietnamese: 'Rất tốt! “喜欢” có nghĩa là “thích”. Bạn còn thích gì nữa?',
+        responseType: 'lesson',
+        emotion: 'encouraging',
+        correction: null,
+        vocabulary: [],
+        grammar: [],
+        progressiveHints: {
+          hint1_semantic: 'Nói một điều bạn thích.',
+          hint2_keywords: '喜欢, 中文, 学习',
+          hint3_structure: '我喜欢 + ...',
+          hint4_fullAnswer: '我喜欢学习中文。'
+        },
+        suggestedReplies: [
+          { hanzi: '我喜欢听音乐。', pinyin: 'Wǒ xǐhuan tīng yīnyuè.', vietnamese: 'Mình thích nghe nhạc.' },
+          { hanzi: '我喜欢看电影。', pinyin: 'Wǒ xǐhuan kàn diànyǐng.', vietnamese: 'Mình thích xem phim.' },
+          { hanzi: '我喜欢学中文。', pinyin: 'Wǒ xǐhuan xué Zhōngwén.', vietnamese: 'Mình thích học tiếng Trung.' }
+        ]
+      };
+    }
+
+    const hasRealName = userName && userName !== 'Bạn';
+    const greeting = hasRealName ? `，${userName}` : '';
     return {
-      chinese: `我明白了！关于“${text.slice(0, 40)}”，我们可以继续聊。你愿意再说一句吗？`,
-      pinyin: `Nǐ hǎo, ${userName}! Hěn gāoxìng rènshi nǐ. Wǒmen jīntiān yìqǐ liànxí Zhōngwén ba!`,
-      vietnamese: `Chào ${userName}! Rất vui được làm quen với bạn. Hôm nay chúng mình cùng luyện tiếng Trung nhé!`,
+      chinese: `好的${greeting}！我听懂了。我们继续练习吧。你可以再说一句，我会根据你的内容回应。`,
+      pinyin: `Hǎo${hasRealName ? `, ${userName}` : ''}! Wǒ tīng dǒng le. Wǒmen jìxù liànxí ba. Nǐ kěyǐ zài shuō yí jù, wǒ huì gēnjù nǐ de nèiróng huíyìng.`,
+      vietnamese: `Được${hasRealName ? `, ${userName}` : ''}! Mình hiểu rồi. Mình tiếp tục luyện tập nhé. Bạn cứ nói thêm một câu, mình sẽ phản hồi theo đúng nội dung bạn nói.`,
       responseType: 'conversation',
       emotion: 'happy',
-      correction: mode === 'teacher' ? null : null,
-      vocabulary: [
-        {
-          hanzi: '练习',
-          pinyin: 'liànxí',
-          vietnamese: 'luyện tập',
-          partOfSpeech: 'Động từ',
-          exampleSentence: '我们一起练习口语。',
-          hskLevel: 'HSK 2'
-        }
-      ],
-      grammar: [
-        {
-          structure: '一起 + Động từ + 吧',
-          meaningVi: 'Cùng làm việc gì đó nhé (lời rủ rê thân thiện)',
-          exampleSentence: '我们一起学吧。',
-          examplePinyin: 'Wǒmen yìqǐ xué ba.',
-          exampleVietnamese: 'Chúng ta cùng học nhé.'
-        }
-      ],
+      correction: null,
+      vocabulary: [],
+      grammar: [],
       progressiveHints: {
-        hint1_semantic: 'Chào lại và giới thiệu ngắn gọn tên bạn.',
-        hint2_keywords: '你好 (nǐ hǎo), 我叫 (wǒ jiào)',
-        hint3_structure: '你好，我叫 + [Tên]',
-        hint4_fullAnswer: `你好！我叫${userName}。(Nǐ hǎo! Wǒ jiào ${userName}.)`
+        hint1_semantic: 'Hãy nói thêm một ý liên quan đến chủ đề hiện tại.',
+        hint2_keywords: '我觉得, 我喜欢, 今天',
+        hint3_structure: '我 + động từ + ...',
+        hint4_fullAnswer: '我喜欢学习中文。'
       },
       suggestedReplies: [
-        { hanzi: `你好！我叫${userName}。`, pinyin: `Nǐ hǎo! Wǒ jiào ${userName}.`, vietnamese: `Xin chào! Tôi tên là ${userName}.` },
-        { hanzi: '我想练习日常口语。', pinyin: 'Wǒ xiǎng liànxí rìcháng kǒuyǔ.', vietnamese: 'Tôi muốn luyện khẩu ngữ thường ngày.' },
-        { hanzi: '你能教我一些新词吗？', pinyin: 'Nǐ néng jiāo wǒ yìxiē xīncí ma?', vietnamese: 'Bạn có thể dạy tôi vài từ mới không?' }
+        { hanzi: '我喜欢学习中文。', pinyin: 'Wǒ xǐhuan xuéxí Zhōngwén.', vietnamese: 'Mình thích học tiếng Trung.' },
+        { hanzi: '我今天很开心。', pinyin: 'Wǒ jīntiān hěn kāixīn.', vietnamese: 'Hôm nay mình rất vui.' }
       ]
     };
+  }
   }
 }
 
