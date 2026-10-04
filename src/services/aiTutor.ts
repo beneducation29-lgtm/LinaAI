@@ -64,19 +64,13 @@ class AITutorClientService implements AITutorProvider {
    * Send a user turn to Gemini via the server-side proxy
    */
   async sendMessage(options: SendMessageOptions, userText: string): Promise<StructuredTutorResponse> {
+    // Keep non-streaming and streaming conversation paths on the same deployed Vercel function.
+    // The legacy /api/tutor/chat route was removed when the tutor endpoint was flattened to /api/tutor.
     try {
-      const response = await fetchWithControl('/api/tutor/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:sanitizePlainText(userText,2000),history:options.history.slice(-8).map(m=>({sender:m.sender,hanzi:sanitizePlainText(m.hanzi,700),text:sanitizePlainText(m.hanzi,700),pinyin:sanitizePlainText(m.pinyin,300),vietnamese:sanitizePlainText(m.vietnamese,700)})),mode:options.mode,hskLevel:options.hskLevel,userLevel:options.userLevel||'Cơ bản',userName:sanitizePlainText(options.userName,120)||'Bạn',topicTitle:sanitizePlainText(options.topicTitleVi,240),memoryFacts:(options.memoryFacts||[]).slice(-12).map(f=>sanitizePlainText(f,240)).filter(Boolean)})},{timeoutMs:30000,retries:1,signal:options.signal});
-
-      if (!response.ok) {
-        throw new Error(`Server returned HTTP ${response.status}`);
-      }
-
-      const data: StructuredTutorResponse = await response.json();
-      return data;
+      return await this.sendMessageStreaming(options, userText);
     } catch (err) {
       if ((err as Error)?.name === 'AbortError' && options.signal?.aborted) throw err;
-
-      console.warn('Network call failed, utilizing graceful local fallback:', err);
+      console.warn('Tutor API failed, utilizing graceful local fallback:', err);
       return this.getLocalFallbackResponse(userText, options.mode, options.userName);
     }
   }
