@@ -1,4 +1,4 @@
-const { GoogleGenAI } = require('@google/genai');
+import { GoogleGenAI } from '@google/genai';
 
 const MODEL = process.env.GEMINI_TUTOR_MODEL || 'gemini-3.8-flash';
 const MAX_MESSAGE = 2000;
@@ -181,7 +181,7 @@ function sendSse(res, payload) {
   if (!res.writableEnded) res.write(`data: ${JSON.stringify(payload)}\\n\\n`);
 }
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
   res.setHeader('X-Content-Type-Options', 'nosniff');
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
