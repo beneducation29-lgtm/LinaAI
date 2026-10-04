@@ -1,4 +1,11 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "functions": {
+    "api/tutor/chat/stream.js": {
+      "maxDuration": 60,
+      "excludeFiles": "{src/**,tests/**,public/**,dist/**,docs/**,*.md,*.jpg,*.jpeg,*.png,*.webp,*.gif}"
+    }
+  },
   "headers": [
     {
       "source": "/(.*)",
