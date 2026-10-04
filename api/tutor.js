@@ -234,6 +234,40 @@ export default async function handler(req, res) {
     });
   }
 
+  // Safe provider diagnostic: performs one tiny Gemini request without exposing the API key.
+  // Useful for distinguishing invalid/restricted keys, quota errors, model errors, or network failures.
+  if (req.method === 'GET' && action === 'gemini-test') {
+    const apiKey = cleanString(process.env.GEMINI_API_KEY, 500);
+    if (!apiKey) {
+      return res.status(200).json({ ok: false, configured: false, model: MODEL, error: 'GEMINI_API_KEY is missing' });
+    }
+    try {
+      const text = await callGemini({
+        apiKey,
+        model: MODEL,
+        prompt: 'Reply with exactly one short Vietnamese word: OK'
+      });
+      return res.status(200).json({
+        ok: true,
+        configured: true,
+        model: MODEL,
+        responseReceived: Boolean(text)
+      });
+    } catch (error) {
+      console.error('[Lina][GEMINI_HEALTH_ERROR]', {
+        model: MODEL,
+        name: error?.name || 'Error',
+        message: String(error?.message || 'Unknown error').slice(0, 800)
+      });
+      return res.status(200).json({
+        ok: false,
+        configured: true,
+        model: MODEL,
+        error: String(error?.message || 'Gemini request failed').slice(0, 800)
+      });
+    }
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
