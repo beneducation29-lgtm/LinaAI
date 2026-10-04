@@ -144,7 +144,7 @@ class AITutorClientService implements AITutorProvider {
    */
   async getProgressiveHints(contextSentence: string, topicTitle: string, hskLevel: HSKLevel): Promise<ProgressiveHints> {
     try {
-      const response = await fetchWithControl('/api/tutor/hints', {
+      const response = await fetchWithControl('/api/tutor?action=hints', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -171,7 +171,7 @@ class AITutorClientService implements AITutorProvider {
    */
   async explainSentence(sentence: string, hskLevel: HSKLevel) {
     try {
-      const response = await fetchWithControl('/api/tutor/explain', {
+      const response = await fetchWithControl('/api/tutor?action=explain', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sentence, hskLevel })
