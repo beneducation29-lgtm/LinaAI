@@ -86,7 +86,7 @@ class AITutorClientService implements AITutorProvider {
     userText: string,
     callbacks: StreamingTutorCallbacks = {}
   ): Promise<StructuredTutorResponse> {
-    const response = await fetchWithControl('/api/tutor/chat/stream', {
+    const response = await fetchWithControl('/api/tutor', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
       body: JSON.stringify({
