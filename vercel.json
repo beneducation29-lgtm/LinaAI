@@ -1,11 +1,5 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "rewrites": [
-    {
-      "source": "/api/tutor/chat/stream",
-      "destination": "/api/tutor"
-    }
-  ],
   "headers": [
     {
       "source": "/(.*)",
@@ -36,5 +30,9 @@
         }
       ]
     }
+  ],
+  "regions": [
+    "iad1",
+    "gru1"
   ]
 }
