@@ -63,11 +63,13 @@ class AITutorClientService implements AITutorProvider {
   /**
    * Send a user turn to Gemini via the server-side proxy
    */
-  async sendMessage(options: SendMessageOptions, userText: string): Promise<StructuredTutorResponse> {
+  async sendMessage(options: SendMessageOptions, userText: string, callbacks: StreamingTutorCallbacks = {}): Promise<StructuredTutorResponse> {
     // Keep non-streaming and streaming conversation paths on the same deployed Vercel function.
     // The legacy /api/tutor/chat route was removed when the tutor endpoint was flattened to /api/tutor.
+    // Reuse the same streaming path so realtime voice still receives text/speech callbacks,
+    // while preserving the local fallback when the deployed tutor endpoint fails.
     try {
-      return await this.sendMessageStreaming(options, userText);
+      return await this.sendMessageStreaming(options, userText, callbacks);
     } catch (err) {
       if ((err as Error)?.name === 'AbortError' && options.signal?.aborted) throw err;
       console.warn('Tutor API failed, utilizing graceful local fallback:', err);
