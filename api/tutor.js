@@ -187,7 +187,8 @@ module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
 
   const path = req.url?.split('?')[0] || '/api/tutor';
-  if (path.endsWith('/hints')) {
+  const action = new URL(req.url || '/api/tutor', 'http://localhost').searchParams.get('action');
+  if (path.endsWith('/hints') || action === 'hints') {
     const body = req.body || {};
     const sentence = cleanString(body.contextSentence, 1200);
     if (!sentence) return res.status(400).json({ error: 'contextSentence is required' });
@@ -207,7 +208,7 @@ module.exports = async function handler(req, res) {
     return res.json(result.progressiveHints);
   }
 
-  if (path.endsWith('/explain')) {
+  if (path.endsWith('/explain') || action === 'explain') {
     const sentence = cleanString(req.body?.sentence, 2000);
     if (!sentence) return res.status(400).json({ error: 'Sentence is required' });
     const result = await generateTutor({ ...req.body, message: `Giải thích câu sau: ${sentence}`, mode: 'teacher' });
