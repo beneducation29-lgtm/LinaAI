@@ -1,5 +1,3 @@
-import { GoogleGenAI } from '@google/genai';
-
 const MODEL = process.env.GEMINI_TUTOR_MODEL || 'gemini-3.8-flash';
 const MAX_MESSAGE = 2000;
 const MAX_HISTORY = 8;
@@ -27,22 +25,24 @@ const FALLBACK = (message, userName = 'Bạn') => ({
 });
 
 const SYSTEM = `Bạn là Lina (林娜), gia sư tiếng Trung cho người học Việt Nam.
-Luôn thân thiện, kiên nhẫn, ngắn gọn và khuyến khích. Không làm người học xấu hổ.
+Luôn thân thiện, kiên nhẫn, ngắn gọn và khuyến khích.
 Nếu người học sai, nói: “Bạn diễn đạt đúng ý rồi. Mình sửa một chút để câu tự nhiên hơn nhé.”
 Chế độ conversation: ưu tiên hội thoại tự nhiên, chỉ sửa lỗi quan trọng.
 Chế độ teacher: ưu tiên sửa lỗi, giải thích ngữ pháp/từ vựng bằng tiếng Việt dễ hiểu.
 Điều chỉnh câu và từ vựng theo HSK/user level. Không bịa pinyin, nghĩa hoặc cấp độ HSK.
 
 QUAN TRỌNG:
-- Trả về DUY NHẤT một JSON object hợp lệ, không markdown, không code fence.
-- Các trường bắt buộc: chinese, pinyin, vietnamese, responseType, suggestedReplies.
-- suggestedReplies là mảng 2-4 object, mỗi object có hanzi, pinyin, vietnamese.
-- Có thể bỏ qua correction, vocabulary, grammar, progressiveHints, memoryUpdate nếu không cần.
-- Luôn trả lời dựa trên tin nhắn MỚI NHẤT của học viên và lịch sử được cung cấp.
-- Không lặp lại một câu trả lời chung chung nếu học viên vừa nói một câu khác.`;
+- Trả về DUY NHẤT một JSON object hợp lệ.
+- Không markdown, không code fence.
+- Bắt buộc có chinese, pinyin, vietnamese, responseType, suggestedReplies.
+- suggestedReplies là mảng 2-4 object có hanzi, pinyin, vietnamese.
+- Luôn trả lời dựa trên tin nhắn MỚI NHẤT.
+- Không dùng câu trả lời mẫu cố định cho mọi tin nhắn.`;
 
 function cleanString(value, max) {
-  return typeof value === 'string' ? value.replace(/[\u0000-\u001F\u007F]/g, '').slice(0, max) : '';
+  return typeof value === 'string'
+    ? value.replace(/[\u0000-\u001F\u007F]/g, '').slice(0, max)
+    : '';
 }
 
 function normalizeHistory(history) {
@@ -58,45 +58,102 @@ function normalizeHistory(history) {
 function parseTutorJson(text) {
   const raw = String(text || '').trim();
   if (!raw) throw new Error('Gemini returned empty text');
-
-  const withoutFence = raw
+  const clean = raw
     .replace(/^\s*```(?:json)?\s*/i, '')
     .replace(/\s*```\s*$/i, '')
     .trim();
-
   try {
-    return JSON.parse(withoutFence);
+    return JSON.parse(clean);
   } catch {
-    const start = withoutFence.indexOf('{');
-    const end = withoutFence.lastIndexOf('}');
-    if (start >= 0 && end > start) return JSON.parse(withoutFence.slice(start, end + 1));
+    const start = clean.indexOf('{');
+    const end = clean.lastIndexOf('}');
+    if (start >= 0 && end > start) return JSON.parse(clean.slice(start, end + 1));
     throw new Error('Gemini returned invalid JSON');
   }
 }
 
-function validateTutorResponse(parsed) {
-  if (!parsed || typeof parsed !== 'object') throw new Error('Tutor response is not an object');
-  if (typeof parsed.chinese !== 'string' || !parsed.chinese.trim()) throw new Error('Missing chinese');
-  if (typeof parsed.pinyin !== 'string') throw new Error('Missing pinyin');
-  if (typeof parsed.vietnamese !== 'string') throw new Error('Missing vietnamese');
-  if (!Array.isArray(parsed.suggestedReplies)) throw new Error('Missing suggestedReplies');
+function validateTutorResponse(value) {
+  if (!value || typeof value !== 'object') throw new Error('Tutor response is not an object');
+  if (!cleanString(value.chinese, 4000)) throw new Error('Missing chinese');
+  if (!cleanString(value.pinyin, 4000)) throw new Error('Missing pinyin');
+  if (!cleanString(value.vietnamese, 4000)) throw new Error('Missing vietnamese');
+  if (!Array.isArray(value.suggestedReplies)) throw new Error('Missing suggestedReplies');
 
-  parsed.responseType = ['conversation', 'lesson', 'roleplay', 'correction'].includes(parsed.responseType)
-    ? parsed.responseType
+  const responseType = ['conversation', 'lesson', 'roleplay', 'correction'].includes(value.responseType)
+    ? value.responseType
     : 'conversation';
 
-  parsed.suggestedReplies = parsed.suggestedReplies
-    .filter((item) => item && typeof item === 'object')
-    .map((item) => ({
-      hanzi: cleanString(item.hanzi, 240),
-      pinyin: cleanString(item.pinyin, 240),
-      vietnamese: cleanString(item.vietnamese, 300)
+  const suggestedReplies = value.suggestedReplies
+    .filter((x) => x && typeof x === 'object')
+    .map((x) => ({
+      hanzi: cleanString(x.hanzi, 240),
+      pinyin: cleanString(x.pinyin, 240),
+      vietnamese: cleanString(x.vietnamese, 300)
     }))
-    .filter((item) => item.hanzi && item.pinyin && item.vietnamese)
+    .filter((x) => x.hanzi && x.pinyin && x.vietnamese)
     .slice(0, 4);
 
-  if (!parsed.suggestedReplies.length) throw new Error('No valid suggestedReplies');
-  return parsed;
+  if (!suggestedReplies.length) throw new Error('No valid suggestedReplies');
+
+  return {
+    ...value,
+    chinese: cleanString(value.chinese, 4000),
+    pinyin: cleanString(value.pinyin, 4000),
+    vietnamese: cleanString(value.vietnamese, 4000),
+    responseType,
+    emotion: cleanString(value.emotion, 40) || 'encouraging',
+    suggestedReplies
+  };
+}
+
+async function callGemini({ apiKey, model, prompt }) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 25000);
+
+  try {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': apiKey
+        },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: SYSTEM }] },
+          contents: [{ role: 'user', parts: [{ text: prompt }] }],
+          generationConfig: {
+            responseMimeType: 'application/json',
+            maxOutputTokens: 1400
+          }
+        }),
+        signal: controller.signal
+      }
+    );
+
+    const raw = await response.text();
+    let data = {};
+    try { data = raw ? JSON.parse(raw) : {}; } catch {}
+
+    if (!response.ok) {
+      const apiMessage = data?.error?.message || `HTTP ${response.status}`;
+      throw new Error(`Gemini ${response.status}: ${apiMessage}`);
+    }
+
+    const text = data?.candidates?.[0]?.content?.parts
+      ?.map((part) => part?.text || '')
+      .join('')
+      .trim();
+
+    if (!text) {
+      const finish = data?.candidates?.[0]?.finishReason || 'unknown';
+      throw new Error(`Gemini returned no text (finishReason=${finish})`);
+    }
+
+    return text;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 async function generateTutor(body) {
@@ -112,48 +169,34 @@ async function generateTutor(body) {
     ? body.memoryFacts.slice(-MAX_MEMORY_FACTS).map((x) => cleanString(x, 240)).filter(Boolean)
     : [];
 
-  if (!process.env.GEMINI_API_KEY) {
-    console.error('[Lina][TUTOR_API_ERROR]', { reason: 'Missing GEMINI_API_KEY', model: MODEL });
+  const apiKey = cleanString(process.env.GEMINI_API_KEY, 500);
+  if (!apiKey) {
+    console.error('[Lina][TUTOR_API_ERROR] GEMINI_API_KEY is missing');
     return FALLBACK(message, userName);
   }
 
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
   const history = normalizeHistory(body.history);
-  const context = [
+  const prompt = [
     `Chủ đề: ${topicTitle}`,
     `Chế độ: ${mode}`,
     `Trình độ: ${userLevel}; ${hskLevel}`,
     `Tên học viên: ${userName}`,
     memoryFacts.length ? `Thông tin đã nhớ: ${memoryFacts.join('; ')}` : '',
-    history.length ? `Lịch sử:${JSON.stringify(history)}` : ''
+    history.length ? `Lịch sử hội thoại:\n${JSON.stringify(history)}` : '',
+    '',
+    `TIN NHẮN MỚI NHẤT CỦA HỌC VIÊN:\n${message}`,
+    '',
+    'Hãy trả lời trực tiếp tin nhắn mới nhất và thay đổi nội dung theo đúng ngữ cảnh.'
   ].filter(Boolean).join('\n');
 
   try {
-    const result = await ai.models.generateContent({
-      model: MODEL,
-      contents: [
-        {
-          role: 'user',
-          parts: [{
-            text: `${context}\n\nTin nhắn MỚI NHẤT của học viên:\n${message}\n\nHãy trả lời đúng ngữ cảnh của tin nhắn mới nhất. JSON duy nhất.`
-          }]
-        }
-      ],
-      config: {
-        systemInstruction: SYSTEM,
-        maxOutputTokens: 1400,
-        responseMimeType: 'application/json'
-      }
-    });
-
-    const parsed = validateTutorResponse(parseTutorJson(result.text));
-    return parsed;
+    const text = await callGemini({ apiKey, model: MODEL, prompt });
+    return validateTutorResponse(parseTutorJson(text));
   } catch (error) {
     console.error('[Lina][TUTOR_API_ERROR]', {
+      model: MODEL,
       name: error?.name || 'Error',
-      message: String(error?.message || 'Unknown error').slice(0, 500),
-      status: error?.status,
-      model: MODEL
+      message: String(error?.message || 'Unknown error').slice(0, 800)
     });
     return FALLBACK(message, userName);
   }
@@ -166,7 +209,10 @@ function sendSse(res, payload) {
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
   res.setHeader('X-Content-Type-Options', 'nosniff');
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
+
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method Not Allowed' });
+  }
 
   const path = req.url?.split('?')[0] || '/api/tutor';
   const action = new URL(req.url || '/api/tutor', 'http://localhost').searchParams.get('action');
@@ -175,6 +221,7 @@ export default async function handler(req, res) {
     const body = req.body || {};
     const sentence = cleanString(body.contextSentence, 1200);
     if (!sentence) return res.status(400).json({ error: 'contextSentence is required' });
+
     if (!process.env.GEMINI_API_KEY) {
       return res.json({
         hint1_semantic: 'Hãy nói ý chính bằng tiếng Việt.',
@@ -183,6 +230,7 @@ export default async function handler(req, res) {
         hint4_fullAnswer: '你好！我叫阿明。(Nǐ hǎo! Wǒ jiào Ā Míng.)'
       });
     }
+
     const result = await generateTutor({
       ...body,
       message: `Hãy tạo 4 tầng gợi ý cho câu: ${sentence}`,
@@ -194,27 +242,35 @@ export default async function handler(req, res) {
   if (path.endsWith('/explain') || action === 'explain') {
     const sentence = cleanString(req.body?.sentence, 2000);
     if (!sentence) return res.status(400).json({ error: 'Sentence is required' });
+
     const result = await generateTutor({
       ...req.body,
       message: `Giải thích câu sau: ${sentence}`,
       mode: 'teacher'
     });
+
     return res.json({
       sentence,
       pinyin: result.pinyin,
       meaningVi: result.vietnamese,
-      grammarBreakdown: (result.grammar || []).map((g) => ({ part: g.structure, role: g.meaningVi })),
+      grammarBreakdown: (result.grammar || []).map((g) => ({
+        part: g.structure,
+        role: g.meaningVi
+      })),
       culturalTipVi: ''
     });
   }
 
   const response = await generateTutor(req.body || {});
+
   res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
   res.setHeader('Cache-Control', 'no-cache, no-transform');
   res.setHeader('Connection', 'keep-alive');
   res.flushHeaders?.();
+
   sendSse(res, { type: 'text', text: response.chinese });
   sendSse(res, { type: 'response', response });
   sendSse(res, { type: 'done' });
+
   return res.end();
 };
