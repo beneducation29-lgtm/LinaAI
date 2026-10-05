@@ -75,11 +75,7 @@ console.log('Authenticated real-data learning UI tests passed');
 
 
 const authService = fs.readFileSync('src/services/authService.ts', 'utf8');
-const loginApi = fs.readFileSync('api/auth/login.js', 'utf8');
-const signupApi = fs.readFileSync('api/auth/signup.js', 'utf8');
-const googleApi = fs.readFileSync('api/auth/google.js', 'utf8');
-const forgotApi = fs.readFileSync('api/auth/forgot-password.js', 'utf8');
-const resetApi = fs.readFileSync('api/auth/reset-password.js', 'utf8');
+const authApi = fs.readFileSync('api/auth/[...path].js', 'utf8');
 assert.match(appShell, /Đăng ký ngay/);
 assert.match(appShell, /Quên mật khẩu\?/);
 assert.match(appShell, /Tiếp tục với Google/);
@@ -88,9 +84,12 @@ assert.match(appShell, /\/auth\/reset-password/);
 assert.match(authService, /startGoogleLogin/);
 assert.match(authService, /requestPasswordReset/);
 assert.match(authService, /resetPassword/);
-assert.match(loginApi, /signIn\(/);
-assert.match(signupApi, /requiresEmailConfirmation|signUp\(/);
-assert.match(googleApi, /provider.*google/);
-assert.match(forgotApi, /sendPasswordRecovery/);
-assert.match(resetApi, /updatePassword/);
+for (const route of ['login','signup','google','me','refresh','logout','forgot-password','reset-password','oauth/session']) {
+  assert.match(authApi, new RegExp("action===['\\"]" + route.replace('/', '\\\\/') + "['\\"]"));
+}
+assert.match(authApi, /signIn\(/);
+assert.match(authApi, /signUp\(/);
+assert.match(authApi, /provider:'google'/);
+assert.match(authApi, /sendPasswordRecovery/);
+assert.match(authApi, /updatePassword/);
 console.log('Authentication signup, Google OAuth and password recovery tests passed');
