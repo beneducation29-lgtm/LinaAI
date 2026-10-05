@@ -585,6 +585,10 @@ export const TutorScreen: React.FC = () => {
             message={msg}
             onSelectSuggestion={(sugText) => handleSendMessage(sugText)}
             onTryCorrection={(correctedText) => handleSendMessage(correctedText)}
+            onRetrySpeaking={() => {
+              setRecognizedReview(null);
+              startRecording();
+            }}
           />
         ))}
 
