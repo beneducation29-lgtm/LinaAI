@@ -80,7 +80,8 @@ export const TutorScreen: React.FC = () => {
       selectedVoiceURI: '',
       playbackSpeed: 1.0,
       autoPlayAiResponse: true,
-      pushToTalk: true
+      pushToTalk: true,
+      autoSendRecognizedSpeech: true
     };
   });
 
@@ -115,6 +116,7 @@ export const TutorScreen: React.FC = () => {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const holdTimeoutRef = useRef<any>(null);
+  const autoSendTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const roleplayEngine = useMemo(() => createRoleplayEngine(), []);
 
   // Save voice settings to localStorage
@@ -133,6 +135,7 @@ export const TutorScreen: React.FC = () => {
 
   useEffect(() => () => {
     realtimeConversationController.interrupt();
+    if (autoSendTimerRef.current) clearTimeout(autoSendTimerRef.current);
   }, []);
 
   // Handle progressive hints loading
@@ -322,13 +325,14 @@ export const TutorScreen: React.FC = () => {
       onResult: (res) => {
         setLiveTranscript(res.transcript);
         if (res.isFinal && res.transcript) {
+          const recognized = res.transcript.trim();
           setMicState('IDLE');
           avatarService.setState('THINKING');
-          setRecognizedReview({
-            hanzi: res.transcript,
-            pinyin: getQuickPinyin(res.transcript),
-            vietnamese: getQuickVietnamese(res.transcript)
-          });
+          setRecognizedReview({ hanzi: recognized, pinyin: getQuickPinyin(recognized), vietnamese: getQuickVietnamese(recognized) });
+          if (voiceSettings.autoSendRecognizedSpeech ?? true && (!res.confidence || res.confidence >= 0.55)) {
+            if (autoSendTimerRef.current) clearTimeout(autoSendTimerRef.current);
+            autoSendTimerRef.current = setTimeout(() => { autoSendTimerRef.current = null; void handleSendMessage(recognized); }, 280);
+          }
         }
       },
       onError: (friendlyMsg) => {
@@ -351,11 +355,12 @@ export const TutorScreen: React.FC = () => {
       setMicState('IDLE');
       avatarService.setState('THINKING');
       if (liveTranscript) {
-        setRecognizedReview({
-          hanzi: liveTranscript,
-          pinyin: getQuickPinyin(liveTranscript),
-          vietnamese: getQuickVietnamese(liveTranscript)
-        });
+        const recognized = liveTranscript.trim();
+        setRecognizedReview({ hanzi: recognized, pinyin: getQuickPinyin(recognized), vietnamese: getQuickVietnamese(recognized) });
+        if (voiceSettings.autoSendRecognizedSpeech ?? true) {
+          if (autoSendTimerRef.current) clearTimeout(autoSendTimerRef.current);
+          autoSendTimerRef.current = setTimeout(() => { autoSendTimerRef.current = null; void handleSendMessage(recognized); }, 280);
+        }
       }
     }
   };
