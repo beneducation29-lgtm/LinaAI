@@ -51,7 +51,7 @@ console.log('HSK speaking vocabulary catalog tests passed');
 
 
 const classicVocabulary = fs.readFileSync('src/data/hskClassicVocabulary.ts', 'utf8');
-const classicIds = [...classicVocabulary.matchAll(/id: 'hsk-classic-(\\d{4})'/g)].map(m => m[1]);
+const classicIds = [...classicVocabulary.matchAll(/id: 'hsk-classic-(\d{4})'/g)].map(m => m[1]);
 assert.equal(classicIds.length, 5000, 'classic HSK corpus should contain exactly 5000 entries');
 assert.equal(new Set(classicIds).size, 5000, 'classic HSK corpus IDs must be unique');
 assert.match(classicVocabulary, /HSK 1–6 vocabulary corpus/);
