@@ -19,6 +19,16 @@ const FALLBACK = (message, userName = 'Bạn') => ({
     hint3_structure: '我 + 想 + Động từ',
     hint4_fullAnswer: '我想练习中文。(Wǒ xiǎng liànxí Zhōngwén.)'
   },
+  speakingCoach: {
+    enabled: false,
+    needsRetry: false,
+    naturalnessScore: 100,
+    issueType: 'none',
+    focus: '',
+    betterSentence: '',
+    feedbackVi: '',
+    retryPromptVi: ''
+  },
   suggestedReplies: [
     { hanzi: '你好！', pinyin: 'Nǐ hǎo!', vietnamese: 'Xin chào!' },
     { hanzi: '我想练习中文。', pinyin: 'Wǒ xiǎng liànxí Zhōngwén.', vietnamese: 'Mình muốn luyện tiếng Trung.' }
@@ -38,7 +48,8 @@ QUAN TRỌNG:
 - Bắt buộc có chinese, pinyin, vietnamese, responseType, suggestedReplies.
 - suggestedReplies là mảng 2-4 object có hanzi, pinyin, vietnamese.
 - Luôn trả lời dựa trên tin nhắn MỚI NHẤT.
-- Không dùng câu trả lời mẫu cố định cho mọi tin nhắn.`;
+- Không dùng câu trả lời mẫu cố định cho mọi tin nhắn.
+- Nếu isSpoken=true, hãy đóng vai Speaking Coach: đánh giá độ tự nhiên của chính câu người học vừa nói (không chấm âm thanh/acoustic vì bạn chỉ có transcript). Chỉ bật speakingCoach.enabled=true khi câu cần sửa hoặc có cách nói tự nhiên hơn đáng kể. Nếu cần sửa, needsRetry=true, issueType phù hợp, naturalnessScore 0-100, betterSentence là câu người học nên nói lại, feedbackVi ngắn gọn, retryPromptVi khuyến khích nói lại. Nếu câu tự nhiên, enabled=false và naturalnessScore 90-100.`;
 
 function cleanString(value, max) {
   return typeof value === 'string'
@@ -167,6 +178,7 @@ async function generateTutor(body) {
   const hskLevel = cleanString(body.hskLevel, 20) || 'HSK 1';
   const userLevel = cleanString(body.userLevel, 40) || 'Cơ bản';
   const topicTitle = cleanString(body.topicTitle, 240) || 'Tự do';
+  const isSpoken = body.isSpoken === true;
   const memoryFacts = Array.isArray(body.memoryFacts)
     ? body.memoryFacts.slice(-MAX_MEMORY_FACTS).map((x) => cleanString(x, 240)).filter(Boolean)
     : [];
@@ -182,6 +194,8 @@ async function generateTutor(body) {
     `Chủ đề: ${topicTitle}`,
     `Trình độ: ${userLevel}; ${hskLevel}; chế độ: ${mode}`,
     `Tên học viên: ${userName}`,
+    `isSpoken: ${isSpoken}`,
+    isSpoken ? 'Speaking Coach: hãy kiểm tra câu transcript người học vừa nói về độ tự nhiên và đưa ra một lần sửa lại nếu cần.' : '',
     memoryFacts.length ? `Thông tin nhớ: ${memoryFacts.join('; ')}` : '',
     history.length ? `Lịch sử gần đây:\n${JSON.stringify(history)}` : '',
     `TIN NHẮN MỚI NHẤT:\n${message}`,
