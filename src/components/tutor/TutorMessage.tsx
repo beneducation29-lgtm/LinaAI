@@ -239,7 +239,10 @@ export const TutorMessage: React.FC<TutorMessageProps> = ({
               </div>
             )}
             {message.speakingCoach.feedbackVi && <div className="text-xs leading-relaxed">💡 {message.speakingCoach.feedbackVi}</div>}
-            {message.speakingCoach.retryPromptVi && <div className="text-[11px] font-medium text-sky-800 dark:text-sky-300">{message.speakingCoach.retryPromptVi}</div>}
+            {message.speakingCoach.retryResolved ? (
+              <div className="rounded-xl bg-emerald-100/80 px-2.5 py-2 text-xs font-bold text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">✅ Tốt rồi — câu nói lại đã tự nhiên hơn.</div>
+            ) : message.speakingCoach.retryPromptVi ? <div className="text-[11px] font-medium text-sky-800 dark:text-sky-300">{message.speakingCoach.retryPromptVi}</div> : null}
+            {message.speakingCoach.isRetry && <div className="text-[10px] font-semibold text-sky-700 dark:text-sky-300">Lần nói lại {message.speakingCoach.attempt ?? 1}</div>}
             <div className="text-[10px] text-stone-500 dark:text-stone-400">Điểm này đánh giá độ tự nhiên của câu transcript, không phải điểm âm thanh/acoustic.</div>
           </div>
         )}
