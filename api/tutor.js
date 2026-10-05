@@ -88,7 +88,7 @@ function parseTutorJson(text) {
   }
 }
 
-function validateTutorResponse(value) {
+function validateTutorResponse(value, fallbackAttempt = 0) {
   if (!value || typeof value !== 'object') throw new Error('Tutor response is not an object');
   if (!cleanString(value.chinese, 4000)) throw new Error('Missing chinese');
   if (!cleanString(value.pinyin, 4000)) throw new Error('Missing pinyin');
@@ -124,7 +124,7 @@ function validateTutorResponse(value) {
     retryPromptVi: cleanString(rawCoach.retryPromptVi, 300),
     isRetry: rawCoach.isRetry === true,
     retryResolved: rawCoach.retryResolved === true,
-    attempt: Math.max(0, Math.min(3, Number(rawCoach.attempt) || speakingAttempt))
+    attempt: Math.max(0, Math.min(3, Number(rawCoach.attempt) || fallbackAttempt))
   };
 
   return {
@@ -235,7 +235,7 @@ async function generateTutor(body) {
   for (const model of models) {
     try {
       const text = await callGemini({ apiKey, model, prompt });
-      return validateTutorResponse(parseTutorJson(text));
+      return validateTutorResponse(parseTutorJson(text), speakingAttempt);
     } catch (error) {
       lastError = error;
       const message = String(error?.message || 'Unknown error');
