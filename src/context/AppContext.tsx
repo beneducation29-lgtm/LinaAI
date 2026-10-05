@@ -27,6 +27,7 @@ import { completeLesson } from '../services/lessonEngine';
 import { MotivationState, MotivationActivityType } from '../types/motivation';
 import { DailyGoalMinutes, getTodayStats, getMotivationSnapshot, loadMotivationState, recordMotivationActivity as applyMotivationActivity, saveMotivationState } from '../services/motivationEngine';
 import { HSK_SPEAKING_VOCABULARY } from '../data/hskSpeakingVocabulary';
+import { HSK_CLASSIC_VOCABULARY } from '../data/hskClassicVocabulary';
 import { 
   INITIAL_USER_PROFILE, 
   LESSON_HSK1_1, 
@@ -162,8 +163,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     try { const saved=storage.getItem(STORAGE_KEYS.STRUCTURED_SAVED); if(saved) return JSON.parse(saved); } catch {} return [];
   });
   const [allVocabularies] = useState<Vocabulary[]>(() => {
-    const merged = [...INITIAL_VOCABULARIES, ...HSK_SPEAKING_VOCABULARY];
-    return Array.from(new Map(merged.map(v => [v.id, v])).values());
+    const byKey = new Map<string, Vocabulary>();
+    for (const vocab of [...INITIAL_VOCABULARIES, ...HSK_CLASSIC_VOCABULARY]) {
+      byKey.set(`${vocab.hanzi}|${vocab.pinyin.replace(/\\s+/g, '')}`, vocab);
+    }
+    for (const vocab of HSK_SPEAKING_VOCABULARY) {
+      byKey.set(`${vocab.hanzi}|${vocab.pinyin.replace(/\\s+/g, '')}`, vocab);
+    }
+    return Array.from(byKey.values());
   });
   const memoryRepoRef = React.useRef<MemoryRepository | null>(null);
   if (!memoryRepoRef.current) memoryRepoRef.current = createLocalMemoryRepository();
