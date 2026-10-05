@@ -59,3 +59,9 @@ export async function signIn(email,password){
 export async function refresh(refreshToken){
   return supabase('/auth/v1/token?grant_type=refresh_token',{method:'POST',body:JSON.stringify({refresh_token:refreshToken})});
 }
+export async function sendPasswordRecovery(email,redirectTo){
+  return supabase('/auth/v1/recover',{method:'POST',body:JSON.stringify({email,redirect_to:redirectTo})});
+}
+export async function updatePassword(accessToken,password){
+  return supabase('/auth/v1/user',{method:'PUT',headers:{Authorization:`Bearer ${accessToken}`},body:JSON.stringify({password})});
+}
