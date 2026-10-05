@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { BookOpen, CheckCircle2, ChevronRight, Headphones, Mic, MessageCircle, RotateCcw, Sparkles, Volume2 } from 'lucide-react';
+import { BookOpen, CheckCircle2, ChevronRight, Headphones, Mic, MessageCircle, RotateCcw, Search, Sparkles, Volume2, Bookmark } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { HSK1_LESSONS } from '../../data/hsk1Lessons';
 import { HSK2_6_LESSONS } from '../../data/hskExpandedLessons';
@@ -9,10 +9,10 @@ import { speechService } from '../../services/speech';
 import { aiTutor } from '../../services/aiTutor';
 import { analytics } from '../../services/analytics';
 
-type Section = 'learn' | 'listen' | 'speak' | 'roleplay' | 'review';
+type Section = 'learn' | 'vocabulary' | 'listen' | 'speak' | 'roleplay' | 'review';
 
 export const LearningSystemScreen: React.FC = () => {
-  const { user, setCurrentTab, recordLearningResult, addMistake, getDueReviewCount, structuredProgress, learnerProfileMemory, recordMotivationActivity } = useApp();
+  const { user, setCurrentTab, recordLearningResult, addMistake, getDueReviewCount, structuredProgress, learnerProfileMemory, recordMotivationActivity, allVocabularies, toggleSaveVocabulary, isVocabularySaved } = useApp();
   const [selectedHsk,setSelectedHsk] = useState(user.currentHsk);
   const [lessonId,setLessonId] = useState('hsk1-lesson-1');
   const [section,setSection] = useState<Section>('learn');
@@ -34,6 +34,13 @@ export const LearningSystemScreen: React.FC = () => {
     analytics.track('lesson_start', { lessonId: lesson.id, hskLevel: lesson.hskLevel });
   }, [lesson.id]);
   const currentReview = lesson.review[reviewIndex];
+  const speakingVocabulary = useMemo(() => allVocabularies
+    .filter(v => v.hskLevel === selectedHsk)
+    .filter(v => {
+      const q = vocabularyQuery.trim().toLowerCase();
+      if (!q) return true;
+      return v.hanzi.toLowerCase().includes(q) || v.pinyin.toLowerCase().includes(q) || v.vietnamese.toLowerCase().includes(q);
+    }), [allVocabularies, selectedHsk, vocabularyQuery]);
 
   const speak = (text:string) => speechService.speakChinese(text,{useGeminiTTS:true});
   const pinyinFor = (marked:string, numbered:string) => pinyinMode === 'hidden' ? '' : pinyinMode === 'numbers' ? numbered : marked;
@@ -126,7 +133,28 @@ export const LearningSystemScreen: React.FC = () => {
               <div><div className="text-xs text-amber-700 dark:text-amber-300 font-bold">{lesson.hskLevel} · Bài {lesson.lessonNumber}</div><h2 className="text-2xl font-bold mt-1">{lesson.titleVi}</h2><div className="font-cjk text-lg text-stone-500">{lesson.titleZh} · {lesson.pinyin}</div><p className="text-sm text-stone-600 dark:text-stone-400 mt-2">{lesson.objective}</p></div>
               <LayerToggles compact/>
             </div>
-            <div className="mt-4 flex flex-wrap gap-2">{(['learn','listen','speak','roleplay','review'] as Section[]).map(x => <button key={x} type="button" onClick={() => setSection(x)} className={'px-3 py-2 rounded-xl text-xs font-bold ' + (section === x ? 'bg-stone-900 text-white' : 'bg-stone-100 dark:bg-stone-800')}>{x === 'learn' ? 'Học' : x === 'listen' ? 'Nghe' : x === 'speak' ? 'Nói' : x === 'roleplay' ? 'Roleplay' : 'Review'}</button>)}</div>
+            <div className="mt-4 flex flex-wrap gap-2">{(['learn','vocabulary','listen','speak','roleplay','review'] as Section[]).map(x => <button key={x} type="button" onClick={() => setSection(x)} className={'px-3 py-2 rounded-xl text-xs font-bold ' + (section === x ? 'bg-stone-900 text-white' : 'bg-stone-100 dark:bg-stone-800')}>{x === 'learn' ? 'Học' : x === 'vocabulary' ? 'Từ vựng' : x === 'listen' ? 'Nghe' : x === 'speak' ? 'Nói' : x === 'roleplay' ? 'Roleplay' : 'Review'}</button>)}</div>
+          </div>
+
+          {section === 'vocabulary' && <div className="space-y-4">
+            <div className="p-5 rounded-2xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40">
+              <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+                <div><div className="text-xs font-bold uppercase tracking-wider text-amber-800 dark:text-amber-300">Kho từ vựng chuẩn bị phòng nói</div><h3 className="text-xl font-bold mt-1">{selectedHsk} · {speakingVocabulary.length} từ</h3><p className="text-sm text-stone-600 dark:text-stone-400 mt-1">Học từ theo cấp độ trước khi vào Speaking. Mỗi từ có câu mẫu để chuyển từ “biết nghĩa” sang “nói được”.</p></div>
+                <div className="relative w-full sm:w-64"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400"/><input value={vocabularyQuery} onChange={e=>setVocabularyQuery(e.target.value)} placeholder="Tìm chữ, pinyin, nghĩa..." className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 text-sm outline-none focus:ring-2 focus:ring-amber-300"/></div>
+              </div>
+            </div>
+            <div className="grid sm:grid-cols-2 gap-3">
+              {speakingVocabulary.map(item => <div key={item.id} className="p-4 rounded-2xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800">
+                <div className="flex items-start justify-between gap-2">
+                  <div><div className="font-cjk text-2xl font-bold">{item.hanzi}</div><div className="text-sm text-amber-700 dark:text-amber-300 font-semibold mt-1">{item.pinyin}</div><div className="text-sm mt-1">{item.vietnamese}</div></div>
+                  <button type="button" onClick={()=>toggleSaveVocabulary(item.id)} className="p-2 rounded-xl hover:bg-stone-100 dark:hover:bg-stone-800" aria-label={isVocabularySaved(item.id) ? 'Bỏ lưu từ' : 'Lưu từ'}><Bookmark className={'w-4 h-4 ' + (isVocabularySaved(item.id) ? 'fill-current text-amber-600' : 'text-stone-400')}/></button>
+                </div>
+                <div className="mt-3 text-xs text-stone-500">{item.partOfSpeech} · {item.hskLevel}</div>
+                {item.exampleSentence && <div className="mt-3 p-3 rounded-xl bg-stone-50 dark:bg-stone-800/70"><div className="font-cjk font-semibold">{item.exampleSentence.hanzi}</div><div className="text-xs text-stone-500 mt-1">{item.exampleSentence.pinyin}</div><div className="text-xs mt-1">{item.exampleSentence.vietnamese}</div></div>}
+                <div className="mt-3 flex gap-2"><button type="button" onClick={()=>speak(item.hanzi)} className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-700 dark:text-amber-300"><Volume2 className="w-4 h-4"/>Nghe từ</button>{item.exampleSentence && <button type="button" onClick={()=>speak(item.exampleSentence!.hanzi)} className="inline-flex items-center gap-1.5 text-xs font-bold text-stone-600 dark:text-stone-300"><Mic className="w-4 h-4"/>Nghe câu mẫu</button>}</div>
+              </div>)}
+            </div>
+            {!speakingVocabulary.length && <div className="p-8 text-center rounded-2xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 text-sm text-stone-500">Không tìm thấy từ phù hợp.</div>}
           </div>
 
           {section === 'learn' && <div className="space-y-4">
