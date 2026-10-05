@@ -27,7 +27,10 @@ const FALLBACK = (message, userName = 'Bạn') => ({
     focus: '',
     betterSentence: '',
     feedbackVi: '',
-    retryPromptVi: ''
+    retryPromptVi: '',
+    isRetry: false,
+    retryResolved: false,
+    attempt: 0
   },
   suggestedReplies: [
     { hanzi: '你好！', pinyin: 'Nǐ hǎo!', vietnamese: 'Xin chào!' },
@@ -49,7 +52,8 @@ QUAN TRỌNG:
 - suggestedReplies là mảng 2-4 object có hanzi, pinyin, vietnamese.
 - Luôn trả lời dựa trên tin nhắn MỚI NHẤT.
 - Không dùng câu trả lời mẫu cố định cho mọi tin nhắn.
-- Nếu isSpoken=true, hãy đóng vai Speaking Coach: đánh giá độ tự nhiên của chính câu người học vừa nói (không chấm âm thanh/acoustic vì bạn chỉ có transcript). Chỉ bật speakingCoach.enabled=true khi câu cần sửa hoặc có cách nói tự nhiên hơn đáng kể. Nếu cần sửa, needsRetry=true, issueType phù hợp, naturalnessScore 0-100, betterSentence là câu người học nên nói lại, feedbackVi ngắn gọn, retryPromptVi khuyến khích nói lại. Nếu câu tự nhiên, enabled=false và naturalnessScore 90-100.`;
+- Nếu isSpoken=true, hãy đóng vai Speaking Coach: đánh giá độ tự nhiên của chính câu người học vừa nói (không chấm âm thanh/acoustic vì bạn chỉ có transcript). Chỉ bật speakingCoach.enabled=true khi câu cần sửa hoặc có cách nói tự nhiên hơn đáng kể. Nếu cần sửa, needsRetry=true, issueType phù hợp, naturalnessScore 0-100, betterSentence là câu người học nên nói lại, feedbackVi ngắn gọn, retryPromptVi khuyến khích nói lại. Nếu câu tự nhiên, enabled=false và naturalnessScore 90-100.
+- Nếu isSpeakingRetry=true, hãy so sánh câu vừa nói với speakingCoachTarget là câu Lina yêu cầu nói lại. Không chỉ sửa lại câu: hãy xác định người học đã tiến bộ chưa. Trả về isRetry=true, attempt là số lần thử, retryResolved=true nếu câu đã tự nhiên/đạt mục tiêu (naturalnessScore >= 85); khi resolved thì needsRetry=false, issueType=none, betterSentence có thể giữ câu hiện tại. Nếu chưa đạt, retryResolved=false, needsRetry=true và betterSentence là phiên bản cần luyện tiếp. Chỉ yêu cầu tối đa 3 lần; sau attempt >= 3 hãy ưu tiên chốt câu gần đúng nhất và retryResolved=true nếu câu đủ hiểu.`;
 
 function cleanString(value, max) {
   return typeof value === 'string'
@@ -117,7 +121,10 @@ function validateTutorResponse(value) {
     focus: cleanString(rawCoach.focus, 160),
     betterSentence: cleanString(rawCoach.betterSentence, 500),
     feedbackVi: cleanString(rawCoach.feedbackVi, 500),
-    retryPromptVi: cleanString(rawCoach.retryPromptVi, 300)
+    retryPromptVi: cleanString(rawCoach.retryPromptVi, 300),
+    isRetry: rawCoach.isRetry === true,
+    retryResolved: rawCoach.retryResolved === true,
+    attempt: Math.max(0, Math.min(3, Number(rawCoach.attempt) || speakingAttempt))
   };
 
   return {
@@ -193,6 +200,9 @@ async function generateTutor(body) {
   const userLevel = cleanString(body.userLevel, 40) || 'Cơ bản';
   const topicTitle = cleanString(body.topicTitle, 240) || 'Tự do';
   const isSpoken = body.isSpoken === true;
+  const isSpeakingRetry = body.isSpeakingRetry === true;
+  const speakingCoachTarget = cleanString(body.speakingCoachTarget, 500);
+  const speakingAttempt = Math.max(0, Math.min(3, Number(body.speakingAttempt) || 0));
   const memoryFacts = Array.isArray(body.memoryFacts)
     ? body.memoryFacts.slice(-MAX_MEMORY_FACTS).map((x) => cleanString(x, 240)).filter(Boolean)
     : [];
@@ -209,7 +219,10 @@ async function generateTutor(body) {
     `Trình độ: ${userLevel}; ${hskLevel}; chế độ: ${mode}`,
     `Tên học viên: ${userName}`,
     `isSpoken: ${isSpoken}`,
-    isSpoken ? 'Speaking Coach: hãy kiểm tra câu transcript người học vừa nói về độ tự nhiên và đưa ra một lần sửa lại nếu cần.' : '',
+    `isSpeakingRetry: ${isSpeakingRetry}`,
+    `speakingAttempt: ${speakingAttempt}`,
+    speakingCoachTarget ? `speakingCoachTarget: ${speakingCoachTarget}` : '',
+    isSpoken ? (isSpeakingRetry ? 'Speaking Coach retry: so sánh câu mới với câu mục tiêu và báo đã tiến bộ hay chưa.' : 'Speaking Coach: hãy kiểm tra câu transcript người học vừa nói về độ tự nhiên và đưa ra một lần sửa lại nếu cần.') : '',
     memoryFacts.length ? `Thông tin nhớ: ${memoryFacts.join('; ')}` : '',
     history.length ? `Lịch sử gần đây:\n${JSON.stringify(history)}` : '',
     `TIN NHẮN MỚI NHẤT:\n${message}`,
