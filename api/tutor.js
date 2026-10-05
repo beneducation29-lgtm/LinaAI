@@ -349,6 +349,8 @@ export default async function handler(req, res) {
   res.flushHeaders?.();
 
   sendSse(res, { type: 'text', text: response.chinese });
+  // Dedicated speech event lets realtime voice start TTS without waiting for UI-only response handling.
+  sendSse(res, { type: 'speech', text: response.chinese });
   sendSse(res, { type: 'response', response });
   sendSse(res, { type: 'done' });
 
