@@ -24,6 +24,7 @@ export interface SendMessageOptions {
   history: ConversationMessage[];
   mode: TutorMode;
   memoryFacts?: string[];
+  isSpoken?: boolean;
   signal?: AbortSignal;
 }
 
@@ -99,7 +100,8 @@ class AITutorClientService implements AITutorProvider {
         userLevel: options.userLevel || 'Cơ bản',
         userName: sanitizePlainText(options.userName, 120) || 'Bạn',
         topicTitle: sanitizePlainText(options.topicTitleVi, 240),
-        memoryFacts: (options.memoryFacts || []).slice(-12).map(f => sanitizePlainText(f, 240)).filter(Boolean)
+        memoryFacts: (options.memoryFacts || []).slice(-12).map(f => sanitizePlainText(f, 240)).filter(Boolean),
+        isSpoken: Boolean(options.isSpoken)
       })
     }, { timeoutMs: 30000, retries: 0, signal: options.signal });
 
