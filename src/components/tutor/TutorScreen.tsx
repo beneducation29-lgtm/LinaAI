@@ -669,7 +669,7 @@ export const TutorScreen: React.FC = () => {
             <div className="pt-2 border-t border-amber-200/60 dark:border-amber-900/60 flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => handleSendMessage(recognizedReview.hanzi)}
+                onClick={() => handleSendMessage(recognizedReview.hanzi, false, true)}
                 className="flex-1 py-2.5 px-4 bg-amber-700 hover:bg-amber-800 text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer min-h-[42px]"
               >
                 <Send className="w-4 h-4" />
