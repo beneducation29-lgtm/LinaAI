@@ -19,8 +19,8 @@ export const LearningSystemScreen: React.FC = () => {
   const [reviewIndex,setReviewIndex] = useState(0);
   const [reviewDone,setReviewDone] = useState(false);
   const [speechText,setSpeechText] = useState('');
-  const [feedback,setFeedback] = useState('');
   const [vocabularyQuery,setVocabularyQuery] = useState('');
+  const [feedback,setFeedback] = useState('');
   const [roleplayInput,setRoleplayInput] = useState('');
   const [roleplayReply,setRoleplayReply] = useState('');
   const [busy,setBusy] = useState(false);
@@ -35,9 +35,8 @@ export const LearningSystemScreen: React.FC = () => {
     analytics.track('lesson_start', { lessonId: lesson.id, hskLevel: lesson.hskLevel });
   }, [lesson.id]);
   const currentReview = lesson.review[reviewIndex];
-  const selectedHskNumber = Number(String(selectedHsk).replace(/[^0-9]/g, ''));
   const speakingVocabulary = useMemo(() => allVocabularies
-    .filter(v => Number(String(v.hskLevel).replace(/[^0-9]/g, '')) <= selectedHskNumber)
+    .filter(v => v.hskLevel === selectedHsk)
     .filter(v => {
       const q = vocabularyQuery.trim().toLowerCase();
       if (!q) return true;
@@ -148,7 +147,7 @@ export const LearningSystemScreen: React.FC = () => {
             <div className="grid sm:grid-cols-2 gap-3">
               {speakingVocabulary.map(item => <div key={item.id} className="p-4 rounded-2xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800">
                 <div className="flex items-start justify-between gap-2">
-                  <div><div className="font-cjk text-2xl font-bold">{item.hanzi}</div><div className="text-sm text-amber-700 dark:text-amber-300 font-semibold mt-1">{item.pinyin}</div><div className="text-sm mt-1">{item.vietnamese || 'Nghĩa Việt sẽ được bổ sung'}</div></div>
+                  <div><div className="font-cjk text-2xl font-bold">{item.hanzi}</div><div className="text-sm text-amber-700 dark:text-amber-300 font-semibold mt-1">{item.pinyin}</div><div className="text-sm mt-1">{item.vietnamese}</div></div>
                   <button type="button" onClick={()=>toggleSaveVocabulary(item.id)} className="p-2 rounded-xl hover:bg-stone-100 dark:hover:bg-stone-800" aria-label={isVocabularySaved(item.id) ? 'Bỏ lưu từ' : 'Lưu từ'}><Bookmark className={'w-4 h-4 ' + (isVocabularySaved(item.id) ? 'fill-current text-amber-600' : 'text-stone-400')}/></button>
                 </div>
                 <div className="mt-3 text-xs text-stone-500">{item.partOfSpeech} · {item.hskLevel}</div>
@@ -157,7 +156,7 @@ export const LearningSystemScreen: React.FC = () => {
               </div>)}
             </div>
             {!speakingVocabulary.length && <div className="p-8 text-center rounded-2xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 text-sm text-stone-500">Không tìm thấy từ phù hợp.</div>}
-          </div>
+          </div>}
 
           {section === 'learn' && <div className="space-y-4">
             <div className="grid sm:grid-cols-2 gap-3">{lesson.vocabulary.map(item => <div key={item.id} className="p-4 rounded-2xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800">
