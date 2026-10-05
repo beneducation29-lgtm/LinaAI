@@ -16,21 +16,28 @@ export class RealtimeSpeechOrchestrator {
     this.activeTurnId = turnId; this.controller = new AbortController();
     const metrics: RealtimeTurnMetrics = { turnId, turnStartedAt: Date.now() };
     callbacks.onState?.('THINKING');
+    let speechQueued = false;
+    const queueSpeech = (text: string) => {
+      if (!enableSpeech || speechQueued || !this.isCurrent(turnId)) return;
+      const chunks = speechChunker.split(text);
+      if (!chunks.length) return;
+      speechQueued = true;
+      metrics.ttsFirstChunkAt ??= Date.now();
+      ttsQueue.enqueue(chunks, rate, {
+        onStart: () => { if (!this.isCurrent(turnId)) return; metrics.audioFirstPlayedAt ??= Date.now(); callbacks.onState?.('SPEAKING'); callbacks.onMetrics?.({ ...metrics }); },
+        onError: error => { if (this.isCurrent(turnId)) callbacks.onError?.(error); }
+      });
+    };
     try {
       const response = await aiTutor.sendMessage({ ...options, signal: this.controller.signal }, userText, {
         onText: text => { if (!this.isCurrent(turnId)) return; metrics.geminiFirstTokenAt ??= Date.now(); callbacks.onText?.(text); callbacks.onMetrics?.({ ...metrics }); },
-        onSpeech: text => {
-          if (!enableSpeech || !this.isCurrent(turnId)) return;
-          const chunks = speechChunker.split(text);
-          if (!chunks.length) return;
-          metrics.ttsFirstChunkAt ??= Date.now();
-          ttsQueue.enqueue(chunks, rate, {
-            onStart: () => { if (!this.isCurrent(turnId)) return; metrics.audioFirstPlayedAt ??= Date.now(); callbacks.onState?.('SPEAKING'); callbacks.onMetrics?.({ ...metrics }); },
-            onError: error => { if (this.isCurrent(turnId)) callbacks.onError?.(error); }
-          });
-        }
+        onSpeech: text => queueSpeech(text)
       });
       if (!this.isCurrent(turnId)) return response;
+      // The tutor endpoint currently returns the structured response as the final SSE event.
+      // Queue that response immediately when no dedicated speech event was emitted, so voice
+      // mode never waits for a callback the provider did not send.
+      queueSpeech(response.chinese);
       callbacks.onResponse?.(response);
       while (enableSpeech && ttsQueue.isBusy()) {
         await new Promise(resolve => setTimeout(resolve, 30));
