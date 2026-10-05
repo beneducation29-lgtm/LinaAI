@@ -21,6 +21,8 @@ export const LearningSystemScreen: React.FC = () => {
   const [speechText,setSpeechText] = useState('');
   const [feedback,setFeedback] = useState('');
   const [vocabularyQuery,setVocabularyQuery] = useState('');
+  const [vocabularyPage,setVocabularyPage] = useState(1);
+  const vocabularyPageSize = 48;
   const [roleplayInput,setRoleplayInput] = useState('');
   const [roleplayReply,setRoleplayReply] = useState('');
   const [busy,setBusy] = useState(false);
@@ -36,14 +38,19 @@ export const LearningSystemScreen: React.FC = () => {
   }, [lesson.id]);
   const currentReview = lesson.review[reviewIndex];
   const selectedHskNumber = Number(String(selectedHsk).replace(/[^0-9]/g, ''));
-  const speakingVocabulary = useMemo(() => allVocabularies
+  const classicVocabulary = useMemo(() => allVocabularies.filter(v => v.tags?.includes('5.000 từ')), [allVocabularies]);
+  const speakingVocabulary = useMemo(() => classicVocabulary
     .filter(v => Number(String(v.hskLevel).replace(/[^0-9]/g, '')) <= selectedHskNumber)
     .filter(v => {
       const q = vocabularyQuery.trim().toLowerCase();
       if (!q) return true;
       return v.hanzi.toLowerCase().includes(q) || v.pinyin.toLowerCase().includes(q) || v.vietnamese.toLowerCase().includes(q);
-    }), [allVocabularies, selectedHsk, vocabularyQuery]);
+    }), [classicVocabulary, selectedHsk, vocabularyQuery]);
+  const vocabularyTotalPages = Math.max(1, Math.ceil(speakingVocabulary.length / vocabularyPageSize));
+  const visibleVocabulary = speakingVocabulary.slice((vocabularyPage - 1) * vocabularyPageSize, vocabularyPage * vocabularyPageSize);
+  const cumulativeCountFor = (level: number) => classicVocabulary.filter(v => Number(String(v.hskLevel).replace(/[^0-9]/g, '')) <= level).length;
 
+  React.useEffect(() => { setVocabularyPage(1); }, [selectedHsk, vocabularyQuery]);
   const speak = (text:string) => speechService.speakChinese(text,{useGeminiTTS:true});
   const pinyinFor = (marked:string, numbered:string) => pinyinMode === 'hidden' ? '' : pinyinMode === 'numbers' ? numbered : marked;
 
@@ -141,14 +148,14 @@ export const LearningSystemScreen: React.FC = () => {
           {section === 'vocabulary' && <div className="space-y-4">
             <div className="p-5 rounded-2xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40">
               <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
-                <div><div className="text-xs font-bold uppercase tracking-wider text-amber-800 dark:text-amber-300">Kho từ vựng chuẩn bị phòng nói</div><h3 className="text-xl font-bold mt-1">{selectedHsk} · {speakingVocabulary.length} từ</h3><p className="text-sm text-stone-600 dark:text-stone-400 mt-1">Học từ theo cấp độ trước khi vào Speaking. Mỗi từ có câu mẫu để chuyển từ “biết nghĩa” sang “nói được”.</p></div>
+                <div><div className="text-xs font-bold uppercase tracking-wider text-amber-800 dark:text-amber-300">Kho HSK cổ điển · dữ liệu thật</div><h3 className="text-xl font-bold mt-1">{selectedHsk} · {speakingVocabulary.length.toLocaleString('vi-VN')} từ tích lũy</h3><p className="text-sm text-stone-600 dark:text-stone-400 mt-1">Nguồn 5.000 từ HSK cổ điển, chia theo 6 cấp và tích lũy. Từ trùng với bộ luyện nói được làm giàu thêm nghĩa Việt/câu mẫu.</p><div className="mt-3 flex flex-wrap gap-1.5">{([1,2,3,4,5,6] as const).map(level => <span key={level} className="px-2 py-1 rounded-lg bg-white/70 dark:bg-stone-900/70 border border-amber-200 dark:border-amber-900/50 text-[10px] font-bold">HSK {level}: {cumulativeCountFor(level).toLocaleString('vi-VN')}</span>)}</div></div>
                 <div className="relative w-full sm:w-64"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400"/><input value={vocabularyQuery} onChange={e=>setVocabularyQuery(e.target.value)} placeholder="Tìm chữ, pinyin, nghĩa..." className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 text-sm outline-none focus:ring-2 focus:ring-amber-300"/></div>
               </div>
             </div>
             <div className="grid sm:grid-cols-2 gap-3">
-              {speakingVocabulary.map(item => <div key={item.id} className="p-4 rounded-2xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800">
+              {visibleVocabulary.map(item => <div key={item.id} className="p-4 rounded-2xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800">
                 <div className="flex items-start justify-between gap-2">
-                  <div><div className="font-cjk text-2xl font-bold">{item.hanzi}</div><div className="text-sm text-amber-700 dark:text-amber-300 font-semibold mt-1">{item.pinyin}</div><div className="text-sm mt-1">{item.vietnamese || 'Nghĩa Việt sẽ được bổ sung'}</div></div>
+                  <div><div className="font-cjk text-2xl font-bold">{item.hanzi}</div><div className="text-sm text-amber-700 dark:text-amber-300 font-semibold mt-1">{item.pinyin}</div><div className="text-sm mt-1">{item.vietnamese || 'Chưa có nghĩa Việt trong nguồn HSK cổ điển'}</div></div>
                   <button type="button" onClick={()=>toggleSaveVocabulary(item.id)} className="p-2 rounded-xl hover:bg-stone-100 dark:hover:bg-stone-800" aria-label={isVocabularySaved(item.id) ? 'Bỏ lưu từ' : 'Lưu từ'}><Bookmark className={'w-4 h-4 ' + (isVocabularySaved(item.id) ? 'fill-current text-amber-600' : 'text-stone-400')}/></button>
                 </div>
                 <div className="mt-3 text-xs text-stone-500">{item.partOfSpeech} · {item.hskLevel}</div>
@@ -156,7 +163,7 @@ export const LearningSystemScreen: React.FC = () => {
                 <div className="mt-3 flex gap-2"><button type="button" onClick={()=>speak(item.hanzi)} className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-700 dark:text-amber-300"><Volume2 className="w-4 h-4"/>Nghe từ</button>{item.exampleSentence && <button type="button" onClick={()=>speak(item.exampleSentence!.hanzi)} className="inline-flex items-center gap-1.5 text-xs font-bold text-stone-600 dark:text-stone-300"><Mic className="w-4 h-4"/>Nghe câu mẫu</button>}</div>
               </div>)}
             </div>
-            {!speakingVocabulary.length && <div className="p-8 text-center rounded-2xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 text-sm text-stone-500">Không tìm thấy từ phù hợp.</div>}
+            {!speakingVocabulary.length && <div className="p-8 text-center rounded-2xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 text-sm text-stone-500">Không tìm thấy từ phù hợp.</div>}\n            {speakingVocabulary.length > 0 && <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 rounded-2xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800"><div className="text-xs text-stone-500">Hiển thị 1–{Math.min(vocabularyPage * vocabularyPageSize, speakingVocabulary.length)} / {speakingVocabulary.length.toLocaleString('vi-VN')}</div><div className="flex items-center gap-2"><button type="button" disabled={vocabularyPage === 1} onClick={()=>setVocabularyPage(p=>Math.max(1,p-1))} className="px-3 py-2 rounded-xl bg-stone-100 dark:bg-stone-800 text-xs font-bold disabled:opacity-40">Trang trước</button><span className="text-xs font-bold">Trang {vocabularyPage}/{vocabularyTotalPages}</span><button type="button" disabled={vocabularyPage === vocabularyTotalPages} onClick={()=>setVocabularyPage(p=>Math.min(vocabularyTotalPages,p+1))} className="px-3 py-2 rounded-xl bg-stone-100 dark:bg-stone-800 text-xs font-bold disabled:opacity-40">Trang sau</button></div></div>}
           </div>}
 
           {section === 'learn' && <div className="space-y-4">
