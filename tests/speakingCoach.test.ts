@@ -25,3 +25,26 @@ assert.match(types, /SpeakingCoachDetails/);
 assert.match(types, /retryResolved\?: boolean/);
 
 console.log('Speaking Coach architecture tests passed');
+
+
+const hskVocabulary = fs.readFileSync('src/data/hskSpeakingVocabulary.ts', 'utf8');
+const learningScreen = fs.readFileSync('src/components/learning/LearningSystemScreen.tsx', 'utf8');
+assert.match(hskVocabulary, /HSK 1/);
+assert.match(hskVocabulary, /HSK 2/);
+assert.match(hskVocabulary, /HSK 3/);
+assert.match(hskVocabulary, /HSK 4/);
+assert.match(hskVocabulary, /HSK 5/);
+assert.match(hskVocabulary, /HSK 6/);
+assert.match(learningScreen, /Kho từ vựng chuẩn bị phòng nói/);
+assert.match(learningScreen, /vocabularyQuery/);
+assert.match(learningScreen, /toggleSaveVocabulary/);
+
+const packCounts = [...hskVocabulary.matchAll(/v\('(hsk[1-6]-v\d+)'/g)].map(m => m[1]).reduce((acc, id) => {
+  const level = id.slice(0, 4);
+  acc[level] = (acc[level] || 0) + 1;
+  return acc;
+}, {} as Record<string, number>);
+for (const level of ['hsk1','hsk2','hsk3','hsk4','hsk5','hsk6']) {
+  assert.equal(packCounts[level], 20, level + ' speaking vocabulary pack should contain 20 entries');
+}
+console.log('HSK speaking vocabulary catalog tests passed');
