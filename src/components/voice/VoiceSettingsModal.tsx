@@ -176,6 +176,11 @@ export const VoiceSettingsModal: React.FC<VoiceSettingsModalProps> = ({
             />
           </label>
 
+          <label className="flex items-center justify-between p-3 rounded-xl bg-amber-50/60 dark:bg-amber-950/20 border border-amber-200/70 dark:border-amber-900/40 cursor-pointer min-h-[48px]">
+            <div><span className="text-xs font-bold text-stone-800 dark:text-stone-200 block">Tự gửi câu sau khi nhận diện</span><span className="text-[11px] text-stone-400">Lina phản hồi ngay sau khi STT nhận xong câu tiếng Trung</span></div>
+            <input type="checkbox" checked={voiceSettings.autoSendRecognizedSpeech ?? true} onChange={(e) => onUpdateVoiceSettings({ autoSendRecognizedSpeech: e.target.checked })} className="w-4 h-4 accent-amber-600 cursor-pointer" />
+          </label>
+
           <label className="flex items-center justify-between p-3 rounded-xl bg-stone-50 dark:bg-stone-800/60 border border-stone-200/80 dark:border-stone-700/60 cursor-pointer min-h-[48px]">
             <div>
               <span className="text-xs font-bold text-stone-800 dark:text-stone-200 block">
