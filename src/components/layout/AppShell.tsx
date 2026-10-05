@@ -34,10 +34,6 @@ export const AppShell: React.FC = () => {
     finally { setAccountBusy(false); }
   };
 
-  if (window.location.pathname === '/analytics') {
-    return <React.Suspense fallback={<div className="min-h-screen grid place-items-center">Đang tải Analytics…</div>}><AnalyticsDashboard mode="learner" /></React.Suspense>;
-  }
-
   if (window.location.pathname === '/admin/analytics') {
     return <React.Suspense fallback={<div className="min-h-screen grid place-items-center bg-slate-950 text-white">Đang tải Admin Analytics…</div>}><AnalyticsDashboard mode="admin" /></React.Suspense>;
   }
@@ -81,6 +77,10 @@ export const AppShell: React.FC = () => {
         </div>
       </div>
     );
+  }
+
+  if (window.location.pathname === '/analytics') {
+    return <React.Suspense fallback={<div className="min-h-screen grid place-items-center">Đang tải Analytics…</div>}><AnalyticsDashboard mode="learner" /></React.Suspense>;
   }
 
   const renderActiveScreen = () => {
