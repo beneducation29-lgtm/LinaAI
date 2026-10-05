@@ -32,6 +32,11 @@ export const AppShell: React.FC = () => {
   const [resetPasswordValue, setResetPasswordValue] = React.useState('');
   const [resetConfirm, setResetConfirm] = React.useState('');
   const [resetBusy, setResetBusy] = React.useState(false);
+  const currentPath = window.location.pathname;
+  React.useEffect(() => {
+    if (currentPath !== '/auth/callback') return;
+    void oauthCallback().catch(error => setAccountError(error instanceof Error ? error.message : 'Đăng nhập Google thất bại.'));
+  }, [currentPath]);
 
   const submitAccount = async (event: React.FormEvent) => {
     event.preventDefault(); setAccountError(''); setAccountBusy(true);
@@ -66,8 +71,7 @@ export const AppShell: React.FC = () => {
     finally { setResetBusy(false); }
   };
 
-  if (window.location.pathname === '/auth/callback') {
-    React.useEffect(() => { void oauthCallback().catch(error => setAccountError(error instanceof Error ? error.message : 'Đăng nhập Google thất bại.')); }, []);
+  if (currentPath === '/auth/callback') {
     return <div className="min-h-screen grid place-items-center bg-[#FAF8F5] dark:bg-stone-950 px-4"><div className="rounded-3xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 p-8 text-center shadow-xl max-w-sm"><img src={linaAvatarImg} alt="Lina" className="w-16 h-16 rounded-2xl mx-auto mb-4 object-cover"/><h1 className="font-black text-xl">Đang hoàn tất đăng nhập Google…</h1><p className="text-sm text-stone-500 mt-2">{accountError || 'Vui lòng chờ một chút.'}</p></div></div>;
   }
 
