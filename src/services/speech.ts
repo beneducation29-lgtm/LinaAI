@@ -13,6 +13,7 @@ export interface VoiceSettings {
   playbackSpeed: PlaybackSpeed;
   autoPlayAiResponse: boolean;
   pushToTalk: boolean;
+  autoSendRecognizedSpeech?: boolean;
   useGeminiTTS?: boolean;
 }
 
