@@ -20,6 +20,7 @@ export const LearningSystemScreen: React.FC = () => {
   const [reviewDone,setReviewDone] = useState(false);
   const [speechText,setSpeechText] = useState('');
   const [feedback,setFeedback] = useState('');
+  const [vocabularyQuery,setVocabularyQuery] = useState('');
   const [roleplayInput,setRoleplayInput] = useState('');
   const [roleplayReply,setRoleplayReply] = useState('');
   const [busy,setBusy] = useState(false);
