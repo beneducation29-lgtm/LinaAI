@@ -167,7 +167,7 @@ export const TutorScreen: React.FC = () => {
   /**
    * Primary voice / text conversation sender
    */
-  const handleSendMessage = async (textToSend: string, forceRoleplay = false) => {
+  const handleSendMessage = async (textToSend: string, forceRoleplay = false, isSpoken = false) => {
     if (!textToSend.trim()) return;
 
     setErrorMessage(null);
@@ -213,7 +213,7 @@ export const TutorScreen: React.FC = () => {
         );
       } else {
         structuredRes = await realtimeSpeechOrchestrator.startConversationTurn(
-          { conversationId: conversation.id, topicTitleVi: conversation.topicTitleVi, hskLevel: conversation.hskLevel, userLevel: user.currentLevel, userName: user.name, history: [...conversation.messages, userMsg], mode: tutorMode, memoryFacts: memoryContext },
+          { conversationId: conversation.id, topicTitleVi: conversation.topicTitleVi, hskLevel: conversation.hskLevel, userLevel: user.currentLevel, userName: user.name, history: [...conversation.messages, userMsg], mode: tutorMode, memoryFacts: memoryContext, isSpoken },
           textToSend,
           {
             onState: state => {
@@ -228,6 +228,25 @@ export const TutorScreen: React.FC = () => {
           voiceSettings.playbackSpeed,
           voiceSettings.autoPlayAiResponse
         );
+      }
+
+      if (isSpoken && structuredRes.speakingCoach?.enabled && structuredRes.speakingCoach.needsRetry && structuredRes.speakingCoach.issueType !== 'none') {
+        const coach = structuredRes.speakingCoach;
+        const mistakeType = coach.issueType === 'naturalness'
+          ? 'naturalness'
+          : coach.issueType === 'grammar'
+            ? 'grammar'
+            : coach.issueType === 'word-order'
+              ? 'word-order'
+              : 'vocabulary';
+        addMistake({
+          type: mistakeType,
+          original: textToSend,
+          corrected: coach.betterSentence,
+          explanation: coach.feedbackVi || 'Cần nói tự nhiên hơn trong ngữ cảnh này.',
+          severity: coach.naturalnessScore < 60 ? 'high' : 'medium'
+        });
+        addLearnerMemory(`Speaking Coach: ${textToSend} → ${coach.betterSentence}`);
       }
 
       if (structuredRes.correction?.hasMistake) {
@@ -256,7 +275,8 @@ export const TutorScreen: React.FC = () => {
         grammar: structuredRes.grammar,
         progressiveHints: structuredRes.progressiveHints,
         suggestedReplies: structuredRes.suggestedReplies,
-        responseType: structuredRes.responseType
+        responseType: structuredRes.responseType,
+        speakingCoach: structuredRes.speakingCoach
       };
 
       addMessage(aiMsg);
@@ -331,7 +351,7 @@ export const TutorScreen: React.FC = () => {
           setRecognizedReview({ hanzi: recognized, pinyin: getQuickPinyin(recognized), vietnamese: getQuickVietnamese(recognized) });
           if ((voiceSettings.autoSendRecognizedSpeech ?? true) && (!res.confidence || res.confidence >= 0.55)) {
             if (autoSendTimerRef.current) clearTimeout(autoSendTimerRef.current);
-            autoSendTimerRef.current = setTimeout(() => { autoSendTimerRef.current = null; void handleSendMessage(recognized); }, 280);
+            autoSendTimerRef.current = setTimeout(() => { autoSendTimerRef.current = null; void handleSendMessage(recognized, false, true); }, 280);
           }
         }
       },
@@ -359,7 +379,7 @@ export const TutorScreen: React.FC = () => {
         setRecognizedReview({ hanzi: recognized, pinyin: getQuickPinyin(recognized), vietnamese: getQuickVietnamese(recognized) });
         if (voiceSettings.autoSendRecognizedSpeech ?? true) {
           if (autoSendTimerRef.current) clearTimeout(autoSendTimerRef.current);
-          autoSendTimerRef.current = setTimeout(() => { autoSendTimerRef.current = null; void handleSendMessage(recognized); }, 280);
+          autoSendTimerRef.current = setTimeout(() => { autoSendTimerRef.current = null; void handleSendMessage(recognized, false, true); }, 280);
         }
       }
     }
