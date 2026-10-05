@@ -20,6 +20,7 @@ interface TutorMessageProps {
   message: ConversationMessage;
   onSelectSuggestion?: (text: string) => void;
   onTryCorrection?: (text: string) => void;
+  onRetrySpeaking?: () => void;
   className?: string;
 }
 
@@ -27,6 +28,7 @@ export const TutorMessage: React.FC<TutorMessageProps> = ({
   message,
   onSelectSuggestion,
   onTryCorrection,
+  onRetrySpeaking,
   className = ''
 }) => {
   const { toggleSaveVocabulary, isVocabularySaved } = useApp();
@@ -210,6 +212,35 @@ export const TutorMessage: React.FC<TutorMessageProps> = ({
                 </button>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Speaking Coach feedback for spoken learner turns */}
+        {!isAI && message.speakingCoach?.enabled && (
+          <div className="mt-3 rounded-2xl border border-sky-200 bg-sky-50/80 p-3.5 text-stone-800 dark:border-sky-900/60 dark:bg-sky-950/20 dark:text-stone-100 space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-sky-900 dark:text-sky-200">
+                <Gauge className="w-4 h-4" />
+                <span>Speaking Coach · Độ tự nhiên {message.speakingCoach.naturalnessScore}/100</span>
+              </div>
+              {message.speakingCoach.needsRetry && onRetrySpeaking && (
+                <button type="button" onClick={onRetrySpeaking} className="min-h-[34px] rounded-lg bg-sky-700 px-2.5 text-[11px] font-bold text-white hover:bg-sky-800">
+                  🎙 Nói lại
+                </button>
+              )}
+            </div>
+            {message.speakingCoach.focus && (
+              <div className="text-[11px] font-semibold text-sky-800 dark:text-sky-300">Cần chú ý: {message.speakingCoach.focus}</div>
+            )}
+            {message.speakingCoach.betterSentence && (
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50/80 p-2.5 dark:border-emerald-900/50 dark:bg-emerald-950/30">
+                <div className="text-[10px] font-bold uppercase text-emerald-700 dark:text-emerald-400">Cách nói tự nhiên hơn</div>
+                <div className="mt-0.5 font-cjk text-base font-bold text-emerald-900 dark:text-emerald-200">{message.speakingCoach.betterSentence}</div>
+              </div>
+            )}
+            {message.speakingCoach.feedbackVi && <div className="text-xs leading-relaxed">💡 {message.speakingCoach.feedbackVi}</div>}
+            {message.speakingCoach.retryPromptVi && <div className="text-[11px] font-medium text-sky-800 dark:text-sky-300">{message.speakingCoach.retryPromptVi}</div>}
+            <div className="text-[10px] text-stone-500 dark:text-stone-400">Điểm này đánh giá độ tự nhiên của câu transcript, không phải điểm âm thanh/acoustic.</div>
           </div>
         )}
 
