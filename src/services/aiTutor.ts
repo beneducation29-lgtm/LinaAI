@@ -25,6 +25,9 @@ export interface SendMessageOptions {
   mode: TutorMode;
   memoryFacts?: string[];
   isSpoken?: boolean;
+  isSpeakingRetry?: boolean;
+  speakingCoachTarget?: string;
+  speakingAttempt?: number;
   signal?: AbortSignal;
 }
 
@@ -101,7 +104,10 @@ class AITutorClientService implements AITutorProvider {
         userName: sanitizePlainText(options.userName, 120) || 'Bạn',
         topicTitle: sanitizePlainText(options.topicTitleVi, 240),
         memoryFacts: (options.memoryFacts || []).slice(-12).map(f => sanitizePlainText(f, 240)).filter(Boolean),
-        isSpoken: Boolean(options.isSpoken)
+        isSpoken: Boolean(options.isSpoken),
+        isSpeakingRetry: Boolean(options.isSpeakingRetry),
+        speakingCoachTarget: options.speakingCoachTarget ? sanitizePlainText(options.speakingCoachTarget, 500) : '',
+        speakingAttempt: options.speakingAttempt || 0
       })
     }, { timeoutMs: 30000, retries: 0, signal: options.signal });
 
