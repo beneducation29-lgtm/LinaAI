@@ -35,7 +35,7 @@ assert.match(hskVocabulary, /HSK 3/);
 assert.match(hskVocabulary, /HSK 4/);
 assert.match(hskVocabulary, /HSK 5/);
 assert.match(hskVocabulary, /HSK 6/);
-assert.match(learningScreen, /Kho từ vựng chuẩn bị phòng nói/);
+assert.match(learningScreen, /Kho HSK cổ điển · dữ liệu thật/);
 assert.match(learningScreen, /vocabularyQuery/);
 assert.match(learningScreen, /toggleSaveVocabulary/);
 
