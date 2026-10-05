@@ -28,7 +28,6 @@ import { MotivationState, MotivationActivityType } from '../types/motivation';
 import { DailyGoalMinutes, getTodayStats, getMotivationSnapshot, loadMotivationState, recordMotivationActivity as applyMotivationActivity, saveMotivationState } from '../services/motivationEngine';
 import { HSK_SPEAKING_VOCABULARY } from '../data/hskSpeakingVocabulary';
 import { HSK_CLASSIC_VOCABULARY } from '../data/hskClassicVocabulary';
-import { HSK_CLASSIC_VOCABULARY } from '../data/hskClassicVocabulary';
 import { 
   INITIAL_USER_PROFILE, 
   LESSON_HSK1_1, 
