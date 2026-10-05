@@ -168,7 +168,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       byKey.set(`${vocab.hanzi}|${vocab.pinyin.replace(/\\s+/g, '')}`, vocab);
     }
     for (const vocab of HSK_SPEAKING_VOCABULARY) {
-      byKey.set(`${vocab.hanzi}|${vocab.pinyin.replace(/\\s+/g, '')}`, vocab);
+      const key = `${vocab.hanzi}|${vocab.pinyin.replace(/\\s+/g, '')}`;
+      const existing = byKey.get(key);
+      byKey.set(key, existing ? {
+        ...existing,
+        ...vocab,
+        tags: [...new Set([...(existing.tags || []), ...(vocab.tags || [])])]
+      } : vocab);
     }
     return Array.from(byKey.values());
   });
