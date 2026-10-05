@@ -329,7 +329,7 @@ export const TutorScreen: React.FC = () => {
           setMicState('IDLE');
           avatarService.setState('THINKING');
           setRecognizedReview({ hanzi: recognized, pinyin: getQuickPinyin(recognized), vietnamese: getQuickVietnamese(recognized) });
-          if (voiceSettings.autoSendRecognizedSpeech ?? true && (!res.confidence || res.confidence >= 0.55)) {
+          if ((voiceSettings.autoSendRecognizedSpeech ?? true) && (!res.confidence || res.confidence >= 0.55)) {
             if (autoSendTimerRef.current) clearTimeout(autoSendTimerRef.current);
             autoSendTimerRef.current = setTimeout(() => { autoSendTimerRef.current = null; void handleSendMessage(recognized); }, 280);
           }
