@@ -117,6 +117,7 @@ export const TutorScreen: React.FC = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const holdTimeoutRef = useRef<any>(null);
   const autoSendTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const speakingRetryRef = useRef<{ target: string; attempt: number } | null>(null);
   const roleplayEngine = useMemo(() => createRoleplayEngine(), []);
 
   // Save voice settings to localStorage
@@ -170,6 +171,7 @@ export const TutorScreen: React.FC = () => {
   const handleSendMessage = async (textToSend: string, forceRoleplay = false, isSpoken = false) => {
     if (!textToSend.trim()) return;
 
+    const speakingRetry = isSpoken ? speakingRetryRef.current : null;
     setErrorMessage(null);
     realtimeConversationController.interrupt();
     setInputText('');
@@ -213,7 +215,7 @@ export const TutorScreen: React.FC = () => {
         );
       } else {
         structuredRes = await realtimeSpeechOrchestrator.startConversationTurn(
-          { conversationId: conversation.id, topicTitleVi: conversation.topicTitleVi, hskLevel: conversation.hskLevel, userLevel: user.currentLevel, userName: user.name, history: [...conversation.messages, userMsg], mode: tutorMode, memoryFacts: memoryContext, isSpoken },
+          { conversationId: conversation.id, topicTitleVi: conversation.topicTitleVi, hskLevel: conversation.hskLevel, userLevel: user.currentLevel, userName: user.name, history: [...conversation.messages, userMsg], mode: tutorMode, memoryFacts: memoryContext, isSpoken, isSpeakingRetry: Boolean(speakingRetry), speakingCoachTarget: speakingRetry?.target, speakingAttempt: speakingRetry?.attempt },
           textToSend,
           {
             onState: state => {
@@ -230,8 +232,21 @@ export const TutorScreen: React.FC = () => {
         );
       }
 
-      if (isSpoken && structuredRes.speakingCoach?.enabled && structuredRes.speakingCoach.needsRetry && structuredRes.speakingCoach.issueType !== 'none') {
+      if (isSpoken && structuredRes.speakingCoach) {
         const coach = structuredRes.speakingCoach;
+        if (speakingRetry) {
+          if (coach.retryResolved || !coach.needsRetry) {
+            addLearnerMemory(`Speaking Coach hoàn tất: ${textToSend} đã tự nhiên hơn so với câu mục tiêu ${speakingRetry.target}.`);
+            speakingRetryRef.current = null;
+          } else if (coach.needsRetry) {
+            speakingRetryRef.current = { target: coach.betterSentence || speakingRetry.target, attempt: Math.min(3, (coach.attempt || speakingRetry.attempt) + 1) };
+          }
+        } else if (coach.needsRetry && coach.issueType !== 'none') {
+          speakingRetryRef.current = { target: coach.betterSentence, attempt: 1 };
+        } else {
+          speakingRetryRef.current = null;
+        }
+        if (!speakingRetry && coach.enabled && coach.needsRetry && coach.issueType !== 'none') {
         const mistakeType = coach.issueType === 'naturalness'
           ? 'naturalness'
           : coach.issueType === 'grammar'
@@ -247,6 +262,7 @@ export const TutorScreen: React.FC = () => {
           severity: coach.naturalnessScore < 60 ? 'high' : 'medium'
         });
         addLearnerMemory(`Speaking Coach: ${textToSend} → ${coach.betterSentence}`);
+        }
       }
 
       if (structuredRes.correction?.hasMistake) {
