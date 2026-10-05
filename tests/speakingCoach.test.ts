@@ -48,3 +48,13 @@ for (const level of ['hsk1','hsk2','hsk3','hsk4','hsk5','hsk6']) {
   assert.equal(packCounts[level], 20, level + ' speaking vocabulary pack should contain 20 entries');
 }
 console.log('HSK speaking vocabulary catalog tests passed');
+
+
+const classicVocabulary = fs.readFileSync('src/data/hskClassicVocabulary.ts', 'utf8');
+const classicIds = [...classicVocabulary.matchAll(/id: 'hsk-classic-(\\d{4})'/g)].map(m => m[1]);
+assert.equal(classicIds.length, 5000, 'classic HSK corpus should contain exactly 5000 entries');
+assert.equal(new Set(classicIds).size, 5000, 'classic HSK corpus IDs must be unique');
+assert.match(classicVocabulary, /HSK 1–6 vocabulary corpus/);
+assert.match(classicVocabulary, /CC0-1\.0/);
+assert.match(learningScreen, /const \[vocabularyQuery,setVocabularyQuery\]/);
+console.log('Classic HSK 5000 vocabulary tests passed');
