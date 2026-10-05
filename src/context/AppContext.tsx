@@ -214,7 +214,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     syncEngine.setUser(authUser?.id || null);
     syncReadyRef.current = false;
     if (!authUser) return;
-    setUser(prev => prev.id === authUser.id ? prev : { ...prev, id: authUser.id, name: authUser.name || prev.name });
+    setUser(prev => prev.id === authUser.id ? prev : {
+      ...INITIAL_USER_PROFILE,
+      id: authUser.id,
+      name: authUser.name || 'Học viên',
+      avatarUrl: undefined,
+      currentLevel: 'Chưa biết gì',
+      currentHsk: 'HSK 1',
+      learningGoal: { ...INITIAL_USER_PROFILE.learningGoal, targetMinutesPerDay: 10, targetHskLevel: 'HSK 2' },
+      dailyGoalMinutes: 10,
+      todayMinutesSpent: 0,
+      streakDays: 0,
+      vocabularyLearnedCount: 0,
+      lessonsCompletedCount: 0,
+      pronunciationAccuracy: 0,
+      savedVocabularyIds: [],
+      onboardingCompleted: false
+    });
     void syncEngine.initialSync().then(() => { syncReadyRef.current = true; });
   }, [authUser?.id]);
   useEffect(() => {
