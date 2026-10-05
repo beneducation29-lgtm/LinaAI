@@ -216,7 +216,7 @@ export const TutorMessage: React.FC<TutorMessageProps> = ({
         )}
 
         {/* Speaking Coach feedback for spoken learner turns */}
-        {!isAI && message.speakingCoach?.enabled && (
+        {isAI && message.speakingCoach?.enabled && (
           <div className="mt-3 rounded-2xl border border-sky-200 bg-sky-50/80 p-3.5 text-stone-800 dark:border-sky-900/60 dark:bg-sky-950/20 dark:text-stone-100 space-y-2">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-1.5 text-xs font-bold text-sky-900 dark:text-sky-200">
