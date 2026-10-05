@@ -192,6 +192,7 @@ export interface ConversationMessage {
   audioUrl?: string;
   grammarTip?: string;
   pronunciationScore?: number; // 0-100 for user voice input
+  speakingCoach?: SpeakingCoachDetails;
   emotion?: TutorEmotion;
   suggestedReplies?: Array<{
     hanzi: string;
@@ -246,6 +247,20 @@ export interface ProgressiveHints {
   hint4_fullAnswer: string; // Câu trả lời hoàn chỉnh
 }
 
+export interface SpeakingCoachDetails {
+  enabled: boolean;
+  needsRetry: boolean;
+  naturalnessScore: number;
+  issueType: 'none' | 'naturalness' | 'grammar' | 'word-order' | 'vocabulary';
+  focus: string;
+  betterSentence: string;
+  feedbackVi: string;
+  retryPromptVi: string;
+  isRetry?: boolean;
+  retryResolved?: boolean;
+  attempt?: number;
+}
+
 export interface StructuredTutorResponse {
   chinese: string;
   pinyin: string;
@@ -265,16 +280,7 @@ export interface StructuredTutorResponse {
     learnedFact?: string;
     topicContext?: string;
   };
-  speakingCoach?: {
-    enabled: boolean;
-    needsRetry: boolean;
-    naturalnessScore: number;
-    issueType: 'none' | 'naturalness' | 'grammar' | 'word-order' | 'vocabulary';
-    focus: string;
-    betterSentence: string;
-    feedbackVi: string;
-    retryPromptVi: string;
-  };
+  speakingCoach?: SpeakingCoachDetails;
 }
 
 export interface Conversation {
