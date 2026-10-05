@@ -5,6 +5,7 @@ import { ProgressCard } from './ProgressCard';
 import { LayerToggles } from '../common/LayerToggles';
 import { ToneTrainingModal } from '../voice/ToneTrainingModal';
 import { motivationMessage, ACHIEVEMENTS } from '../../services/motivationEngine';
+import { isDue } from '../../services/learningEngine';
 import { 
   ArrowRight, 
   Mic, 
@@ -27,6 +28,7 @@ export const HomeDashboard: React.FC = () => {
   const currentSectionNumber = Math.min(totalLessonSections, lessonSectionIndex + 1);
   const lessonProgressPercent = Math.round((currentSectionNumber / totalLessonSections) * 100);
   const dueReviewCount = getDueReviewCount();
+  const dueFlashcards = flashcards.filter(card => isDue(card.nextReviewDate));
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 pb-24 md:pb-12 space-y-6">
@@ -122,7 +124,7 @@ export const HomeDashboard: React.FC = () => {
           <div className="space-y-1.5">
             <div className="flex items-center justify-between text-xs text-stone-300 font-medium">
               <span>Tiến độ bài học</span>
-              <span className="tabular-nums">1 / 7 phần</span>
+              <span className="tabular-nums">{currentSectionNumber} / {totalLessonSections} phần</span>
             </div>
             <div className="w-full h-2.5 bg-stone-700 rounded-full overflow-hidden">
               <div 
@@ -228,7 +230,7 @@ export const HomeDashboard: React.FC = () => {
 
             {/* Quick preview pills of review words */}
             <div className="flex flex-wrap gap-1.5 pt-1">
-              {flashcards.slice(0, 4).map((c) => (
+              {dueFlashcards.slice(0, 4).map((c) => (
                 <span
                   key={c.id}
                   className="font-cjk text-xs px-2.5 py-1 rounded-lg bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 font-medium"
@@ -236,9 +238,9 @@ export const HomeDashboard: React.FC = () => {
                   {c.vocabulary.hanzi} ({c.vocabulary.pinyin})
                 </span>
               ))}
-              {flashcards.length > 4 && (
+              {dueFlashcards.length > 4 && (
                 <span className="text-xs px-2 py-1 text-stone-400">
-                  +{flashcards.length - 4} từ nữa
+                  +{dueFlashcards.length - 4} mục nữa
                 </span>
               )}
             </div>
