@@ -265,6 +265,16 @@ export interface StructuredTutorResponse {
     learnedFact?: string;
     topicContext?: string;
   };
+  speakingCoach?: {
+    enabled: boolean;
+    needsRetry: boolean;
+    naturalnessScore: number;
+    issueType: 'none' | 'naturalness' | 'grammar' | 'word-order' | 'vocabulary';
+    focus: string;
+    betterSentence: string;
+    feedbackVi: string;
+    retryPromptVi: string;
+  };
 }
 
 export interface Conversation {
