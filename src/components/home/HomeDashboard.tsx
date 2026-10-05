@@ -20,9 +20,13 @@ import linaAvatarImg from '../../assets/images/lina_avatar_stylized_179086259485
 import hskStudyImg from '../../assets/images/hsk_study_scene_1790861437105.jpg';
 
 export const HomeDashboard: React.FC = () => {
-  const { user, setCurrentTab, currentLesson, flashcards, aiMemory, learnerProfile, getDueReviewCount, motivation, motivationSnapshot, setDailyGoalMinutes, structuredProgress, reviewSchedules } = useApp();
+  const { user, setCurrentTab, currentLesson, lessonSectionIndex, flashcards, aiMemory, learnerProfile, getDueReviewCount, motivation, motivationSnapshot, setDailyGoalMinutes, structuredProgress, reviewSchedules } = useApp();
   const knowledge = buildKnowledgeProfile(learnerProfile, aiMemory, reviewSchedules, structuredProgress);
   const [showToneModal, setShowToneModal] = useState(false);
+  const totalLessonSections = Math.max(1, currentLesson.sections.length);
+  const currentSectionNumber = Math.min(totalLessonSections, lessonSectionIndex + 1);
+  const lessonProgressPercent = Math.round((currentSectionNumber / totalLessonSections) * 100);
+  const dueReviewCount = getDueReviewCount();
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 pb-24 md:pb-12 space-y-6">
@@ -123,7 +127,7 @@ export const HomeDashboard: React.FC = () => {
             <div className="w-full h-2.5 bg-stone-700 rounded-full overflow-hidden">
               <div 
                 className="h-full bg-linear-to-r from-amber-500 to-amber-400 rounded-full"
-                style={{ width: `${Math.round((1 / 7) * 100)}%` }}
+                style={{ width: `${lessonProgressPercent}%` }}
               />
             </div>
           </div>
@@ -215,7 +219,7 @@ export const HomeDashboard: React.FC = () => {
 
             <div className="pt-1">
               <p className="text-xl sm:text-2xl font-bold text-stone-900 dark:text-stone-100">
-                Bạn có {flashcards.length} từ cần ôn hôm nay.
+                {dueReviewCount > 0 ? `Bạn có ${dueReviewCount} mục cần ôn hôm nay.` : 'Hôm nay chưa có mục nào đến hạn ôn.'}
               </p>
               <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">
                 Gồm các từ mới về Chào hỏi, Giới thiệu bản thân và Quốc tịch.
