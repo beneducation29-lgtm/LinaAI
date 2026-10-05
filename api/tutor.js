@@ -107,6 +107,19 @@ function validateTutorResponse(value) {
 
   if (!suggestedReplies.length) throw new Error('No valid suggestedReplies');
 
+  const rawCoach = value.speakingCoach && typeof value.speakingCoach === 'object' ? value.speakingCoach : {};
+  const coachTypes = ['none', 'naturalness', 'grammar', 'word-order', 'vocabulary'];
+  const speakingCoach = {
+    enabled: rawCoach.enabled === true,
+    needsRetry: rawCoach.needsRetry === true,
+    naturalnessScore: Math.max(0, Math.min(100, Number(rawCoach.naturalnessScore) || 0)),
+    issueType: coachTypes.includes(rawCoach.issueType) ? rawCoach.issueType : 'none',
+    focus: cleanString(rawCoach.focus, 160),
+    betterSentence: cleanString(rawCoach.betterSentence, 500),
+    feedbackVi: cleanString(rawCoach.feedbackVi, 500),
+    retryPromptVi: cleanString(rawCoach.retryPromptVi, 300)
+  };
+
   return {
     ...value,
     chinese: cleanString(value.chinese, 4000),
@@ -114,6 +127,7 @@ function validateTutorResponse(value) {
     vietnamese: cleanString(value.vietnamese, 4000),
     responseType,
     emotion: cleanString(value.emotion, 40) || 'encouraging',
+    speakingCoach,
     suggestedReplies
   };
 }
