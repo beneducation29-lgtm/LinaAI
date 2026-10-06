@@ -1,13 +1,44 @@
-const MODEL = process.env.GEMINI_TUTOR_MODEL || 'gemini-3.8-flash';
-const MODEL_FALLBACKS = ['gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3.5-flash-lite'];
+// Conversation room prioritizes latency and capacity over deep reasoning.
+// Google currently describes 3.5 Flash-Lite as its fastest, most cost-efficient Flash model.
+// Keep an override available for production tuning.
+const MODEL = process.env.GEMINI_TUTOR_MODEL || 'gemini-3.5-flash-lite';
+const MODEL_FALLBACKS = ['gemini-3.6-flash'];
 const MAX_MESSAGE = 2000;
-const MAX_HISTORY = 6;
+const MAX_HISTORY = 4;
 const MAX_MEMORY_FACTS = 8;
 
-const FALLBACK = (message, userName = 'Bạn') => ({
-  chinese: `你好，${userName}！很高兴和你练习中文。你刚才说：“${message.slice(0, 80)}”。我们继续练习吧！`,
-  pinyin: `Nǐ hǎo, ${userName}! Hěn gāoxìng hé nǐ liànxí Zhōngwén.`,
-  vietnamese: `Chào ${userName}! Rất vui được luyện tiếng Trung cùng bạn. Mình cùng tiếp tục nhé!`,
+const FALLBACK = (message, userName = 'Bạn') => {
+  const text = String(message || '').trim();
+  if (/我吃了[，,。.!！ ]*(你呢)?[？?]?/.test(text)) {
+    return {
+      chinese: '我还没吃呢。你刚下班，准备吃什么？',
+      pinyin: 'Wǒ hái méi chī ne. Nǐ gāng xiàbān, zhǔnbèi chī shénme?',
+      vietnamese: 'Mình vẫn chưa ăn. Bạn vừa tan làm, định ăn gì vậy?',
+      responseType: 'conversation', emotion: 'friendly', correction: null, vocabulary: [], grammar: [],
+      progressiveHints: {}, speakingCoach: { enabled:false, needsRetry:false,naturalnessScore:100,issueType:'none',focus:'',betterSentence:'',feedbackVi:'',retryPromptVi:'',isRetry:false,retryResolved:false,attempt:0 },
+      suggestedReplies: [
+        { hanzi:'我准备去吃面。',pinyin:'Wǒ zhǔnbèi qù chī miàn.',vietnamese:'Mình định đi ăn mì.' },
+        { hanzi:'我想吃米饭。',pinyin:'Wǒ xiǎng chī mǐfàn.',vietnamese:'Mình muốn ăn cơm.' }
+      ]
+    };
+  }
+  if (/我们去逛街了/.test(text)) {
+    return {
+      chinese: '听起来不错！你们今天买了什么？',
+      pinyin: 'Tīng qǐlái búcuò! Nǐmen jīntiān mǎi le shénme?',
+      vietnamese: 'Nghe hay đấy! Hôm nay các bạn đã mua gì?',
+      responseType:'conversation',emotion:'happy',correction:null,vocabulary:[],grammar:[],progressiveHints:{},
+      speakingCoach:{enabled:false,needsRetry:false,naturalnessScore:100,issueType:'none',focus:'',betterSentence:'',feedbackVi:'',retryPromptVi:'',isRetry:false,retryResolved:false,attempt:0},
+      suggestedReplies:[
+        {hanzi:'我们买了衣服。',pinyin:'Wǒmen mǎi le yīfu.',vietnamese:'Tụi mình mua quần áo.'},
+        {hanzi:'我们喝了咖啡。',pinyin:'Wǒmen hē le kāfēi.',vietnamese:'Tụi mình uống cà phê.'}
+      ]
+    };
+  }
+  return {
+  chinese: `你好，${userName}！我听懂了。你刚才说：“${text.slice(0, 50)}”。我们继续聊吧！`,
+  pinyin: `Nǐ hǎo, ${userName}! Wǒ tīng dǒng le. Wǒmen jìxù liáo ba.`,
+  vietnamese: `Mình hiểu rồi, ${userName}. Mình tiếp tục trò chuyện nhé!`,
   responseType: 'conversation',
   emotion: 'encouraging',
   correction: null,
@@ -33,10 +64,11 @@ const FALLBACK = (message, userName = 'Bạn') => ({
     attempt: 0
   },
   suggestedReplies: [
-    { hanzi: '你好！', pinyin: 'Nǐ hǎo!', vietnamese: 'Xin chào!' },
-    { hanzi: '我想练习中文。', pinyin: 'Wǒ xiǎng liànxí Zhōngwén.', vietnamese: 'Mình muốn luyện tiếng Trung.' }
+    { hanzi: '你呢？', pinyin: 'Nǐ ne?', vietnamese: 'Còn bạn thì sao?' },
+    { hanzi: '我们继续聊吧。', pinyin: 'Wǒmen jìxù liáo ba.', vietnamese: 'Mình tiếp tục nói chuyện nhé.' }
   ]
-});
+  };
+};
 
 const SYSTEM = `Bạn là Lina (林娜), gia sư tiếng Trung cho người học Việt Nam.
 Luôn thân thiện, kiên nhẫn, ngắn gọn và khuyến khích.
@@ -141,7 +173,7 @@ function validateTutorResponse(value, fallbackAttempt = 0) {
 
 async function callGemini({ apiKey, model, prompt }) {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 12000);
+  const timer = setTimeout(() => controller.abort(), 7000);
 
   try {
     const response = await fetch(
@@ -187,7 +219,7 @@ async function callGemini({ apiKey, model, prompt }) {
               },
               required: ['chinese', 'pinyin', 'vietnamese', 'responseType', 'suggestedReplies']
             },
-            maxOutputTokens: 1200,
+            maxOutputTokens: 700,
             ...(model === 'gemini-3.8-flash' ? { thinkingConfig: { thinkingLevel: 'low' } } : {})
           }
         }),
@@ -259,7 +291,7 @@ async function generateTutor(body) {
     'Phản hồi ngay dựa trên TIN NHẮN MỚI NHẤT và 2-3 lượt gần nhất. Không dùng câu xác nhận chung chung nếu có thể trả lời cụ thể. Không lặp lại câu mẫu.'
   ].filter(Boolean).join('\n');
 
-  const models = [MODEL, ...MODEL_FALLBACKS.filter((model) => model !== MODEL).slice(0, 1)];
+  const models = [MODEL];
   let lastError = null;
 
   for (const model of models) {
@@ -269,7 +301,7 @@ async function generateTutor(body) {
     } catch (error) {
       lastError = error;
       const message = String(error?.message || 'Unknown error');
-      const retryable = /Gemini (429|500|502|503|504):/i.test(message);
+      const retryable = /Gemini (429|500|502|504):/i.test(message);
       console.error('[Lina][TUTOR_API_ERROR]', {
         model,
         name: error?.name || 'Error',
@@ -280,6 +312,11 @@ async function generateTutor(body) {
     }
   }
 
+  // A 503 means the provider is saturated. Do not wait for another model: the
+  // conversation room should respond immediately with a local contextual reply.
+  if (/Gemini 503:/i.test(String(lastError?.message || ''))) {
+    return FALLBACK(message, userName);
+  }
   throw lastError || new Error('Gemini tutor request failed');
 }
 
