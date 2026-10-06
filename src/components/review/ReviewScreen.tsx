@@ -23,7 +23,7 @@ export const ReviewScreen: React.FC = () => {
       if (aDue !== bDue) return bDue - aDue;
       const urgency = (rating?: ReviewRating) => rating === 'again' ? 3 : rating === 'hard' ? 2 : rating === 'good' ? 1 : 0;
       return urgency(b.lastRating) - urgency(a.lastRating);
-    });
+    }).slice(0, 20);
   }, [flashcards]);
 
   const currentCard = reviewQueue[currentIndex];
