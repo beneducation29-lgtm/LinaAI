@@ -45,6 +45,10 @@ export class ElevenLabsStreamingTTSProvider implements StreamingTTSProvider {
   private speaking = false;
   private controller: AbortController | null = null;
   private sequence = 0;
+  private prefetchReady = false;
+  // Do not prefetch until one real playback request has succeeded.
+  // This prevents an unconfigured ElevenLabs account from producing two 503s per turn
+  // (prefetch + playback) before the resilient provider falls back to Gemini/browser TTS.
 
   async start(options: StreamingTTSOptions): Promise<void> {
     this.stop();
@@ -62,6 +66,7 @@ export class ElevenLabsStreamingTTSProvider implements StreamingTTSProvider {
       if (!response.ok || !response.body) throw new Error(`ElevenLabs streaming TTS unavailable (HTTP ${response.status}).`);
       options.onStart?.();
       await audioStreamController.playStream(response.body, options.audioMimeType || configuredMimeType, options.rate || 1);
+      this.prefetchReady = true;
       options.onEnd?.();
       void startedAt;
     } catch (error) { options.onError?.(error instanceof Error ? error : new Error('ElevenLabs TTS failed')); throw error; }
@@ -69,6 +74,7 @@ export class ElevenLabsStreamingTTSProvider implements StreamingTTSProvider {
   }
 
   async prepare(options: StreamingTTSOptions): Promise<PreparedAudio> {
+    if (!this.prefetchReady) throw new Error('ElevenLabs prefetch is not warmed up yet.');
     const id = `sentence_audio_${++this.sequence}`;
     const response = await fetch(configuredEndpoint, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -108,12 +114,17 @@ export class ElevenLabsStreamingTTSProvider implements StreamingTTSProvider {
   resume(): void { void audioStreamController.resume().catch(() => undefined); }
   stop(): void { this.controller?.abort(); this.controller = null; audioStreamController.stop(); this.speaking = false; }
   isSpeaking(): boolean { return this.speaking; }
+  isPrefetchReady(): boolean { return this.prefetchReady; }
 }
 
 class ResilientStreamingTTSProvider implements StreamingTTSProvider {
   readonly name = streamingEnabled ? 'ElevenLabs Flash v2.5 → buffered fallback' : 'Gemini TTS buffered fallback';
   get supportsStreaming(): boolean { return streamingEnabled && this.active instanceof ElevenLabsStreamingTTSProvider; }
-  get supportsPrefetch(): boolean { return streamingEnabled && this.active instanceof ElevenLabsStreamingTTSProvider; }
+  get supportsPrefetch(): boolean {
+    return streamingEnabled &&
+      this.active instanceof ElevenLabsStreamingTTSProvider &&
+      this.active.isPrefetchReady();
+  }
   private active: StreamingTTSProvider = streamingEnabled ? new ElevenLabsStreamingTTSProvider() : new BufferedGeminiTTSProvider();
 
   async start(options: StreamingTTSOptions): Promise<void> {
