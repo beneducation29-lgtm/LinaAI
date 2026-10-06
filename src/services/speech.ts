@@ -325,7 +325,7 @@ class SpeechService {
         v.name.includes('Mandarin')
       );
 
-      const preferGemini = options?.useGeminiTTS || (!hasNativeChineseVoice && typeof window !== 'undefined');
+      const preferGemini = options?.useGeminiTTS === true || (options?.useGeminiTTS !== false && !hasNativeChineseVoice && typeof window !== 'undefined');
 
       if (preferGemini) {
         const audioSrc = await this.fetchGeminiTTSAudio(text);
