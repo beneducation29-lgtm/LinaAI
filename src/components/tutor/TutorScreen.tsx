@@ -450,8 +450,19 @@ export const TutorScreen: React.FC = () => {
           vietnamese: getQuickVietnamese(recognized)
         });
         if ((voiceSettings.autoSendRecognizedSpeech ?? true) && !spokenSendInFlightRef.current) {
-          spokenSendInFlightRef.current = true;
-          void handleSendMessage(recognized, false, true);
+          // Give Web Speech a brief moment to emit its final result after stop().
+          autoSendTimerRef.current = setTimeout(() => {
+            autoSendTimerRef.current = null;
+            if (spokenSendInFlightRef.current) return;
+            const fullText = [spokenFinalRef.current, spokenInterimRef.current]
+              .filter(Boolean)
+              .join(' ')
+              .replace(/\s+/g, ' ')
+              .trim();
+            if (!fullText) return;
+            spokenSendInFlightRef.current = true;
+            void handleSendMessage(fullText, false, true);
+          }, 180);
         }
       }
     }
