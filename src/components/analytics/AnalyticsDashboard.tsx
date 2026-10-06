@@ -25,11 +25,11 @@ export const AnalyticsDashboard: React.FC<{mode:Mode}> = ({mode}) => {
 
   React.useEffect(()=>{ if(mode==='learner') {
     const activities = app.motivation.activities;
-    const reviewDays = new Set(activities.filter(a => a.type === 'review').map(a => String(a.createdAt).slice(0,10))).size;
+    const reviewDays = new Set(activities.filter(a => a.type === 'review').map(a => String(a.occurredAt).slice(0,10))).size;
     const reviewSchedules = Object.values(app.reviewSchedules);
     const mastered = reviewSchedules.filter(x => x.mastery >= 80).length;
     const lessonTotal = HSK1_LESSONS.length + HSK2_6_LESSONS.length;
-    const sessions = new Set(activities.map(a => String(a.createdAt).slice(0,10))).size;
+    const sessions = new Set(activities.map(a => String(a.occurredAt).slice(0,10))).size;
     setLearner({
       studyMinutes: Math.round(app.learnerProfile.totalStudyMinutes),
       sessions,
