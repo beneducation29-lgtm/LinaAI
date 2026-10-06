@@ -248,7 +248,35 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         switch(record.key) {
           case 'profile': setUser(record.data as UserProfile); break;
           case 'preferences': setPreferences(record.data as DisplayPreferences); break;
-          case 'conversation': setConversation(record.data as Conversation); break;
+          case 'conversation': {
+            const remoteConversation = record.data as Conversation;
+            setConversation(local => {
+              // Sync can finish while a learner is already speaking. Never replace a
+              // newer local turn with a stale remote snapshot; merge messages by id
+              // when both records belong to the same conversation.
+              if (remoteConversation.id === local.id) {
+                const merged = new Map<string, ConversationMessage>();
+                for (const message of remoteConversation.messages || []) merged.set(message.id, message);
+                for (const message of local.messages || []) merged.set(message.id, message);
+                return {
+                  ...remoteConversation,
+                  ...local,
+                  updatedAt: new Date(Math.max(
+                    Date.parse(remoteConversation.updatedAt || '') || 0,
+                    Date.parse(local.updatedAt || '') || 0
+                  )).toISOString(),
+                  messages: Array.from(merged.values()).sort(
+                    (a, b) => Date.parse(a.timestamp || '') - Date.parse(b.timestamp || '')
+                  )
+                };
+              }
+
+              const remoteUpdated = Date.parse(remoteConversation.updatedAt || '') || 0;
+              const localUpdated = Date.parse(local.updatedAt || '') || 0;
+              return remoteUpdated > localUpdated ? remoteConversation : local;
+            });
+            break;
+          }
           case 'flashcards': setFlashcards(record.data as Flashcard[]); break;
           case 'structuredProgress': setStructuredProgress(record.data as typeof structuredProgress); break;
           case 'reviewSchedules': setReviewSchedules(record.data as Record<string, ReviewSchedule>); break;
