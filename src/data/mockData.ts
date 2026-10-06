@@ -145,9 +145,29 @@ export const INITIAL_VOCABULARIES: Vocabulary[] = [
   }
 ];
 
+const CLASSIC_VIETNAMESE_MEANINGS: Record<string, string> = {
+  '爱': 'yêu / thích', '八': 'tám', '爸爸': 'bố / ba', '杯子': 'cốc / ly',
+  '北京': 'Bắc Kinh', '本': 'quyển / cuốn (lượng từ)', '不客气': 'không có gì / đừng khách sáo',
+  '不': 'không', '菜': 'món ăn / rau', '茶': 'trà', '吃': 'ăn', '出租车': 'taxi',
+  '打电话': 'gọi điện thoại', '大': 'to / lớn', '的': 'của', '点': 'giờ / điểm',
+  '电脑': 'máy tính', '电视': 'tivi / truyền hình', '电影': 'phim / điện ảnh',
+  '东西': 'đồ vật / thứ', '都': 'đều', '读': 'đọc', '对不起': 'xin lỗi',
+  '多': 'nhiều / bao nhiêu', '多少': 'bao nhiêu', '儿子': 'con trai', '二': 'hai',
+  '饭': 'cơm / bữa ăn', '房间': 'phòng', '非常': 'rất / vô cùng', '飞机': 'máy bay',
+  '分钟': 'phút', '高兴': 'vui / vui mừng', '个': 'cái / người (lượng từ)', '工作': 'làm việc / công việc',
+  '狗': 'chó', '贵': 'đắt', '国': 'nước / quốc gia', '汉语': 'tiếng Hán / tiếng Trung',
+  '好': 'tốt / khỏe', '喝': 'uống', '和': 'và / với'
+};
+
 const REVIEW_STARTER_VOCABULARIES: Vocabulary[] = [
   ...INITIAL_VOCABULARIES,
-  ...HSK_CLASSIC_VOCABULARY.filter(v => !INITIAL_VOCABULARIES.some(seed => seed.hanzi === v.hanzi)).slice(0, 42)
+  ...HSK_CLASSIC_VOCABULARY
+    .filter(v => !INITIAL_VOCABULARIES.some(seed => seed.hanzi === v.hanzi))
+    .slice(0, 42)
+    .map(v => ({
+      ...v,
+      vietnamese: v.vietnamese || CLASSIC_VIETNAMESE_MEANINGS[v.hanzi] || 'Từ vựng HSK — Lina sẽ bổ sung nghĩa theo ngữ cảnh.'
+    }))
 ];
 
 export const INITIAL_FLASHCARDS: Flashcard[] = REVIEW_STARTER_VOCABULARIES.map((vocab, index) => ({
