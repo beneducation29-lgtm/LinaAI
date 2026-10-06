@@ -117,6 +117,34 @@ export class ElevenLabsStreamingTTSProvider implements StreamingTTSProvider {
   isPrefetchReady(): boolean { return this.prefetchReady; }
 }
 
+
+class BrowserChineseTTSProvider implements StreamingTTSProvider {
+  readonly name = 'Browser Chinese voice';
+  readonly supportsStreaming = false;
+  readonly supportsPrefetch = false;
+
+  async start(options: StreamingTTSOptions): Promise<void> {
+    try {
+      options.onStart?.();
+      await speechService.speakChinese(options.text, {
+        rate: (options.rate || 1) as 0.75 | 1 | 1.25,
+        lang: options.lang || 'zh-CN',
+        useGeminiTTS: false,
+        onEnd: () => options.onEnd?.(),
+        onError: () => options.onError?.(new Error('Browser Chinese TTS failed'))
+      });
+    } catch (error) {
+      options.onError?.(error instanceof Error ? error : new Error('Browser Chinese TTS failed'));
+      throw error;
+    }
+  }
+
+  pause(): void { speechService.pauseSpeaking(); }
+  resume(): void { speechService.resumeSpeaking(); }
+  stop(): void { speechService.stopSpeaking(); }
+  isSpeaking(): boolean { return speechService.isSpeaking(); }
+}
+
 class ResilientStreamingTTSProvider implements StreamingTTSProvider {
   readonly name = streamingEnabled ? 'ElevenLabs Flash v2.5 → buffered fallback' : 'Gemini TTS buffered fallback';
   get supportsStreaming(): boolean { return streamingEnabled && this.active instanceof ElevenLabsStreamingTTSProvider; }
@@ -125,14 +153,28 @@ class ResilientStreamingTTSProvider implements StreamingTTSProvider {
       this.active instanceof ElevenLabsStreamingTTSProvider &&
       this.active.isPrefetchReady();
   }
-  private active: StreamingTTSProvider = streamingEnabled ? new ElevenLabsStreamingTTSProvider() : new BufferedGeminiTTSProvider();
+  private active: StreamingTTSProvider = streamingEnabled ? new ElevenLabsStreamingTTSProvider() : new BrowserChineseTTSProvider();
+  private cloudFailureUntil = 0;
+  private readonly cloudFailureCooldownMs = 60_000;
 
   async start(options: StreamingTTSOptions): Promise<void> {
-    try { await this.active.start(options); }
-    catch (error) {
-      if (this.active instanceof BufferedGeminiTTSProvider) throw error;
-      this.active = new BufferedGeminiTTSProvider();
+    if (this.active instanceof ElevenLabsStreamingTTSProvider && Date.now() < this.cloudFailureUntil) {
+      this.active = new BrowserChineseTTSProvider();
+    }
+
+    try {
       await this.active.start(options);
+    } catch (error) {
+      // A 503 from ElevenLabs normally means the provider is not configured or unavailable.
+      // Do not cascade into Gemini TTS: that path is independently rate-limited (429) and
+      // makes the speaking room feel slow. Switch immediately to the browser voice.
+      if (this.active instanceof ElevenLabsStreamingTTSProvider) {
+        this.cloudFailureUntil = Date.now() + this.cloudFailureCooldownMs;
+        this.active = new BrowserChineseTTSProvider();
+        await this.active.start(options);
+        return;
+      }
+      throw error;
     }
   }
 
