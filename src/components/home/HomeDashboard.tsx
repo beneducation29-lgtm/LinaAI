@@ -29,6 +29,7 @@ export const HomeDashboard: React.FC = () => {
   const lessonProgressPercent = Math.round((currentSectionNumber / totalLessonSections) * 100);
   const dueReviewCount = getDueReviewCount();
   const dueFlashcards = flashcards.filter(card => isDue(card.nextReviewDate));
+  const totalDueToday = dueReviewCount + dueFlashcards.length;
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 pb-24 md:pb-12 space-y-6">
@@ -62,7 +63,7 @@ export const HomeDashboard: React.FC = () => {
 
       <div className="p-5 rounded-3xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200/80 dark:border-amber-900/40">
         <div className="flex items-center gap-2 text-sm font-bold"><Sparkles className="w-4 h-4 text-amber-600"/>Hôm nay Lina đề xuất cho bạn</div>
-        <div className="mt-2 text-[11px] text-stone-500">Lina đang điều chỉnh theo tiến bộ thực tế · {knowledge.overallMastery}% mastery · {knowledge.dueReviewCount} mục đến hạn</div><div className="mt-3 grid sm:grid-cols-3 gap-2">{generateDailyPlan(learnerProfile, aiMemory, getDueReviewCount(), knowledge).items.slice(0,3).map((item,i)=><button key={i} type="button" onClick={()=>setCurrentTab(item.type==='conversation'?'speak':item.type==='review'||item.type==='quiz'?'review':'learn')} className="text-left p-3 rounded-2xl bg-white/80 dark:bg-stone-900/70 border border-amber-100 dark:border-stone-800"><div className="text-xs font-bold">{item.title}</div><div className="text-[11px] text-stone-500 mt-1 line-clamp-2">{item.target}</div><div className="text-[10px] text-amber-700 mt-2">{item.minutes} phút</div></button>)}</div>
+        <div className="mt-2 text-[11px] text-stone-500">Lina đang điều chỉnh theo tiến bộ thực tế · {knowledge.overallMastery}% mastery · {totalDueToday} mục cần củng cố</div><div className="mt-3 grid sm:grid-cols-3 gap-2">{generateDailyPlan(learnerProfile, aiMemory, totalDueToday, knowledge).items.slice(0,3).map((item,i)=><button key={i} type="button" onClick={()=>setCurrentTab(item.type==='conversation'?'speak':item.type==='review'||item.type==='quiz'?'review':'learn')} className="text-left p-3 rounded-2xl bg-white/80 dark:bg-stone-900/70 border border-amber-100 dark:border-stone-800"><div className="text-xs font-bold">{item.title}</div><div className="text-[11px] text-stone-500 mt-1 line-clamp-2">{item.target}</div><div className="text-[10px] text-amber-700 mt-2">{item.minutes} phút</div></button>)}</div>
       </div>
 
       <div className="grid lg:grid-cols-[1.35fr_0.65fr] gap-4">
@@ -221,10 +222,10 @@ export const HomeDashboard: React.FC = () => {
 
             <div className="pt-1">
               <p className="text-xl sm:text-2xl font-bold text-stone-900 dark:text-stone-100">
-                {dueReviewCount > 0 ? `Bạn có ${dueReviewCount} mục cần ôn hôm nay.` : 'Hôm nay chưa có mục nào đến hạn ôn.'}
+                {totalDueToday > 0 ? `Bạn có ${totalDueToday} mục nên củng cố hôm nay.` : 'Hôm nay chưa có mục nào đến hạn ôn.'}
               </p>
               <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">
-                Gồm các từ mới về Chào hỏi, Giới thiệu bản thân và Quốc tịch.
+                Lina ưu tiên những mục thực sự đến hạn hoặc đang yếu để bạn không phải ôn lại ngẫu nhiên.
               </p>
             </div>
 
