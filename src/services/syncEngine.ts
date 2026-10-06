@@ -14,7 +14,7 @@ export class SyncEngine{
  private timer:number|undefined;
  subscribe(fn:(s:SyncState)=>void){this.listeners.add(fn);fn(this.state);return()=>this.listeners.delete(fn);}
  private emit(){this.listeners.forEach(fn=>fn(this.state));}
- private loadMeta():SyncMeta{try{return JSON.parse(storage.getItem(META_KEY)||'{}')||{lastSyncedAt:null,versions:{}};}catch{return{lastSyncedAt:null,versions:{}};}}
+ private loadMeta():SyncMeta{try{const raw=JSON.parse(storage.getItem(META_KEY)||'{}')||{};return{lastSyncedAt:typeof raw.lastSyncedAt==='string'?raw.lastSyncedAt:null,versions:raw.versions&&typeof raw.versions==='object'?raw.versions:{}};}catch{return{lastSyncedAt:null,versions:{}};}}
  private saveMeta(meta:SyncMeta){storage.setItem(META_KEY,JSON.stringify(meta));}
  private loadQueue():SyncRecord[]{try{return JSON.parse(storage.getItem(QUEUE_KEY)||'[]')||[];}catch{return[];}}
  private saveQueue(q:SyncRecord[]){storage.setItem(QUEUE_KEY,JSON.stringify(q));this.state={...this.state,pendingCount:q.length};this.emit();}
