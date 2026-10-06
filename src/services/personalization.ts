@@ -55,8 +55,8 @@ export function generateDailyPlan(profile:LearnerProfile,memory:AIStoredMemory,d
  const items:PersonalizationRecommendation[]=[];
  const level=knowledge?.adaptiveDifficulty.level||'balanced';
  const reason=(s:string)=>'Lina đề xuất vì '+s+'.';
- if(dueReviews)items.push({type:'review',title:'Ôn lại nội dung đến hạn',target:dueReviews+' mục cần nhớ lại',minutes:Math.min(5,Math.max(2,Math.round(minutes*.25))),reason:reason('một số nội dung đã đến lượt ôn'),difficulty:'balanced'});
- if(knowledge?.strugglingAreas.length||memory.weakVocabulary.length)items.push({type:'vocabulary',title:'Củng cố điểm còn yếu',target:(knowledge?.strugglingAreas||memory.weakVocabulary).slice(0,3).join(' · '),minutes:Math.max(2,Math.round(minutes*.2)),reason:reason('bạn đang gặp lại một số lỗi ở nhóm này'),difficulty:level});
+ if(dueReviews)items.push({type:'review',title:'Cứu trí nhớ trước khi quên',target:dueReviews+' mục đang đến hạn hoặc cần củng cố',minutes:Math.min(7,Math.max(3,Math.round(minutes*.25))),reason:reason('ôn gần thời điểm quên giúp giữ kiến thức lâu hơn'),difficulty:'balanced'});
+ if(knowledge?.strugglingAreas.length||memory.weakVocabulary.length)items.push({type:'vocabulary',title:'Gỡ điểm yếu',target:(knowledge?.strugglingAreas||memory.weakVocabulary).slice(0,3).join(' · '),minutes:Math.max(2,Math.round(minutes*.2)),reason:reason('những mục này đang cần thêm một lần nhớ chủ động'),difficulty:level});
  if(memory.grammarWeaknesses.length)items.push({type:'grammar',title:'Luyện ngữ pháp mục tiêu',target:memory.grammarWeaknesses.slice(-2).join(' · '),minutes:Math.max(2,Math.round(minutes*.15)),reason:reason('một điểm ngữ pháp xuất hiện trong các lỗi gần đây'),difficulty:level});
  const weakest=knowledge?Object.entries(knowledge.skills).sort((a,b)=>a[1].mastery-b[1].mastery)[0]?.[0]:'speaking';
  if(weakest==='speaking')items.push({type:'speaking',title:'Nói cùng Lina',target:memory.preferences[0]||'chủ đề gần đây',minutes:Math.max(2,Math.round(minutes*.2)),reason:reason('kỹ năng nói cần thêm lượt thực hành'),difficulty:level});
