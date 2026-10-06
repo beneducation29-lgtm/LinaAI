@@ -54,16 +54,73 @@ export const LearningSystemScreen: React.FC = () => {
   const speak = (text:string) => speechService.speakChinese(text,{useGeminiTTS:true});
   const pinyinFor = (marked:string, numbered:string) => pinyinMode === 'hidden' ? '' : pinyinMode === 'numbers' ? numbered : marked;
 
-  const evaluateSpeech = () => {
-    analytics.track('speaking_start', { lessonId: lesson.id, source: 'lesson' });
+  const evaluateSpeech = async (transcript = speechText) => {
+    const cleanTranscript = transcript.trim();
+    if (!cleanTranscript) {
+      setFeedback('Lina chưa nhận diện được câu nói. Bạn thử nói lại rõ và chậm hơn nhé.');
+      setSpeakingScore(null);
+      return;
+    }
+
+    analytics.track('speaking_start', { lessonId: lesson.id, source: 'lesson-shadowing' });
     const target = lesson.speaking[0].prompt.chinese;
-    const result = speechService.analyzePronunciation(target,speechText);
-    setFeedback(result.feedback + ' Điểm phản hồi: ' + result.overall + '/100.');
-    recordLearningResult(lesson.speaking[0].id,result.overall >= 80);
-    recordMotivationActivity({ id: `pronunciation:learning:${lesson.id}:${Date.now()}`, type: 'pronunciation', minutes: 1, lessonId: lesson.id, metadata: { score: result.overall } });
-    analytics.track('pronunciation_practice', { lessonId: lesson.id, score: result.overall });
-    analytics.track('speaking_complete', { lessonId: lesson.id, score: result.overall, minutes: 1 });
-    if(result.overall < 80) addMistake({type:'pronunciation',original:speechText || '(chưa nhận diện)',corrected:target,explanation:result.feedback,mastery:0});
+    setSpeakingBusy(true);
+    setSpeakingScore(null);
+
+    try {
+      const result = await aiTutor.sendMessage({
+        conversationId: lesson.id,
+        topicTitleVi: lesson.titleVi,
+        hskLevel: lesson.hskLevel,
+        userLevel: user.currentLevel,
+        userName: user.name,
+        history: [],
+        mode: 'teacher',
+        memoryFacts: learnerProfileMemory().recentMistakes,
+        isSpoken: true,
+        speakingCoachTarget: target,
+        speakingAttempt: 1
+      }, cleanTranscript);
+
+      const coach = result.speakingCoach;
+      const score = Math.max(0, Math.min(100, Number(coach?.naturalnessScore) || 0));
+      let feedbackText = coach?.feedbackVi || (score >= 85
+        ? 'Câu nói khá tự nhiên và bám sát câu mẫu. Tiếp tục luyện để phản xạ nhanh hơn.'
+        : 'Hãy đối chiếu transcript với câu mẫu và thử lại chậm hơn.');
+      if (coach?.betterSentence && coach.betterSentence !== cleanTranscript) {
+        feedbackText += ' Câu nên luyện lại: ' + coach.betterSentence + '.';
+      }
+
+      setSpeakingScore(score);
+      setFeedback(feedbackText);
+      const passed = score >= 85 && !coach?.needsRetry;
+      recordLearningResult(lesson.speaking[0].id, passed);
+      recordMotivationActivity({
+        id: 'shadowing:learning:' + lesson.id + ':' + Date.now(),
+        type: 'pronunciation',
+        minutes: 1,
+        lessonId: lesson.id,
+        metadata: { score, provider: 'gemini-speaking-coach', recognizedText: cleanTranscript }
+      });
+      analytics.track('pronunciation_practice', { lessonId: lesson.id, score, provider: 'gemini-speaking-coach' });
+      analytics.track('speaking_complete', { lessonId: lesson.id, score, minutes: 1, provider: 'gemini-speaking-coach' });
+
+      if (!passed) {
+        addMistake({
+          type: 'pronunciation',
+          original: cleanTranscript,
+          corrected: coach?.betterSentence || target,
+          explanation: feedbackText,
+          mastery: 0
+        });
+      }
+    } catch {
+      const fallback = speechService.analyzePronunciation(target, cleanTranscript);
+      setSpeakingScore(fallback.overall);
+      setFeedback('Lina AI chưa phản hồi kịp. STT đã nhận diện: “' + cleanTranscript + '”. Bạn có thể thử lại sau một chút.');
+    } finally {
+      setSpeakingBusy(false);
+    }
   };
 
   const startRoleplay = async () => {
@@ -194,10 +251,12 @@ export const LearningSystemScreen: React.FC = () => {
 
           {section === 'speak' && <div className="p-5 rounded-2xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 space-y-4">
             <InteractiveChineseSentence chinese={lesson.speaking[0].prompt.chinese} pinyin={lesson.speaking[0].prompt.pinyin} vietnamese={lesson.speaking[0].prompt.vietnamese} vocabulary={lesson.vocabulary}/>
-            <div className="flex gap-2"><button type="button" onClick={() => speak(lesson.speaking[0].prompt.chinese)} className="px-4 py-3 rounded-xl bg-stone-100 dark:bg-stone-800 text-sm font-bold"><Volume2 className="w-4 h-4 inline mr-1"/>Nghe mẫu</button><button type="button" onClick={() => speechService.startListening({lang:'zh-CN',onResult:r=>r.isFinal&&setSpeechText(r.transcript),onError:setFeedback,onEnd:()=>{}})} className="px-4 py-3 rounded-xl bg-amber-700 text-white text-sm font-bold"><Mic className="w-4 h-4 inline mr-1"/>Nói</button></div>
+            <div className="flex gap-2"><button type="button" onClick={() => speak(lesson.speaking[0].prompt.chinese)} className="px-4 py-3 rounded-xl bg-stone-100 dark:bg-stone-800 text-sm font-bold"><Volume2 className="w-4 h-4 inline mr-1"/>Nghe mẫu</button><button type="button" disabled={speakingBusy} onClick={() => speechService.startListening({lang:'zh-CN',onResult:r=>{if(r.isFinal && r.transcript){setSpeechText(r.transcript);void evaluateSpeech(r.transcript);}},onError:setFeedback,onEnd:()=>{}})} className="px-4 py-3 rounded-xl bg-amber-700 text-white text-sm font-bold disabled:opacity-50"><Mic className="w-4 h-4 inline mr-1"/>{speakingBusy ? 'Lina đang chấm...' : 'Nói'}</button></div>
             <textarea value={speechText} onChange={e=>setSpeechText(e.target.value)} placeholder="Bạn có thể nhập câu nếu chưa dùng mic..." className="w-full min-h-24 rounded-xl border border-stone-200 dark:border-stone-700 bg-transparent p-3 text-sm"/>
-            <button type="button" onClick={evaluateSpeech} className="px-4 py-3 rounded-xl bg-stone-900 text-white text-sm font-bold">AI đánh giá & lưu tiến bộ</button>
-            {feedback && <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/20 text-sm">{feedback}</div>}
+            {speechText && <div className="p-3 rounded-xl bg-stone-50 dark:bg-stone-800/60 text-xs"><span className="font-semibold">Lina nghe được:</span> {speechText}</div>}
+            {speakingBusy && <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 text-sm font-semibold text-amber-900 dark:text-amber-200">Lina đang chấm câu Shadowing của bạn…</div>}
+            {feedback && <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/20 space-y-1.5"><div className="flex items-center justify-between text-sm font-bold"><span>Lina AI chấm Shadowing</span><span>{speakingScore == null ? '—' : speakingScore + '/100'}</span></div><div className="text-sm">{feedback}</div><div className="text-[10px] text-stone-500">Điểm dựa trên transcript STT và độ tự nhiên/độ khớp với câu mẫu; chưa phải đo cao độ âm thanh.</div></div>}
+            <button type="button" disabled={speakingBusy || !speechText.trim()} onClick={() => void evaluateSpeech()} className="px-4 py-3 rounded-xl bg-stone-900 text-white text-sm font-bold disabled:opacity-50">AI chấm lại</button>
           </div>}
 
           {section === 'roleplay' && <div className="p-5 rounded-2xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 space-y-4">
