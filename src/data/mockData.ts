@@ -166,7 +166,7 @@ const REVIEW_STARTER_VOCABULARIES: Vocabulary[] = [
     .slice(0, 42)
     .map(v => ({
       ...v,
-      vietnamese: v.vietnamese || CLASSIC_VIETNAMESE_MEANINGS[v.hanzi] || 'Từ vựng HSK — Lina sẽ bổ sung nghĩa theo ngữ cảnh.'
+      vietnamese: v.vietnamese || CLASSIC_VIETNAMESE_MEANINGS[v.hanzi] || ''
     }))
 ];
 
