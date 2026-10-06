@@ -258,6 +258,47 @@ class AITutorClientService implements AITutorProvider {
     }
 
     const text = sanitizePlainText(userText, 2000);
+    if (/我吃了[，,。.!！ ]*(你呢)?[？?]?/.test(text)) {
+      return {
+        chinese: '我还没吃呢。你刚下班，准备吃什么？',
+        pinyin: 'Wǒ hái méi chī ne. Nǐ gāng xiàbān, zhǔnbèi chī shénme?',
+        vietnamese: 'Mình vẫn chưa ăn. Bạn vừa tan làm, định ăn gì vậy?',
+        responseType: 'conversation', emotion: 'friendly', correction: null, vocabulary: [], grammar: [],
+        progressiveHints: { hint1_semantic: 'Nói món bạn định ăn.', hint2_keywords: '准备, 吃, 面, 米饭', hint3_structure: '我准备 + 去吃 + món ăn', hint4_fullAnswer: '我准备去吃面。' },
+        suggestedReplies: [
+          { hanzi: '我准备去吃面。', pinyin: 'Wǒ zhǔnbèi qù chī miàn.', vietnamese: 'Mình định đi ăn mì.' },
+          { hanzi: '我想吃米饭和鸡肉。', pinyin: 'Wǒ xiǎng chī mǐfàn hé jīròu.', vietnamese: 'Mình muốn ăn cơm và thịt gà.' },
+          { hanzi: '我还没决定。', pinyin: 'Wǒ hái méi juédìng.', vietnamese: 'Mình vẫn chưa quyết định.' }
+        ]
+      };
+    }
+    if (/我们去逛街了/.test(text)) {
+      return {
+        chinese: '听起来不错！你们今天买了什么？',
+        pinyin: 'Tīng qǐlái búcuò! Nǐmen jīntiān mǎi le shénme?',
+        vietnamese: 'Nghe hay đấy! Hôm nay các bạn đã mua gì?',
+        responseType: 'conversation', emotion: 'happy', correction: null, vocabulary: [], grammar: [],
+        progressiveHints: { hint1_semantic: 'Nói các bạn đã mua gì.', hint2_keywords: '买, 衣服, 咖啡', hint3_structure: '我们 + 买了 + ...', hint4_fullAnswer: '我们买了衣服。' },
+        suggestedReplies: [
+          { hanzi: '我们买了衣服。', pinyin: 'Wǒmen mǎi le yīfu.', vietnamese: 'Tụi mình mua quần áo.' },
+          { hanzi: '我们喝了咖啡，还看了电影。', pinyin: 'Wǒmen hē le kāfēi, hái kàn le diànyǐng.', vietnamese: 'Tụi mình uống cà phê và còn xem phim.' },
+          { hanzi: '我们只是逛了一会儿。', pinyin: 'Wǒmen zhǐshì guàng le yíhuìr.', vietnamese: 'Tụi mình chỉ đi dạo một lúc.' }
+        ]
+      };
+    }
+    if (/^好的[！!。.]?$/.test(text)) {
+      return {
+        chinese: '好呀！那我们接着聊。你今天最开心的事情是什么？',
+        pinyin: 'Hǎo ya! Nà wǒmen jiēzhe liáo. Nǐ jīntiān zuì kāixīn de shìqing shì shénme?',
+        vietnamese: 'Được nhé! Mình nói tiếp nào. Hôm nay điều gì làm bạn vui nhất?',
+        responseType: 'conversation', emotion: 'encouraging', correction: null, vocabulary: [], grammar: [],
+        progressiveHints: { hint1_semantic: 'Nói một chuyện vui hôm nay.', hint2_keywords: '今天, 开心, 朋友', hint3_structure: '我今天 + ...', hint4_fullAnswer: '我今天很开心。' },
+        suggestedReplies: [
+          { hanzi: '我今天很开心。', pinyin: 'Wǒ jīntiān hěn kāixīn.', vietnamese: 'Hôm nay mình rất vui.' },
+          { hanzi: '我今天工作很忙。', pinyin: 'Wǒ jīntiān gōngzuò hěn máng.', vietnamese: 'Hôm nay mình làm việc rất bận.' }
+        ]
+      };
+    }
     if (/^(你好|您好|嗨|哈喽|hello|hi)[！!。.?？ ]*$/i.test(text)) {
       return {
         chinese: `你好！很高兴见到你，${userName}。今天想练习什么？`,
