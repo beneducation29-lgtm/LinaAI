@@ -186,6 +186,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
   const [syncState, setSyncState] = useState<SyncState>(() => ({ status: 'offline', lastSyncedAt: null, pendingCount: 0, error: null, userId: null }));
   const syncReadyRef = React.useRef(false);
+  const [syncReady, setSyncReady] = useState(false);
   const applyingRemoteRef = React.useRef(false);
 
   const [conversation, setConversation] = useState<Conversation>(() => {
@@ -220,6 +221,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => {
     syncEngine.setUser(authUser?.id || null);
     syncReadyRef.current = false;
+    setSyncReady(false);
     if (!authUser) return;
     setUser(prev => prev.id === authUser.id ? prev : {
       ...INITIAL_USER_PROFILE,
@@ -240,6 +242,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
     void syncEngine.initialSync().then(() => {
       syncReadyRef.current = true;
+      setSyncReady(true);
       setLearnerMemory(prev => {
         const seed = `Học viên tên là: ${authUser.name || 'Học viên'}`;
         return prev.includes(seed) ? prev : [...prev, seed].slice(-8);
@@ -303,7 +306,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const logoutAccount = async () => { await logoutAccountRequest(); syncEngine.setUser(null); setAuthUser(null); };
   const syncNow = async () => { await syncEngine.sync(); };
   useEffect(() => {
-    if (!authUser || !syncReadyRef.current || applyingRemoteRef.current) return;
+    if (!authUser || !syncReady || !syncReadyRef.current || applyingRemoteRef.current) return;
     const enqueue = (key: any, data: unknown) => syncEngine.enqueue(key, data);
     enqueue('profile', user);
     enqueue('preferences', preferences);
@@ -316,7 +319,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     enqueue('aiMemory', aiMemory);
     enqueue('motivation', motivation);
     enqueue('learnerMemory', learnerMemory);
-  }, [authUser, user, preferences, conversation, flashcards, structuredProgress, reviewSchedules, mistakes, structuredSavedVocabularyIds, aiMemory, motivation, learnerMemory]);
+  }, [authUser, syncReady, user, preferences, conversation, flashcards, structuredProgress, reviewSchedules, mistakes, structuredSavedVocabularyIds, aiMemory, motivation, learnerMemory]);
 
   const [showOnboarding, setShowOnboarding] = useState<boolean>(() => {
     return !user.onboardingCompleted;
