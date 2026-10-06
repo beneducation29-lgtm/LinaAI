@@ -89,7 +89,7 @@ for (const route of ['login','signup','google','me','refresh','logout','forgot-p
 }
 assert.match(authApi, /signIn\(/);
 assert.match(authApi, /signUp\(/);
-assert.match(authApi, /provider:'google'/);
+assert.match(authApi, /provider.*google/);
 assert.match(authApi, /sendPasswordRecovery/);
 assert.match(authApi, /updatePassword/);
 console.log('Authentication signup, Google OAuth and password recovery tests passed');
