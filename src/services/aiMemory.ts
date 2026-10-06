@@ -11,9 +11,9 @@ export const createLocalMemoryRepository=():MemoryRepository=>({
  clear:()=>{try{storage.removeItem(KEY);}catch{}}
 });
 
-export const emptyMemory=():AIStoredMemory=>({learnerFacts:[],learningHistory:[],mistakes:[],masteredVocabulary:[],weakVocabulary:[],grammarWeaknesses:[],pronunciationWeaknesses:[],conversationSummary:'',goals:[],preferences:[]});
+export const emptyMemory=():AIStoredMemory=>({learnerFacts:[],learningHistory:[],mistakes:[],masteredVocabulary:[],weakVocabulary:[],grammarWeaknesses:[],pronunciationWeaknesses:[],conversationSummary:'',goals:[],preferences:[],topics:[],lastConversationAt:null});
 
-export function updateMemory(memory:AIStoredMemory,input:{fact?:string;lessonId?:string;mistake?:MistakeRecord;masteredVocabulary?:string;weakVocabulary?:string;grammarWeakness?:string;pronunciationWeakness?:string;conversationSummary?:string;goal?:string;preference?:string}):AIStoredMemory{
+export function updateMemory(memory:AIStoredMemory,input:{fact?:string;lessonId?:string;mistake?:MistakeRecord;masteredVocabulary?:string;weakVocabulary?:string;grammarWeakness?:string;pronunciationWeakness?:string;conversationSummary?:string;goal?:string;preference?:string;topic?:string}):AIStoredMemory{
  const m={...memory};
  if(input.fact){m.learnerFacts=[...new Set([...m.learnerFacts,clean(input.fact)])].slice(-20);}
  if(input.lessonId && !m.learningHistory.some(x=>x.lessonId===input.lessonId)){m.learningHistory=[...m.learningHistory,{lessonId:input.lessonId,completedAt:now()}].slice(-30);}
@@ -24,7 +24,9 @@ export function updateMemory(memory:AIStoredMemory,input:{fact?:string;lessonId?
  if(input.pronunciationWeakness)m.pronunciationWeaknesses=[...new Set([...m.pronunciationWeaknesses,input.pronunciationWeakness])].slice(-20);
  if(input.conversationSummary)m.conversationSummary=clean(input.conversationSummary);
  if(input.goal)m.goals=[...new Set([...m.goals,input.goal])].slice(-10);
- if(input.preference)m.preferences=[...new Set([...m.preferences,input.preference])].slice(-10);
+ if(input.preference)m.preferences=[...new Set([...m.preferences,input.preference])].slice(-20);
+ if(input.topic){const topic=clean(input.topic); if(topic)m.topics=[...new Set([...(m.topics||[]),topic])].slice(-20);}
+ if(input.conversationSummary)m.lastConversationAt=now();
  return m;
 }
 
