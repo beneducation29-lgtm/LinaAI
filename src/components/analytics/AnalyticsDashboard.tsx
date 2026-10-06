@@ -1,6 +1,9 @@
 import React from 'react';
 import { BarChart3, BookOpen, Brain, Clock3, Mic, ShieldCheck, Users, Volume2 } from 'lucide-react';
 import { analytics } from '../../services/analytics';
+import { useApp } from '../../context/AppContext';
+import { HSK1_LESSONS } from '../../data/hsk1Lessons';
+import { HSK2_6_LESSONS } from '../../data/hskExpandedLessons';
 import { fetchAdminAnalytics } from '../../services/analyticsApi';
 import type { AdminAnalyticsSummary } from '../../types/analytics';
 
@@ -14,17 +17,36 @@ const Stat=({label,value,icon:Icon}:{label:string;value:string|number;icon:React
 );
 
 export const AnalyticsDashboard: React.FC<{mode:Mode}> = ({mode}) => {
+  const app = useApp();
   const [learner,setLearner]=React.useState(analytics.getLearnerSummary());
   const [admin,setAdmin]=React.useState<AdminAnalyticsSummary|null>(null);
   const [days,setDays]=React.useState(30);
   const [error,setError]=React.useState('');
 
-  React.useEffect(()=>{ if(mode==='learner') setLearner(analytics.getLearnerSummary()); else void fetchAdminAnalytics(days).then(setAdmin).catch(e=>setError(e instanceof Error?e.message:'Không thể tải analytics.')); },[mode,days]);
+  React.useEffect(()=>{ if(mode==='learner') {
+    const activities = app.motivation.activities;
+    const reviewDays = new Set(activities.filter(a => a.type === 'review').map(a => String(a.createdAt).slice(0,10))).size;
+    const reviewSchedules = Object.values(app.reviewSchedules);
+    const mastered = reviewSchedules.filter(x => x.mastery >= 80).length;
+    const lessonTotal = HSK1_LESSONS.length + HSK2_6_LESSONS.length;
+    const sessions = new Set(activities.map(a => String(a.createdAt).slice(0,10))).size;
+    setLearner({
+      studyMinutes: Math.round(app.learnerProfile.totalStudyMinutes),
+      sessions,
+      lessonCompletion: lessonTotal ? Math.round((app.user.lessonsCompletedCount / lessonTotal) * 100) : 0,
+      vocabularyMastery: reviewSchedules.length ? Math.round((mastered / reviewSchedules.length) * 100) : 0,
+      grammarWeaknesses: app.learnerProfile.grammarStats.weak,
+      speakingFrequency: app.learnerProfile.speakingStats.practiceCount,
+      pronunciationPractice: activities.filter(a => a.type === 'pronunciation').length,
+      reviewConsistency: reviewDays,
+      eventsTracked: activities.length
+    });
+  } else void fetchAdminAnalytics(days).then(setAdmin).catch(e=>setError(e instanceof Error?e.message:'Không thể tải analytics.')); },[mode,days,app.motivation.activities,app.learnerProfile.totalStudyMinutes,app.learnerProfile.grammarStats.weak,app.learnerProfile.speakingStats.practiceCount,app.reviewSchedules,app.user.lessonsCompletedCount]);
 
   if(mode==='learner') return (
     <main className="min-h-screen bg-[#FAF8F5] dark:bg-stone-950 p-5 sm:p-8">
       <div className="max-w-5xl mx-auto space-y-5">
-        <div><div className="text-xs font-bold uppercase tracking-wider text-amber-700">Lina Analytics</div><h1 className="text-3xl font-bold mt-1">Bạn đang học như thế nào?</h1><p className="text-sm text-stone-500 mt-1">Chỉ dùng dữ liệu analytics đã lưu trên thiết bị này.</p></div>
+        <div><div className="text-xs font-bold uppercase tracking-wider text-amber-700">Lina Analytics</div><h1 className="text-3xl font-bold mt-1">Bạn đang học như thế nào?</h1><p className="text-sm text-stone-500 mt-1">Chỉ dùng tiến độ học tập thực tế của tài khoản này; không dùng số liệu mẫu.</p></div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <Stat label="Phút học" value={learner.studyMinutes} icon={Clock3}/><Stat label="Sessions" value={learner.sessions} icon={BarChart3}/><Stat label="Hoàn thành bài" value={learner.lessonCompletion+'%'} icon={BookOpen}/><Stat label="Mastery từ vựng" value={learner.vocabularyMastery+'%'} icon={Brain}/><Stat label="Luyện nói" value={learner.speakingFrequency} icon={Mic}/><Stat label="Luyện phát âm" value={learner.pronunciationPractice} icon={Volume2}/><Stat label="Ngày review" value={learner.reviewConsistency} icon={BookOpen}/><Stat label="Lỗi ngữ pháp" value={learner.grammarWeaknesses} icon={Brain}/>
         </div>
