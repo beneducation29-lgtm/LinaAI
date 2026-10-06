@@ -25,6 +25,7 @@ export class RealtimeSpeechOrchestrator {
       metrics.ttsFirstChunkAt ??= Date.now();
       ttsQueue.enqueue(chunks, rate, {
         onStart: () => { if (!this.isCurrent(turnId)) return; metrics.audioFirstPlayedAt ??= Date.now(); callbacks.onState?.('SPEAKING'); callbacks.onMetrics?.({ ...metrics }); },
+        onEnd: () => { if (this.isCurrent(turnId)) { callbacks.onState?.('IDLE'); metrics.turnCompletedAt = Date.now(); callbacks.onMetrics?.({ ...metrics }); } },
         onError: error => { if (this.isCurrent(turnId)) callbacks.onError?.(error); }
       });
     };
@@ -39,11 +40,13 @@ export class RealtimeSpeechOrchestrator {
       // mode never waits for a callback the provider did not send.
       queueSpeech(response.chinese);
       callbacks.onResponse?.(response);
-      while (enableSpeech && ttsQueue.isBusy()) {
-        await new Promise(resolve => setTimeout(resolve, 30));
-        if (!this.isCurrent(turnId)) return response;
+      // Do not block the conversation turn on TTS playback. The UI can render
+      // Lina's reply immediately while the queue continues speaking in parallel.
+      if (!enableSpeech || !ttsQueue.isBusy()) {
+        callbacks.onState?.('IDLE');
+        metrics.turnCompletedAt = Date.now();
+        callbacks.onMetrics?.({ ...metrics });
       }
-      callbacks.onState?.('IDLE'); metrics.turnCompletedAt = Date.now(); callbacks.onMetrics?.({ ...metrics });
       return response;
     } catch (error) {
       if (!this.isCurrent(turnId)) throw error;
