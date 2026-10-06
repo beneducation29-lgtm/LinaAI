@@ -103,6 +103,7 @@ class SpeechService {
   private currentUtterance: SpeechSynthesisUtterance | null = null;
   private currentAudioElement: HTMLAudioElement | null = null;
   private audioCache = new Map<string, string>();
+  private audioInflight = new Map<string, Promise<string | null>>();
 
   constructor() {
     if (typeof window !== 'undefined') {
@@ -261,25 +262,35 @@ class SpeechService {
   /** Fetch audio from server-side Gemini TTS if available. */
   async fetchGeminiTTSAudio(text: string): Promise<string | null> {
     if (this.audioCache.has(text)) return this.audioCache.get(text)!;
-    try {
-      const res = await fetch('/api/tts/speak', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, voice: 'Kore' }),
-      });
-      if (!res.ok) return null;
-      const data = await res.json();
-      if (!data.audioBase64) return null;
-      const binary = atob(data.audioBase64);
-      const bytes = new Uint8Array(binary.length);
-      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-      const blob = new Blob([bytes], { type: data.mimeType || 'audio/wav' });
-      const audioSrc = URL.createObjectURL(blob);
-      this.audioCache.set(text, audioSrc);
-      return audioSrc;
-    } catch {
-      return null;
-    }
+    const existing = this.audioInflight.get(text);
+    if (existing) return existing;
+
+    const request = (async (): Promise<string | null> => {
+      try {
+        const res = await fetch('/api/tts/speak', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text, voice: 'Kore' }),
+        });
+        if (!res.ok) return null;
+        const data = await res.json();
+        if (!data.audioBase64) return null;
+        const binary = atob(data.audioBase64);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+        const blob = new Blob([bytes], { type: data.mimeType || 'audio/wav' });
+        const audioSrc = URL.createObjectURL(blob);
+        this.audioCache.set(text, audioSrc);
+        return audioSrc;
+      } catch {
+        return null;
+      } finally {
+        this.audioInflight.delete(text);
+      }
+    })();
+
+    this.audioInflight.set(text, request);
+    return request;
   }
   speakChinese(
     text: string, 
