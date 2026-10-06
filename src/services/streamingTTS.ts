@@ -131,8 +131,21 @@ class ResilientStreamingTTSProvider implements StreamingTTSProvider {
   }
 
   async playPrepared(prepared: PreparedAudio, options: StreamingTTSOptions): Promise<void> {
-    if ('playPrepared' in this.active && typeof this.active.playPrepared === 'function') return this.active.playPrepared(prepared, options);
-    throw new Error('Active TTS provider cannot play prepared audio.');
+    if ('playPrepared' in this.active && typeof this.active.playPrepared === 'function') {
+      return this.active.playPrepared(prepared, options);
+    }
+    // A prefetch can finish just as ElevenLabs fails and the active provider switches
+    // to Gemini. The prepared MP3 is still valid, so play it directly instead of
+    // throwing and forcing another network TTS request.
+    const url = URL.createObjectURL(prepared.blob);
+    try {
+      options.onStart?.();
+      await audioStreamController.playSource(url, options.rate || 1);
+      options.onEnd?.();
+    } finally {
+      URL.revokeObjectURL(url);
+      audioBufferManager.remove(prepared.id);
+    }
   }
   pause(): void { this.active.pause(); }
   resume(): void { this.active.resume(); }
