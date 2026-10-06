@@ -26,7 +26,11 @@ export class RealtimeSpeechOrchestrator {
       ttsQueue.enqueue(chunks, rate, {
         onStart: () => { if (!this.isCurrent(turnId)) return; metrics.audioFirstPlayedAt ??= Date.now(); callbacks.onState?.('SPEAKING'); callbacks.onMetrics?.({ ...metrics }); },
         onEnd: () => { if (this.isCurrent(turnId)) { callbacks.onState?.('IDLE'); metrics.turnCompletedAt = Date.now(); callbacks.onMetrics?.({ ...metrics }); } },
-        onError: error => { if (this.isCurrent(turnId)) callbacks.onError?.(error); }
+        onError: error => {
+          if (!this.isCurrent(turnId)) return;
+          callbacks.onError?.(error);
+          callbacks.onState?.('IDLE');
+        }
       });
     };
     try {
