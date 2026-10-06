@@ -118,6 +118,9 @@ export const TutorScreen: React.FC = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const holdTimeoutRef = useRef<any>(null);
   const autoSendTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const spokenFinalRef = useRef('');
+  const spokenInterimRef = useRef('');
+  const spokenSendInFlightRef = useRef(false);
   const speakingRetryRef = useRef<{ target: string; attempt: number } | null>(null);
   const roleplayEngine = useMemo(() => createRoleplayEngine(), []);
 
@@ -347,6 +350,9 @@ export const TutorScreen: React.FC = () => {
     realtimeConversationController.interrupt();
     setLiveTranscript('');
     setRecognizedReview(null);
+    spokenFinalRef.current = '';
+    spokenInterimRef.current = '';
+    spokenSendInFlightRef.current = false;
     setMicState('LISTENING');
     avatarService.setState('LISTENING');
 
@@ -369,16 +375,44 @@ export const TutorScreen: React.FC = () => {
     speechService.startListening({
       lang: voiceSettings.speechLanguage,
       onResult: (res) => {
-        setLiveTranscript(res.transcript);
-        if (res.isFinal && res.transcript) {
-          const recognized = res.transcript.trim();
-          setMicState('IDLE');
-          avatarService.setState('THINKING');
-          setRecognizedReview({ hanzi: recognized, pinyin: getQuickPinyin(recognized), vietnamese: getQuickVietnamese(recognized) });
-          if ((voiceSettings.autoSendRecognizedSpeech ?? true) && (!res.confidence || res.confidence >= 0.55)) {
-            if (autoSendTimerRef.current) clearTimeout(autoSendTimerRef.current);
-            autoSendTimerRef.current = setTimeout(() => { autoSendTimerRef.current = null; void handleSendMessage(recognized, false, true); }, 280);
-          }
+        const chunk = res.transcript.trim();
+        if (!chunk) return;
+
+        if (res.isFinal) {
+          spokenFinalRef.current = [spokenFinalRef.current, chunk].filter(Boolean).join(' ');
+          spokenInterimRef.current = '';
+        } else {
+          spokenInterimRef.current = chunk;
+        }
+
+        const recognized = [spokenFinalRef.current, spokenInterimRef.current]
+          .filter(Boolean)
+          .join(' ')
+          .replace(/\s+/g, ' ')
+          .trim();
+
+        setLiveTranscript(recognized);
+        setRecognizedReview({
+          hanzi: recognized,
+          pinyin: getQuickPinyin(recognized),
+          vietnamese: getQuickVietnamese(recognized)
+        });
+
+        // Web Speech can emit a final result for only part of a sentence.
+        // Keep the session open and wait for a short silence before sending,
+        // so the complete learner turn reaches Gemini instead of an early fragment.
+        if (res.isFinal && (voiceSettings.autoSendRecognizedSpeech ?? true) && (!res.confidence || res.confidence >= 0.55)) {
+          if (autoSendTimerRef.current) clearTimeout(autoSendTimerRef.current);
+          autoSendTimerRef.current = setTimeout(() => {
+            autoSendTimerRef.current = null;
+            if (spokenSendInFlightRef.current) return;
+            const fullText = spokenFinalRef.current.trim() || spokenInterimRef.current.trim();
+            if (!fullText) return;
+            spokenSendInFlightRef.current = true;
+            setMicState('IDLE');
+            avatarService.setState('THINKING');
+            void handleSendMessage(fullText, false, true);
+          }, 900);
         }
       },
       onError: (friendlyMsg) => {
@@ -398,14 +432,26 @@ export const TutorScreen: React.FC = () => {
   const stopRecording = () => {
     if (micState === 'LISTENING') {
       speechService.stopListening();
+      if (autoSendTimerRef.current) clearTimeout(autoSendTimerRef.current);
       setMicState('IDLE');
       avatarService.setState('THINKING');
-      if (liveTranscript) {
-        const recognized = liveTranscript.trim();
-        setRecognizedReview({ hanzi: recognized, pinyin: getQuickPinyin(recognized), vietnamese: getQuickVietnamese(recognized) });
-        if (voiceSettings.autoSendRecognizedSpeech ?? true) {
-          if (autoSendTimerRef.current) clearTimeout(autoSendTimerRef.current);
-          autoSendTimerRef.current = setTimeout(() => { autoSendTimerRef.current = null; void handleSendMessage(recognized, false, true); }, 280);
+
+      const recognized = [spokenFinalRef.current, spokenInterimRef.current]
+        .filter(Boolean)
+        .join(' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+      if (recognized) {
+        setLiveTranscript(recognized);
+        setRecognizedReview({
+          hanzi: recognized,
+          pinyin: getQuickPinyin(recognized),
+          vietnamese: getQuickVietnamese(recognized)
+        });
+        if ((voiceSettings.autoSendRecognizedSpeech ?? true) && !spokenSendInFlightRef.current) {
+          spokenSendInFlightRef.current = true;
+          void handleSendMessage(recognized, false, true);
         }
       }
     }
