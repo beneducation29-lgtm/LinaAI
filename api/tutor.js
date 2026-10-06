@@ -157,7 +157,37 @@ async function callGemini({ apiKey, model, prompt }) {
           contents: [{ role: 'user', parts: [{ text: prompt }] }],
           generationConfig: {
             responseMimeType: 'application/json',
-            maxOutputTokens: 900,
+            responseSchema: {
+              type: 'OBJECT',
+              properties: {
+                chinese: { type: 'STRING' },
+                pinyin: { type: 'STRING' },
+                vietnamese: { type: 'STRING' },
+                responseType: { type: 'STRING', enum: ['conversation', 'lesson', 'roleplay', 'correction'] },
+                emotion: { type: 'STRING' },
+                correction: { type: 'OBJECT', nullable: true },
+                vocabulary: { type: 'ARRAY', items: { type: 'OBJECT' } },
+                grammar: { type: 'ARRAY', items: { type: 'OBJECT' } },
+                progressiveHints: { type: 'OBJECT' },
+                speakingCoach: { type: 'OBJECT' },
+                suggestedReplies: {
+                  type: 'ARRAY',
+                  minItems: 2,
+                  maxItems: 4,
+                  items: {
+                    type: 'OBJECT',
+                    properties: {
+                      hanzi: { type: 'STRING' },
+                      pinyin: { type: 'STRING' },
+                      vietnamese: { type: 'STRING' }
+                    },
+                    required: ['hanzi', 'pinyin', 'vietnamese']
+                  }
+                }
+              },
+              required: ['chinese', 'pinyin', 'vietnamese', 'responseType', 'suggestedReplies']
+            },
+            maxOutputTokens: 1200,
             ...(model === 'gemini-3.8-flash' ? { thinkingConfig: { thinkingLevel: 'low' } } : {})
           }
         }),
@@ -226,10 +256,10 @@ async function generateTutor(body) {
     memoryFacts.length ? `Thông tin nhớ: ${memoryFacts.join('; ')}` : '',
     history.length ? `Lịch sử gần đây:\n${JSON.stringify(history)}` : '',
     `TIN NHẮN MỚI NHẤT:\n${message}`,
-    'Phản hồi ngay, tự nhiên và đúng ngữ cảnh; ưu tiên câu trả lời ngắn gọn. Không lặp lại câu mẫu.'
+    'Phản hồi ngay dựa trên TIN NHẮN MỚI NHẤT và 2-3 lượt gần nhất. Không dùng câu xác nhận chung chung nếu có thể trả lời cụ thể. Không lặp lại câu mẫu.'
   ].filter(Boolean).join('\n');
 
-  const models = [MODEL, ...MODEL_FALLBACKS.filter((model) => model !== MODEL)];
+  const models = [MODEL, ...MODEL_FALLBACKS.filter((model) => model !== MODEL).slice(0, 1)];
   let lastError = null;
 
   for (const model of models) {
