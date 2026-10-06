@@ -259,30 +259,64 @@ class SpeechService {
   }
 
   /**
-   * Fetch audio from server-side Gemini TTS if available
+   * Fetch audio from server-side Gemini TTS if available.
+   * Gemini commonly returns raw PCM as audio/L16. Convert it to a WAV Blob URL
+   * so browsers can play it and CSP does not need to allow data: media sources.
    */
   async fetchGeminiTTSAudio(text: string): Promise<string | null> {
-    if (this.audioCache.has(text)) {
-      return this.audioCache.get(text)!;
-    }
+    if (this.audioCache.has(text)) return this.audioCache.get(text)!;
     try {
       const res = await fetch('/api/tts/speak', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text, voice: 'Kore' }),
       });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.audioBase64) {
-          const audioSrc = `data:${data.mimeType || 'audio/wav'};base64,${data.audioBase64}`;
-          this.audioCache.set(text, audioSrc);
-          return audioSrc;
-        }
+      if (!res.ok) return null;
+      const data = await res.json();
+      if (!data.audioBase64) return null;
+
+      const mimeType = String(data.mimeType || 'audio/wav');
+      const binary = atob(data.audioBase64);
+      const pcm = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) pcm[i] = binary.charCodeAt(i);
+
+      let audioBlob: Blob;
+      if (/audio\\/L16/i.test(mimeType) || /codec=pcm/i.test(mimeType)) {
+        const rateMatch = mimeType.match(/rate=(\\d+)/i);
+        const sampleRate = rateMatch ? Number(rateMatch[1]) : 24000;
+        const channelsMatch = mimeType.match(/channels=(\\d+)/i);
+        const channels = channelsMatch ? Number(channelsMatch[1]) : 1;
+        const byteRate = sampleRate * channels * 2;
+        const blockAlign = channels * 2;
+        const header = new ArrayBuffer(44);
+        const view = new DataView(header);
+        const writeAscii = (offset: number, value: string) => {
+          for (let i = 0; i < value.length; i++) view.setUint8(offset + i, value.charCodeAt(i));
+        };
+        writeAscii(0, 'RIFF');
+        view.setUint32(4, 36 + pcm.byteLength, true);
+        writeAscii(8, 'WAVE');
+        writeAscii(12, 'fmt ');
+        view.setUint32(16, 16, true);
+        view.setUint16(20, 1, true);
+        view.setUint16(22, channels, true);
+        view.setUint32(24, sampleRate, true);
+        view.setUint32(28, byteRate, true);
+        view.setUint16(32, blockAlign, true);
+        view.setUint16(34, 16, true);
+        writeAscii(36, 'data');
+        view.setUint32(40, pcm.byteLength, true);
+        audioBlob = new Blob([header, pcm], { type: 'audio/wav' });
+      } else {
+        audioBlob = new Blob([pcm], { type: mimeType });
       }
+
+      const audioSrc = URL.createObjectURL(audioBlob);
+      this.audioCache.set(text, audioSrc);
+      return audioSrc;
     } catch {
-      // ignore
+      return null;
     }
-    return null;
   }
 
   speakChinese(
