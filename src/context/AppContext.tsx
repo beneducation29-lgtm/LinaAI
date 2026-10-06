@@ -325,14 +325,33 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return !user.onboardingCompleted;
   });
 
+  const speakingActivities = motivation.activities.filter(a => a.type === 'speaking' || a.type === 'pronunciation');
+  const speakingScores = speakingActivities.map(a => Number(a.metadata?.score)).filter(Number.isFinite);
+  const grammarLearnedCount = Object.values(structuredProgress).filter(p => p.grammar > 0).length;
+  const speakingAccuracy = speakingScores.length ? Math.round(speakingScores.reduce((sum, score) => sum + score, 0) / speakingScores.length) : 0;
   const learnerProfile: LearnerProfile = {
     id: user.id, displayName: user.name, nativeLanguage: 'vi', targetLanguage: 'zh-CN', currentLevel: user.currentLevel, hskLevel: user.currentHsk,
     pinyinLevel: preferences.showPinyin ? 'marks' : 'hidden', learningGoal: user.learningGoal.category, dailyGoalMinutes: user.dailyGoalMinutes, streak: user.streakDays,
-    totalStudyMinutes: user.todayMinutesSpent, vocabularyStats: { learned: user.vocabularyLearnedCount, mastered: user.vocabularyLearnedCount, weak: aiMemory.weakVocabulary.length },
-    grammarStats: { learned: 0, weak: aiMemory.grammarWeaknesses.length }, pronunciationStats: { accuracy: user.pronunciationAccuracy, weakTones: aiMemory.pronunciationWeaknesses },
-    speakingStats: { practiceCount: 0, accuracy: 0 }, listeningStats: { practiceCount: 0, accuracy: 0 }, readingStats: { practiceCount: 0, accuracy: 0 }, writingStats: { practiceCount: 0, accuracy: 0 },
-    weakAreas: [...new Set([...aiMemory.weakVocabulary, ...aiMemory.grammarWeaknesses, ...aiMemory.pronunciationWeaknesses])].slice(0,10), strongAreas: [], recentLessons: aiMemory.learningHistory.map(x=>x.lessonId).slice(-5), recentMistakes: aiMemory.mistakes.map(x=>x.original).slice(-5), preferredTopics: aiMemory.preferences, lastActiveAt: new Date().toISOString()
+    totalStudyMinutes: motivation.activities.reduce((sum, activity) => sum + Math.max(0, activity.minutes || 0), 0),
+    vocabularyStats: { learned: user.vocabularyLearnedCount, mastered: Object.values(reviewSchedules).filter(x => x.mastery >= 80).length, weak: aiMemory.weakVocabulary.length },
+    grammarStats: { learned: grammarLearnedCount, weak: aiMemory.grammarWeaknesses.length },
+    pronunciationStats: { accuracy: user.pronunciationAccuracy, weakTones: aiMemory.pronunciationWeaknesses },
+    speakingStats: { practiceCount: speakingActivities.length, accuracy: speakingAccuracy },
+    listeningStats: { practiceCount: motivation.activities.filter(a => a.type === 'listening').length, accuracy: 0 },
+    readingStats: { practiceCount: motivation.activities.filter(a => a.type === 'reading').length, accuracy: 0 },
+    writingStats: { practiceCount: motivation.activities.filter(a => a.type === 'writing').length, accuracy: 0 },
+    weakAreas: [...new Set([...aiMemory.weakVocabulary, ...aiMemory.grammarWeaknesses, ...aiMemory.pronunciationWeaknesses])].slice(0,10),
+    strongAreas: [],
+    recentLessons: aiMemory.learningHistory.map(x=>x.lessonId).slice(-5),
+    recentMistakes: aiMemory.mistakes.map(x=>x.original).slice(-5),
+    preferredTopics: aiMemory.topics || [],
+    lastActiveAt: aiMemory.lastConversationAt || new Date().toISOString()
   };
+
+  useEffect(() => {
+    const goal = user.learningGoal.category + ' · mục tiêu ' + user.learningGoal.targetHskLevel;
+    setAiMemory(prev => updateMemory(prev, { goal }));
+  }, [user.learningGoal.category, user.learningGoal.targetHskLevel]);
 
   useEffect(() => { memoryRepoRef.current!.save(aiMemory); }, [aiMemory]);
   useEffect(() => { saveMotivationState(motivation); }, [motivation]);
