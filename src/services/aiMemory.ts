@@ -6,7 +6,7 @@ const now=()=>new Date().toISOString();
 const clean=(s:string)=>s.trim().slice(0,240);
 
 export const createLocalMemoryRepository=():MemoryRepository=>({
- load:()=>{try{const v=storage.getItem(KEY);return v?JSON.parse(v):emptyMemory();}catch{return emptyMemory();}},
+ load:()=>{try{const v=storage.getItem(KEY);if(!v)return emptyMemory();const parsed=JSON.parse(v) as Partial<AIStoredMemory>;return {...emptyMemory(),...parsed,learnerFacts:Array.isArray(parsed.learnerFacts)?parsed.learnerFacts:[],mistakes:Array.isArray(parsed.mistakes)?parsed.mistakes:[],topics:Array.isArray(parsed.topics)?parsed.topics:[],lastConversationAt:typeof parsed.lastConversationAt==='string'?parsed.lastConversationAt:null};}catch{return emptyMemory();}},
  save:(m)=>{try{storage.setItem(KEY,JSON.stringify(m));}catch{}},
  clear:()=>{try{storage.removeItem(KEY);}catch{}}
 });
