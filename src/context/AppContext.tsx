@@ -506,23 +506,37 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const updateFlashcardRating = (cardId: string, rating: ReviewRating) => {
+    const now = new Date().toISOString();
+    setReviewSchedules(prev => {
+      const existing = prev[cardId] || {
+        itemId: cardId,
+        lastReviewed: null,
+        nextReview: now,
+        interval: 0,
+        ease: 2.5,
+        correctCount: 0,
+        incorrectCount: 0,
+        mastery: 0
+      };
+      const next = scheduleReview(existing, rating);
+      return { ...prev, [cardId]: next };
+    });
+
     setFlashcards(prev => prev.map(card => {
       if (card.id !== cardId) return card;
-      let intervalDelta = 1;
-      if (rating === 'easy') intervalDelta = 4;
-      if (rating === 'good') intervalDelta = 2;
-      if (rating === 'hard') intervalDelta = 1;
-      if (rating === 'again') intervalDelta = 0;
-
+      const existing = reviewSchedules[cardId];
+      const next = scheduleReview(existing, rating);
       return {
         ...card,
-        intervalDays: Math.max(1, card.intervalDays + intervalDelta),
-        repetitionCount: card.repetitionCount + 1,
+        nextReviewDate: next.nextReview,
+        intervalDays: next.interval,
+        repetitionCount: next.correctCount + next.incorrectCount,
+        easeFactor: next.ease,
         lastRating: rating
       };
     }));
 
-    recordMotivationActivity({ id: `review:${cardId}:${Date.now()}`, type: 'review', minutes: 1, vocabularyCount: 1, metadata: { cardId } });
+    recordMotivationActivity({ id: `review:${cardId}:${Date.now()}`, type: 'review', minutes: 1, vocabularyCount: 1, metadata: { cardId, rating } });
     analytics.track('vocabulary_review', { cardId, rating });
     if (rating === 'easy') analytics.track('vocabulary_mastered', { cardId });
   };
