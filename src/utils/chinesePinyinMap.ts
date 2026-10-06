@@ -1,6 +1,9 @@
 /**
- * Quick Pinyin and Vietnamese dictionary mapper for recognized speech preview
+ * Quick Pinyin and Vietnamese dictionary mapper for recognized speech preview.
+ * The classic HSK lexicon is used as a local fallback so recognized sentences
+ * get full word-level Pinyin instead of a sparse character-by-character preview.
  */
+import { HSK_CLASSIC_VOCABULARY } from '../data/hskClassicVocabulary';
 
 interface PhraseLookup {
   pinyin: string;
@@ -77,23 +80,58 @@ const CHAR_PINYIN: Record<string, string> = {
   '了': 'le', '不': 'bù', '高': 'gāo', '兴': 'xìng', '认': 'rèn', '识': 'shi'
 };
 
+const HSK_PINYIN_BY_HANZI = new Map<string, string>(
+  HSK_CLASSIC_VOCABULARY.map(v => [v.hanzi, v.pinyin])
+);
+
+function normalizePinyinCase(value: string): string {
+  return value ? value.charAt(0).toUpperCase() + value.slice(1) : '';
+}
+
 export function getQuickPinyin(hanziText: string): string {
-  if (COMMON_PHRASES[hanziText]) {
-    return COMMON_PHRASES[hanziText].pinyin;
-  }
+  const source = hanziText.trim();
+  if (!source) return '';
+  if (COMMON_PHRASES[source]) return COMMON_PHRASES[source].pinyin;
 
-  const pinyinWords: string[] = [];
-  for (const char of hanziText) {
-    if (CHAR_PINYIN[char]) {
-      pinyinWords.push(CHAR_PINYIN[char]);
-    } else if (/[a-zA-Z0-9\s]/.test(char)) {
-      pinyinWords.push(char);
+  const parts: string[] = [];
+  let index = 0;
+
+  while (index < source.length) {
+    const rest = source.slice(index);
+    const punctuation = rest.match(/^[，。！？；：、“”‘’（）()《》,.!?;:\s]+/);
+    if (punctuation) {
+      parts.push(punctuation[0]);
+      index += punctuation[0].length;
+      continue;
     }
+
+    let matched = '';
+    let matchedPinyin = '';
+    const maxLen = Math.min(8, rest.length);
+    for (let len = maxLen; len >= 1; len -= 1) {
+      const candidate = rest.slice(0, len);
+      const pinyin = HSK_PINYIN_BY_HANZI.get(candidate);
+      if (pinyin) {
+        matched = candidate;
+        matchedPinyin = pinyin;
+        break;
+      }
+    }
+
+    if (matched) {
+      parts.push(matchedPinyin);
+      index += matched.length;
+      continue;
+    }
+
+    const char = source[index];
+    if (CHAR_PINYIN[char]) parts.push(CHAR_PINYIN[char]);
+    else if (/[a-zA-Z0-9]/.test(char)) parts.push(char);
+    index += 1;
   }
 
-  if (pinyinWords.length === 0) return '';
-  const joined = pinyinWords.join(' ');
-  return joined.charAt(0).toUpperCase() + joined.slice(1);
+  const joined = parts.join(' ').replace(/\s+([，。！？；：,.!?;])/g, '$1').trim();
+  return normalizePinyinCase(joined);
 }
 
 export function getQuickVietnamese(hanziText: string): string {
