@@ -17,8 +17,17 @@ export class BufferedGeminiTTSProvider implements StreamingTTSProvider {
     try {
       options.onStart?.();
       const source = await speechService.fetchGeminiTTSAudio(options.text);
-      if (source) await audioStreamController.playSource(source, options.rate || 1);
-      else await speechService.speakChinese(options.text, { rate: (options.rate || 1) as 0.75 | 1 | 1.25, lang: options.lang || 'zh-CN' });
+      if (source) {
+        await audioStreamController.playSource(source, options.rate || 1);
+      } else {
+        // Gemini may be rate-limited/unavailable. Do not call Gemini a second time
+        // from speakChinese(); go straight to the browser's Chinese voice fallback.
+        await speechService.speakChinese(options.text, {
+          rate: (options.rate || 1) as 0.75 | 1 | 1.25,
+          lang: options.lang || 'zh-CN',
+          useGeminiTTS: false
+        });
+      }
       options.onEnd?.();
     } catch (error) { options.onError?.(error instanceof Error ? error : new Error('TTS failed')); throw error; }
     finally { this.speaking = false; }
@@ -103,8 +112,8 @@ export class ElevenLabsStreamingTTSProvider implements StreamingTTSProvider {
 
 class ResilientStreamingTTSProvider implements StreamingTTSProvider {
   readonly name = streamingEnabled ? 'ElevenLabs Flash v2.5 → buffered fallback' : 'Gemini TTS buffered fallback';
-  readonly supportsStreaming = streamingEnabled;
-  readonly supportsPrefetch = streamingEnabled;
+  get supportsStreaming(): boolean { return streamingEnabled && this.active instanceof ElevenLabsStreamingTTSProvider; }
+  get supportsPrefetch(): boolean { return streamingEnabled && this.active instanceof ElevenLabsStreamingTTSProvider; }
   private active: StreamingTTSProvider = streamingEnabled ? new ElevenLabsStreamingTTSProvider() : new BufferedGeminiTTSProvider();
 
   async start(options: StreamingTTSOptions): Promise<void> {
