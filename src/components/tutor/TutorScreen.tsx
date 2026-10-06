@@ -57,6 +57,7 @@ export const TutorScreen: React.FC = () => {
     setTutorMode,
     learnerMemory,
     addLearnerMemory,
+    recordTutorMemory,
     clearConversation,
     aiMemory,
     learnerProfile,
@@ -272,9 +273,18 @@ export const TutorScreen: React.FC = () => {
         addLearnerMemory(`Lỗi cần chú ý: ${c.originalSentence} → ${c.correctedSentence}`);
       }
 
-      // Record memory update if returned
-      if (structuredRes.memoryUpdate?.learnedFact) {
-        addLearnerMemory(structuredRes.memoryUpdate.learnedFact);
+      // Persist durable learner memory after every tutor turn: facts, topic and a compact summary.
+      if (structuredRes.memoryUpdate?.learnedFact || structuredRes.memoryUpdate?.topicContext) {
+        recordTutorMemory({
+          fact: structuredRes.memoryUpdate?.learnedFact,
+          topic: structuredRes.memoryUpdate?.topicContext || conversation.topicTitleVi,
+          summary: `${conversation.topicTitleVi}: ${textToSend.slice(0, 120)} → ${structuredRes.chinese.slice(0, 160)}`
+        });
+      } else {
+        recordTutorMemory({
+          topic: conversation.topicTitleVi,
+          summary: `${conversation.topicTitleVi}: ${textToSend.slice(0, 120)} → ${structuredRes.chinese.slice(0, 160)}`
+        });
       }
 
       // 3. Assemble AI Message
