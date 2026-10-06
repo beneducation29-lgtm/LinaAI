@@ -85,7 +85,7 @@ assert.match(authService, /startGoogleLogin/);
 assert.match(authService, /requestPasswordReset/);
 assert.match(authService, /resetPassword/);
 for (const route of ['login','signup','google','me','refresh','logout','forgot-password','reset-password','oauth/session']) {
-  assert.match(authApi, new RegExp(`action===['"]${route.replace('/', '\\\\/')}['"]`));
+  assert.match(authApi, new RegExp(`action===['"]${route}['"]`));
 }
 assert.match(authApi, /signIn\(/);
 assert.match(authApi, /signUp\(/);
