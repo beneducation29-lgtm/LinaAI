@@ -59,6 +59,18 @@ const COMMON_PHRASES: Record<string, PhraseLookup> = {
     pinyin: 'Wǒ xiǎng diǎn yí fèn mǐfàn.',
     vietnamese: 'Tôi muốn gọi một suất cơm.'
   },
+  '我今天很忙': {
+    pinyin: 'Wǒ jīntiān hěn máng.',
+    vietnamese: 'Hôm nay tôi rất bận.'
+  },
+  '我在河内大学学习': {
+    pinyin: 'Wǒ zài Hénèi Dàxué xuéxí.',
+    vietnamese: 'Tôi học tại Đại học Hà Nội.'
+  },
+  '我在河内大学学习中文': {
+    pinyin: 'Wǒ zài Hénèi Dàxué xuéxí Zhōngwén.',
+    vietnamese: 'Tôi học tiếng Trung tại Đại học Hà Nội.'
+  },
   '请问地铁站在哪里': {
     pinyin: 'Qǐngwèn dìtiězhàn zài nǎlǐ?',
     vietnamese: 'Xin hỏi ga tàu điện ngầm ở đâu?'
