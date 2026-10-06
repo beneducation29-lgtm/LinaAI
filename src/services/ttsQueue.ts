@@ -15,7 +15,8 @@ export class TTSQueue {
     for(const text of chunks){
       if(text&&this.pending.length<this.maxPending)this.pending.push({sentenceId:`sentence_${String(++this.sequence).padStart(3,'0')}`,text,rate});
     }
-    this.prefetchNext(generation);
+    // Do not prefetch the first item: drain() may start it immediately. Prefetching
+    // the same sentence here caused duplicate TTS requests and unnecessary 429s.
     void this.drain(generation);
   }
 
@@ -54,6 +55,9 @@ export class TTSQueue {
     try{
       while(this.pending.length&&!this.cancelled&&generation===this.generation){
         const item=this.pending.shift()!;
+        // Prefetch the next sentence while the current one is being generated/played.
+        // This overlaps network work without ever issuing two requests for the same text.
+        this.prefetchNext(generation);
         try{
           const opts={text:item.text,lang:'zh-CN',rate:item.rate,onStart:()=>{if(generation===this.generation)this.callbacks.onStart?.(item.sentenceId);},onEnd:()=>{if(generation===this.generation)this.callbacks.onEnd?.(item.sentenceId);},onError:(e:Error)=>{if(generation===this.generation)this.callbacks.onError?.(e,item.sentenceId);}};
           if(item.prepared&&streamingTTSProvider.playPrepared) await streamingTTSProvider.playPrepared(item.prepared,opts);
@@ -61,7 +65,6 @@ export class TTSQueue {
         }catch(error){
           this.callbacks.onError?.(error instanceof Error?error:new Error('TTS queue failed'),item.sentenceId);
         }
-        this.prefetchNext(generation);
       }
     }finally{this.running=false;}
   }
