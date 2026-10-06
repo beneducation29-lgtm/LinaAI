@@ -15,19 +15,19 @@ export const INITIAL_USER_PROFILE: UserProfile = {
     weeklyTargetDays: 5
   },
   dailyGoalMinutes: 10,
-  todayMinutesSpent: 7,
-  streakDays: 5,
-  vocabularyLearnedCount: 42,
-  lessonsCompletedCount: 3,
-  pronunciationAccuracy: 88,
-  savedVocabularyIds: ['vocab-1', 'vocab-2', 'vocab-3'],
+  todayMinutesSpent: 0,
+  streakDays: 0,
+  vocabularyLearnedCount: 0,
+  lessonsCompletedCount: 0,
+  pronunciationAccuracy: 0,
+  savedVocabularyIds: [],
   preferences: {
     showChinese: true,
     showPinyin: true,
     showVietnamese: true,
     theme: 'light'
   },
-  onboardingCompleted: true
+  onboardingCompleted: false
 };
 
 export const INITIAL_VOCABULARIES: Vocabulary[] = [
