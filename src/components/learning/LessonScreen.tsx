@@ -5,6 +5,7 @@ import { LayerToggles } from '../common/LayerToggles';
 import { LessonCard } from './LessonCard';
 import { ChineseSentence } from '../common/ChineseSentence';
 import { speechService, PronunciationScore } from '../../services/speech';
+import { aiTutor } from '../../services/aiTutor';
 import { 
   ArrowLeft, 
   ArrowRight, 
@@ -19,13 +20,14 @@ import {
 } from 'lucide-react';
 
 export const LessonScreen: React.FC = () => {
-  const { currentLesson, lessonSectionIndex, setLessonSectionIndex, user, setCurrentTab, recordMotivationActivity } = useApp();
+  const { currentLesson, lessonSectionIndex, setLessonSectionIndex, user, setCurrentTab, recordMotivationActivity, recordLearningResult, addMistake, learnerProfileMemory } = useApp();
   
   const [completedSections, setCompletedSections] = useState<number[]>([0]);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [answerSubmitted, setAnswerSubmitted] = useState<boolean>(false);
   const [isSpeakingMicActive, setIsSpeakingMicActive] = useState<boolean>(false);
   const [speakingFeedback, setSpeakingFeedback] = useState<PronunciationScore | null>(null);
+  const [isAiScoring, setIsAiScoring] = useState(false);
 
   const sections = currentLesson.sections;
   const activeSection = sections[lessonSectionIndex] || sections[0];
@@ -72,41 +74,54 @@ export const LessonScreen: React.FC = () => {
     if (isSpeakingMicActive) {
       speechService.stopListening();
       setIsSpeakingMicActive(false);
-    } else {
-      setIsSpeakingMicActive(true);
-      setSpeakingFeedback(null);
+      return;
+    }
 
-      if (!speechService.isSttSupported()) {
-        setTimeout(() => {
-          setIsSpeakingMicActive(false);
-          const score = speechService.analyzePronunciation(targetText, targetText);
-          setSpeakingFeedback(score);
-          recordMotivationActivity({ id: `pronunciation:${Date.now()}`, type: 'pronunciation', minutes: 1, metadata: { score: score.overall } });
-          recordMotivationActivity({ id: `pronunciation:${Date.now()}`, type: 'pronunciation', minutes: 1, metadata: { score: score.overall } });
-        }, 1600);
+    setIsSpeakingMicActive(true);
+    setSpeakingFeedback(null);
+
+    const scoreWithAi = async (transcript: string) => {
+      const cleanTranscript = transcript.trim();
+      if (!cleanTranscript) {
+        setSpeakingFeedback({ overall: null, tones: null, initials: null, finals: null, fluency: null, feedback: 'Lina chưa nhận diện được câu nói. Bạn thử nói lại rõ và chậm hơn nhé.', isAcousticAvailable: false, status: 'insufficient-data', provider: 'web-speech-stt', recognizedText: '' });
         return;
       }
+      setIsAiScoring(true);
+      try {
+        const response = await aiTutor.sendMessage({
+          conversationId: currentLesson.id, topicTitleVi: currentLesson.titleVi, hskLevel: currentLesson.hskLevel,
+          userLevel: user.currentLevel, userName: user.name, history: [], mode: 'teacher',
+          memoryFacts: learnerProfileMemory().recentMistakes, isSpoken: true, speakingCoachTarget: targetText, speakingAttempt: 1
+        }, cleanTranscript);
+        const coach = response.speakingCoach;
+        const score = coach?.naturalnessScore ?? 0;
+        let feedback = coach?.feedbackVi || (score >= 85 ? 'Câu nói khá tự nhiên và bám sát mẫu. Hãy tiếp tục luyện để phản xạ nhanh hơn.' : 'Lina đã nhận diện câu nói của bạn. Hãy đối chiếu lại với câu mẫu rồi thử thêm một lần.');
+        if (coach?.betterSentence && coach.betterSentence !== cleanTranscript) feedback += ' Câu nên luyện lại: ' + coach.betterSentence + '.';
+        setSpeakingFeedback({ overall: score, tones: null, initials: null, finals: null, fluency: score, feedback, isAcousticAvailable: false, status: 'provider-unavailable', provider: 'gemini-speaking-coach', recognizedText: cleanTranscript });
+        const passed = score >= 85 && !coach?.needsRetry;
+        recordLearningResult(currentLesson.id + ':shadowing', passed);
+        recordMotivationActivity({ id: 'shadowing:' + currentLesson.id + ':' + Date.now(), type: 'pronunciation', minutes: 1, lessonId: currentLesson.id, metadata: { score, provider: 'gemini-speaking-coach', recognizedText: cleanTranscript } });
+        if (!passed) addMistake({ type: 'pronunciation', original: cleanTranscript, corrected: coach?.betterSentence || targetText, explanation: feedback, mastery: 0 });
+      } catch {
+        const local = speechService.analyzePronunciation(targetText, cleanTranscript);
+        setSpeakingFeedback({ ...local, feedback: 'Lina AI chưa phản hồi kịp. STT đã nhận diện: “' + cleanTranscript + '”. Bạn thử lại sau một chút nhé.', provider: 'web-speech-stt' });
+      } finally {
+        setIsAiScoring(false);
+      }
+    };
 
-      speechService.startListening({
-        lang: 'zh-CN',
-        onResult: (res) => {
-          if (res.isFinal && res.transcript) {
-            setIsSpeakingMicActive(false);
-            const score = speechService.analyzePronunciation(targetText, res.transcript);
-            setSpeakingFeedback(score);
-            recordMotivationActivity({ id: `pronunciation:${Date.now()}`, type: 'pronunciation', minutes: 1, metadata: { score: score.overall } });
-          }
-        },
-        onError: () => {
-          setIsSpeakingMicActive(false);
-          const score = speechService.analyzePronunciation(targetText, targetText);
-          setSpeakingFeedback(score);
-        },
-        onEnd: () => {
-          setIsSpeakingMicActive(false);
-        }
-      });
+    if (!speechService.isSttSupported()) {
+      setIsSpeakingMicActive(false);
+      setSpeakingFeedback({ overall: null, tones: null, initials: null, finals: null, fluency: null, feedback: 'Trình duyệt chưa hỗ trợ nhận diện giọng nói. Hãy dùng Chrome/Edge và cấp quyền microphone.', isAcousticAvailable: false, status: 'insufficient-data', provider: 'web-speech-stt', recognizedText: '' });
+      return;
     }
+
+    speechService.startListening({
+      lang: 'zh-CN',
+      onResult: (res) => { if (res.isFinal && res.transcript) { setIsSpeakingMicActive(false); void scoreWithAi(res.transcript); } },
+      onError: (message) => { setIsSpeakingMicActive(false); setSpeakingFeedback({ overall: null, tones: null, initials: null, finals: null, fluency: null, feedback: message, isAcousticAvailable: false, status: 'insufficient-data', provider: 'web-speech-stt', recognizedText: '' }); },
+      onEnd: () => setIsSpeakingMicActive(false)
+    });
   };
 
   return (
@@ -420,15 +435,15 @@ export const LessonScreen: React.FC = () => {
                   <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-2xl space-y-1.5">
                     <div className="flex items-center justify-between text-xs font-bold text-emerald-800 dark:text-emerald-300">
                       <span className="flex items-center gap-1.5">
-                        <CheckCircle2 className="w-4 h-4" /> Đánh giá phát âm
+                        <CheckCircle2 className="w-4 h-4" /> Lina AI chấm Shadowing
                       </span>
-                      <span className="font-mono text-sm">{speakingFeedback.overall}/100</span>
+                      <span className="font-mono text-sm">{speakingFeedback.overall == null ? '—' : speakingFeedback.overall + '/100'}</span>
                     </div>
                     <p className="text-xs text-stone-600 dark:text-stone-300">
                       {speakingFeedback.feedback}
                     </p>
                     <div className="text-[10px] text-stone-400 pt-1 flex items-center gap-1">
-                      <Info className="w-3 h-3" /> Đánh giá dựa trên đối chiếu nhận diện âm thanh STT
+                      <Info className="w-3 h-3" /> AI chấm độ khớp và tự nhiên dựa trên transcript STT; chưa phải phân tích cao độ âm thanh
                     </div>
                   </div>
                 )}
