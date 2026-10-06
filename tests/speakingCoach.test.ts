@@ -76,6 +76,7 @@ console.log('Authenticated real-data learning UI tests passed');
 
 const authService = fs.readFileSync('src/services/authService.ts', 'utf8');
 const authApi = fs.readFileSync('api/auth/[...path].js', 'utf8');
+const googleApi = fs.readFileSync('api/auth/google.js', 'utf8');
 assert.match(appShell, /Đăng ký ngay/);
 assert.match(appShell, /Quên mật khẩu\?/);
 assert.match(appShell, /Tiếp tục với Google/);
@@ -89,10 +90,11 @@ for (const route of ['login','signup','google','me','refresh','logout','forgot-p
 }
 assert.match(authApi, /signIn\(/);
 assert.match(authApi, /signUp\(/);
-assert.match(authApi, /auth\/v1\/authorize/);
-assert.match(authApi, /provider.*google/);
-assert.match(authApi, /flow_type.*implicit/);
-assert.match(authApi, /redirectTo.*auth\/callback/);
+assert.match(googleApi, /auth\/v1\/authorize/);
+assert.match(googleApi, /provider.*google/);
+assert.match(googleApi, /flow_type.*implicit/);
+assert.match(googleApi, /redirectTo.*auth\/callback/);
+assert.match(googleApi, /Content-Security-Policy/);
 assert.match(authApi, /sendPasswordRecovery/);
 assert.match(authApi, /updatePassword/);
 console.log('Authentication signup, Google OAuth and password recovery tests passed');
