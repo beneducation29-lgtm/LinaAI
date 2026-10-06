@@ -104,6 +104,7 @@ class SpeechService {
   private currentAudioElement: HTMLAudioElement | null = null;
   private audioCache = new Map<string, string>();
   private audioInflight = new Map<string, Promise<string | null>>();
+  private audioFailureUntil = 0;
 
   constructor() {
     if (typeof window !== 'undefined') {
@@ -262,6 +263,9 @@ class SpeechService {
   /** Fetch audio from server-side Gemini TTS if available. */
   async fetchGeminiTTSAudio(text: string): Promise<string | null> {
     if (this.audioCache.has(text)) return this.audioCache.get(text)!;
+    // When Gemini TTS is rate-limited, stop hammering the provider for a short cooldown.
+    // The caller will immediately fall back to browser speech instead.
+    if (Date.now() < this.audioFailureUntil) return null;
     const existing = this.audioInflight.get(text);
     if (existing) return existing;
 
@@ -272,7 +276,10 @@ class SpeechService {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ text, voice: 'Kore' }),
         });
-        if (!res.ok) return null;
+        if (!res.ok) {
+          if (res.status === 429 || res.status === 503) this.audioFailureUntil = Date.now() + 8000;
+          return null;
+        }
         const data = await res.json();
         if (!data.audioBase64) return null;
         const binary = atob(data.audioBase64);
