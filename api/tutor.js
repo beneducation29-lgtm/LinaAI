@@ -85,7 +85,8 @@ QUAN TRỌNG:
 - Luôn trả lời dựa trên tin nhắn MỚI NHẤT.
 - Không dùng câu trả lời mẫu cố định cho mọi tin nhắn.
 - Nếu isSpoken=true, hãy đóng vai Speaking Coach: đánh giá độ tự nhiên của chính câu người học vừa nói (không chấm âm thanh/acoustic vì bạn chỉ có transcript). Chỉ bật speakingCoach.enabled=true khi câu cần sửa hoặc có cách nói tự nhiên hơn đáng kể. Nếu cần sửa, needsRetry=true, issueType phù hợp, naturalnessScore 0-100, betterSentence là câu người học nên nói lại, feedbackVi ngắn gọn, retryPromptVi khuyến khích nói lại. Nếu câu tự nhiên, enabled=false và naturalnessScore 90-100.
-- Nếu isSpeakingRetry=true, hãy so sánh câu vừa nói với speakingCoachTarget là câu Lina yêu cầu nói lại. Không chỉ sửa lại câu: hãy xác định người học đã tiến bộ chưa. Trả về isRetry=true, attempt là số lần thử, retryResolved=true nếu câu đã tự nhiên/đạt mục tiêu (naturalnessScore >= 85); khi resolved thì needsRetry=false, issueType=none, betterSentence có thể giữ câu hiện tại. Nếu chưa đạt, retryResolved=false, needsRetry=true và betterSentence là phiên bản cần luyện tiếp. Chỉ yêu cầu tối đa 3 lần; sau attempt >= 3 hãy ưu tiên chốt câu gần đúng nhất và retryResolved=true nếu câu đủ hiểu.`;
+- Nếu isSpeakingRetry=true, hãy so sánh câu vừa nói với speakingCoachTarget là câu Lina yêu cầu nói lại. Không chỉ sửa lại câu: hãy xác định người học đã tiến bộ chưa. Trả về isRetry=true, attempt là số lần thử, retryResolved=true nếu câu đã tự nhiên/đạt mục tiêu (naturalnessScore >= 85); khi resolved thì needsRetry=false, issueType=none, betterSentence có thể giữ câu hiện tại. Nếu chưa đạt, retryResolved=false, needsRetry=true và betterSentence là phiên bản cần luyện tiếp. Chỉ yêu cầu tối đa 3 lần; sau attempt >= 3 hãy ưu tiên chốt câu gần đúng nhất và retryResolved=true nếu câu đủ hiểu.
+- memoryUpdate: nếu tin nhắn mới cho biết một sở thích, thông tin cá nhân ổn định, mục tiêu học, hoặc chủ đề đang nói, hãy trả về learnedFact/topicContext ngắn gọn. Nếu không có thì để chuỗi rỗng. Không suy đoán thông tin cá nhân.`;
 
 function cleanString(value, max) {
   return typeof value === 'string'
@@ -202,6 +203,10 @@ async function callGemini({ apiKey, model, prompt }) {
                 grammar: { type: 'ARRAY', items: { type: 'OBJECT' } },
                 progressiveHints: { type: 'OBJECT' },
                 speakingCoach: { type: 'OBJECT' },
+                memoryUpdate: {
+                  type: 'OBJECT',
+                  properties: { learnedFact: { type: 'STRING' }, topicContext: { type: 'STRING' } }
+                },
                 suggestedReplies: {
                   type: 'ARRAY',
                   minItems: 2,
@@ -288,6 +293,7 @@ async function generateTutor(body) {
     memoryFacts.length ? `Thông tin nhớ: ${memoryFacts.join('; ')}` : '',
     history.length ? `Lịch sử gần đây:\n${JSON.stringify(history)}` : '',
     `TIN NHẮN MỚI NHẤT:\n${message}`,
+    'Nếu người học nói về tên, sở thích, quê quán, công việc, gia đình, thói quen hoặc mục tiêu HSK thì ghi nhận vào memoryUpdate. Chỉ ghi điều người học thực sự nói, không suy đoán.',
     'Phản hồi ngay dựa trên TIN NHẮN MỚI NHẤT và 2-3 lượt gần nhất. Không dùng câu xác nhận chung chung nếu có thể trả lời cụ thể. Không lặp lại câu mẫu.'
   ].filter(Boolean).join('\n');
 
