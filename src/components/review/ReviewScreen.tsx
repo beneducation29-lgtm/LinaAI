@@ -11,6 +11,8 @@ export const ReviewScreen: React.FC = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isCompleted, setIsCompleted] = useState(false);
   const [activeTab, setActiveTab] = useState<'flashcards' | 'saved'>('flashcards');
+  const [reviewedCount, setReviewedCount] = useState(0);
+  const [correctCount, setCorrectCount] = useState(0);
 
   const currentCard = flashcards[currentIndex];
 
@@ -18,6 +20,8 @@ export const ReviewScreen: React.FC = () => {
     if (!currentCard) return;
 
     updateFlashcardRating(currentCard.id, rating);
+    setReviewedCount(count => count + 1);
+    if (rating === 'good' || rating === 'easy') setCorrectCount(count => count + 1);
 
     if (currentIndex + 1 < flashcards.length) {
       setCurrentIndex(currentIndex + 1);
@@ -29,6 +33,8 @@ export const ReviewScreen: React.FC = () => {
   const handleRestart = () => {
     setCurrentIndex(0);
     setIsCompleted(false);
+    setReviewedCount(0);
+    setCorrectCount(0);
   };
 
   const savedVocabularies = allVocabularies.filter(v => user.savedVocabularyIds.includes(v.id));
@@ -115,7 +121,7 @@ export const ReviewScreen: React.FC = () => {
             </h2>
 
             <p className="text-xs sm:text-sm text-stone-600 dark:text-stone-400 max-w-md mx-auto leading-relaxed">
-              Bạn đã ôn luyện xuất sắc <strong>{flashcards.length} thẻ từ vựng</strong>. Trí nhớ dài hạn của bạn đang được củng cố vững chắc mỗi ngày!
+              Bạn vừa hoàn thành <strong>{reviewedCount || flashcards.length} lượt ôn</strong>. Lina sẽ dùng kết quả này để đưa những từ khó quay lại sớm hơn và giãn những từ bạn đã nhớ.
             </p>
 
             <div className="p-4 bg-stone-50 dark:bg-stone-800/60 rounded-2xl max-w-sm mx-auto flex items-center justify-around text-center">
@@ -128,9 +134,9 @@ export const ReviewScreen: React.FC = () => {
               <div className="w-px h-8 bg-stone-200 dark:bg-stone-700" />
               <div>
                 <span className="text-2xl font-bold text-amber-700 dark:text-amber-400 tabular-nums">
-                  +100%
+                  {reviewedCount ? Math.round((correctCount / reviewedCount) * 100) : 0}%
                 </span>
-                <span className="text-[11px] text-stone-400 block">Tiến độ</span>
+                <span className="text-[11px] text-stone-400 block">Đúng</span>
               </div>
               <div className="w-px h-8 bg-stone-200 dark:bg-stone-700" />
               <div>
