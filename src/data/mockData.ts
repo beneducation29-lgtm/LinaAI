@@ -1,5 +1,6 @@
 import { Lesson, UserProfile, Vocabulary, Flashcard, Conversation } from '../types';
 import linaAvatarImg from '../assets/images/lina_avatar_stylized_1790862594850.jpg';
+import { HSK_CLASSIC_VOCABULARY } from './hskClassicVocabulary';
 
 export const INITIAL_USER_PROFILE: UserProfile = {
   id: 'user-001',
@@ -144,12 +145,17 @@ export const INITIAL_VOCABULARIES: Vocabulary[] = [
   }
 ];
 
-export const INITIAL_FLASHCARDS: Flashcard[] = INITIAL_VOCABULARIES.map((vocab, index) => ({
+const REVIEW_STARTER_VOCABULARIES: Vocabulary[] = [
+  ...INITIAL_VOCABULARIES,
+  ...HSK_CLASSIC_VOCABULARY.filter(v => !INITIAL_VOCABULARIES.some(seed => seed.hanzi === v.hanzi)).slice(0, 42)
+];
+
+export const INITIAL_FLASHCARDS: Flashcard[] = REVIEW_STARTER_VOCABULARIES.map((vocab, index) => ({
   id: `card-${vocab.id}`,
   vocabulary: vocab,
   nextReviewDate: new Date().toISOString(),
-  intervalDays: 1 + index,
-  repetitionCount: 2,
+  intervalDays: 1,
+  repetitionCount: 0,
   easeFactor: 2.5
 }));
 
