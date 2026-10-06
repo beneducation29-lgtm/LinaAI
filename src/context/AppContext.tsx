@@ -56,6 +56,7 @@ interface AppContextType {
   setTutorMode: (mode: TutorMode) => void;
   learnerMemory: string[];
   addLearnerMemory: (fact: string) => void;
+  recordTutorMemory: (input: { fact?: string; topic?: string; summary?: string; goal?: string; preference?: string }) => void;
   flashcards: Flashcard[];
   allVocabularies: Vocabulary[];
   updateFlashcardRating: (cardId: string, rating: ReviewRating) => void;
@@ -144,7 +145,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch {
       // fallback
     }
-    return [`Học viên tên là: ${INITIAL_USER_PROFILE.name}`, 'Quốc tịch: Việt Nam', 'Mục tiêu: Giao tiếp'];
+    return [];
   });
 
   const [currentTab, setCurrentTab] = useState<TabType>('home');
@@ -237,7 +238,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       savedVocabularyIds: [],
       onboardingCompleted: false
     });
-    void syncEngine.initialSync().then(() => { syncReadyRef.current = true; });
+    void syncEngine.initialSync().then(() => {
+      syncReadyRef.current = true;
+      setLearnerMemory(prev => {
+        const seed = `Học viên tên là: ${authUser.name || 'Học viên'}`;
+        return prev.includes(seed) ? prev : [...prev, seed].slice(-8);
+      });
+    });
   }, [authUser?.id]);
   useEffect(() => {
     const handler = (event: Event) => {
@@ -424,8 +431,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (!fact) return;
     setLearnerMemory(prev => {
       if (prev.includes(fact)) return prev;
-      return [...prev.slice(-8), fact]; // Keep last 8 compact facts
+      return [...prev.slice(-8), fact];
     });
+    setAiMemory(prev => updateMemory(prev, { fact }));
+  };
+
+  const recordTutorMemory = (input: { fact?: string; topic?: string; summary?: string; goal?: string; preference?: string }) => {
+    setAiMemory(prev => updateMemory(prev, {
+      fact: input.fact,
+      topic: input.topic,
+      conversationSummary: input.summary,
+      goal: input.goal,
+      preference: input.preference
+    }));
+    if (input.fact) {
+      setLearnerMemory(prev => prev.includes(input.fact!) ? prev : [...prev.slice(-8), input.fact!]);
+    }
   };
 
   const toggleDisplayOption = (key: keyof Omit<DisplayPreferences, 'theme'>) => {
