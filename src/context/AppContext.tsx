@@ -202,7 +202,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [flashcards, setFlashcards] = useState<Flashcard[]>(() => {
     try {
       const saved = storage.getItem(STORAGE_KEYS.FLASHCARDS);
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved) as Flashcard[];
+        if (Array.isArray(parsed)) {
+          const existingIds = new Set(parsed.map(card => card.id));
+          const starterExpansion = INITIAL_FLASHCARDS.filter(card => !existingIds.has(card.id));
+          return parsed.length < INITIAL_FLASHCARDS.length ? [...parsed, ...starterExpansion] : parsed;
+        }
+      }
     } catch {
       // fallback
     }
