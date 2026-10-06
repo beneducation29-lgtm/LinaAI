@@ -38,7 +38,9 @@ export const Profile: React.FC = () => {
     loginAccount,
     signupAccount,
     logoutAccount,
-    syncNow
+    syncNow,
+    reviewSchedules,
+    motivation
   } = useApp();
 
   const authParams = new URLSearchParams(window.location.search);
@@ -213,11 +215,21 @@ export const Profile: React.FC = () => {
             Các thông tin cá nhân và ngữ cảnh Lina đã ghi nhớ để cá nhân hóa đàm thoại:
           </p>
           <div className="flex flex-wrap gap-1.5 pt-1">
-            {['Tên học viên sẽ được cập nhật sau khi bạn đăng nhập', 'Quốc tịch: chưa thiết lập', 'Mục tiêu: sẽ được xác định trong quá trình học', 'Sở thích: sẽ được Lina ghi nhớ khi bạn cho phép'].map((mem, i) => (
-              <span key={i} className="text-xs px-2.5 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200/60 dark:border-amber-900/60 text-amber-900 dark:text-amber-300 font-medium">
+            {[
+              user.name !== 'Bạn' ? `Tên: ${user.name}` : null,
+              user.learningGoal.category ? `Mục tiêu: ${user.learningGoal.category} · ${user.learningGoal.targetHskLevel}` : null,
+              aiMemory.preferences.length ? `Sở thích: ${aiMemory.preferences.slice(-2).join(' · ')}` : null,
+              aiMemory.learnerFacts.find(fact => /việt nam|quốc tịch|người việt/i.test(fact)) || null
+            ].filter((x): x is string => Boolean(x)).map(mem => (
+              <span key={mem} className="text-xs px-2.5 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200/60 dark:border-amber-900/60 text-amber-900 dark:text-amber-300 font-medium">
                 ✓ {mem}
               </span>
             ))}
+            {!user.name || (user.name === 'Bạn' && !user.learningGoal.category && !aiMemory.preferences.length && !aiMemory.learnerFacts.length) ? (
+              <span className="text-xs px-2.5 py-1 rounded-lg bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-stone-500">
+                Lina chưa có đủ dữ liệu cá nhân để ghi nhớ.
+              </span>
+            ) : null}
           </div>
         </div>
       </div>
@@ -226,11 +238,30 @@ export const Profile: React.FC = () => {
       <div className="grid sm:grid-cols-2 gap-3">
         <div className="p-5 rounded-3xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800">
           <div className="text-sm font-bold">Điểm mạnh</div><p className="text-xs text-stone-500 mt-1">Những gì Lina đang thấy bạn làm ổn.</p>
-          <div className="mt-3 flex flex-wrap gap-1.5">{(learnerProfile.strongAreas.length ? learnerProfile.strongAreas : ['Đang thu thập dữ liệu']).map(x=><span key={x} className="text-xs px-2 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-300">{x}</span>)}</div>
+          <div className="mt-3 flex flex-wrap gap-1.5">{(() => {
+            const strengths = learnerProfile.strongAreas.length
+              ? learnerProfile.strongAreas
+              : [
+                  reviewSchedules && Object.values(reviewSchedules).filter(x => x.mastery >= 80).length ? 'Từ vựng đã đạt mức nhớ tốt' : '',
+                  motivation.activities.some(a => a.type === 'speaking') ? 'Đã có luyện nói thực tế' : '',
+                  motivation.activities.some(a => a.type === 'lesson') ? 'Đã hoàn thành bài học' : ''
+                ].filter(Boolean);
+            return strengths.length
+              ? strengths.map(x=><span key={x} className="text-xs px-2 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-300">{x}</span>)
+              : <span className="text-xs px-2 py-1 rounded-lg bg-stone-50 dark:bg-stone-800 text-stone-500">Chưa đủ dữ liệu để xác định điểm mạnh.</span>;
+          })()}</div>
         </div>
         <div className="p-5 rounded-3xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800">
           <div className="text-sm font-bold">Cần cải thiện</div><p className="text-xs text-stone-500 mt-1">Ưu tiên cá nhân hóa hiện tại.</p>
-          <div className="mt-3 flex flex-wrap gap-1.5">{(learnerProfile.weakAreas.length ? learnerProfile.weakAreas : ['Chưa có lỗi lặp lại']).map(x=><span key={x} className="text-xs px-2 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300">{x}</span>)}</div>
+          <div className="mt-3 flex flex-wrap gap-1.5">{(learnerProfile.weakAreas.length
+            ? learnerProfile.weakAreas
+            : aiMemory.mistakes.filter(m => !m.resolved).sort((a,b) => b.frequency-a.frequency).slice(0,4).map(m => m.original)
+          ).length
+            ? (learnerProfile.weakAreas.length
+              ? learnerProfile.weakAreas
+              : aiMemory.mistakes.filter(m => !m.resolved).sort((a,b) => b.frequency-a.frequency).slice(0,4).map(m => m.original)
+            ).map(x=><span key={x} className="text-xs px-2 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300">{x}</span>)
+            : <span className="text-xs px-2 py-1 rounded-lg bg-stone-50 dark:bg-stone-800 text-stone-500">Chưa ghi nhận lỗi cần ưu tiên.</span>}</div>
         </div>
       </div>
       <div className="p-5 rounded-3xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 space-y-3">
