@@ -635,6 +635,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setTutorMode,
         learnerMemory,
         addLearnerMemory,
+        recordTutorMemory,
         flashcards,
         allVocabularies,
         updateFlashcardRating,
