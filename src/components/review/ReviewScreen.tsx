@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Flashcard } from '../flashcard/Flashcard';
 import { VocabularyCard } from '../vocabulary/VocabularyCard';
 import { LayerToggles } from '../common/LayerToggles';
 import { ReviewRating } from '../../types';
+import { isDue } from '../../services/learningEngine';
 import { Brain, RotateCcw, CheckCircle, Sparkles, BookMarked } from 'lucide-react';
 
 export const ReviewScreen: React.FC = () => {
@@ -14,7 +15,18 @@ export const ReviewScreen: React.FC = () => {
   const [reviewedCount, setReviewedCount] = useState(0);
   const [correctCount, setCorrectCount] = useState(0);
 
-  const currentCard = flashcards[currentIndex];
+  const reviewQueue = useMemo(() => {
+    const now = new Date();
+    return [...flashcards].sort((a, b) => {
+      const aDue = isDue(a.nextReviewDate || now.toISOString(), now) ? 1 : 0;
+      const bDue = isDue(b.nextReviewDate || now.toISOString(), now) ? 1 : 0;
+      if (aDue !== bDue) return bDue - aDue;
+      const urgency = (rating?: ReviewRating) => rating === 'again' ? 3 : rating === 'hard' ? 2 : rating === 'good' ? 1 : 0;
+      return urgency(b.lastRating) - urgency(a.lastRating);
+    });
+  }, [flashcards]);
+
+  const currentCard = reviewQueue[currentIndex];
 
   const handleRate = (rating: ReviewRating) => {
     if (!currentCard) return;
@@ -23,7 +35,7 @@ export const ReviewScreen: React.FC = () => {
     setReviewedCount(count => count + 1);
     if (rating === 'good' || rating === 'easy') setCorrectCount(count => count + 1);
 
-    if (currentIndex + 1 < flashcards.length) {
+    if (currentIndex + 1 < reviewQueue.length) {
       setCurrentIndex(currentIndex + 1);
     } else {
       setIsCompleted(true);
@@ -88,9 +100,9 @@ export const ReviewScreen: React.FC = () => {
           <div className="space-y-4">
             {/* Progress Header */}
             <div className="flex items-center justify-between text-xs text-stone-500 dark:text-stone-400 font-medium">
-              <span>Thẻ số {currentIndex + 1} / {flashcards.length}</span>
+              <span>Thẻ số {currentIndex + 1} / {reviewQueue.length}</span>
               <span className="font-semibold text-amber-700 dark:text-amber-400">
-                Mục tiêu hôm nay: {flashcards.length} từ
+                Mục tiêu hôm nay: {reviewQueue.length} từ
               </span>
             </div>
 
@@ -98,7 +110,7 @@ export const ReviewScreen: React.FC = () => {
             <div className="w-full h-2 bg-stone-100 dark:bg-stone-800 rounded-full overflow-hidden">
               <div
                 className="h-full bg-amber-600 rounded-full transition-all duration-300"
-                style={{ width: `${Math.round(((currentIndex) / flashcards.length) * 100)}%` }}
+                style={{ width: `${Math.round(((currentIndex) / Math.max(1, reviewQueue.length)) * 100)}%` }}
               />
             </div>
 
@@ -121,13 +133,13 @@ export const ReviewScreen: React.FC = () => {
             </h2>
 
             <p className="text-xs sm:text-sm text-stone-600 dark:text-stone-400 max-w-md mx-auto leading-relaxed">
-              Bạn vừa hoàn thành <strong>{reviewedCount || flashcards.length} lượt ôn</strong>. Lina sẽ dùng kết quả này để đưa những từ khó quay lại sớm hơn và giãn những từ bạn đã nhớ.
+              Bạn vừa hoàn thành <strong>{reviewedCount} lượt ôn</strong>. Lina sẽ dùng kết quả này để đưa những từ khó quay lại sớm hơn và giãn những từ bạn đã nhớ.
             </p>
 
             <div className="p-4 bg-stone-50 dark:bg-stone-800/60 rounded-2xl max-w-sm mx-auto flex items-center justify-around text-center">
               <div>
                 <span className="text-2xl font-bold text-stone-900 dark:text-stone-100 tabular-nums">
-                  {flashcards.length}
+                  {reviewedCount}
                 </span>
                 <span className="text-[11px] text-stone-400 block">Từ đã ôn</span>
               </div>
