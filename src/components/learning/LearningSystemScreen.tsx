@@ -12,7 +12,7 @@ import { analytics } from '../../services/analytics';
 type Section = 'learn' | 'vocabulary' | 'listen' | 'speak' | 'roleplay' | 'review';
 
 export const LearningSystemScreen: React.FC = () => {
-  const { user, setCurrentTab, recordLearningResult, addMistake, getDueReviewCount, structuredProgress, learnerProfileMemory, recordMotivationActivity, allVocabularies, toggleSaveVocabulary, isVocabularySaved } = useApp();
+  const { user, setCurrentTab, recordLearningResult, addMistake, getDueReviewCount, structuredProgress, learnerProfileMemory, recordMotivationActivity, allVocabularies, toggleSaveVocabulary, isVocabularySaved, motivation, mistakes } = useApp();
   const [selectedHsk,setSelectedHsk] = useState(user.currentHsk);
   const [lessonId,setLessonId] = useState('hsk1-lesson-1');
   const [section,setSection] = useState<Section>('learn');
@@ -118,7 +118,7 @@ export const LearningSystemScreen: React.FC = () => {
             const first = allLessons.find(l => l.hskLevel === level);
             if(first){ setLessonId(first.id); setSection('learn'); setReviewIndex(0); setReviewDone(false); }
           }} className={'rounded-xl border p-3 text-left transition-all ' + (active ? 'bg-stone-900 text-white border-stone-900' : 'bg-white/60 dark:bg-stone-900/40 text-stone-700 dark:text-stone-300 border-stone-200 dark:border-stone-800 hover:border-amber-300')}>
-            <div className="text-xs font-bold">{level}</div><div className="text-[10px] mt-1">{count ? count + ' bài' : 'Đang cập nhật'}</div>
+            <div className="text-xs font-bold">{level}</div><div className="text-[10px] mt-1">{count ? count + ' bài' : 'Đang cập nhật'} · {classicVocabulary.filter(v => Number(String(v.hskLevel).replace(/[^0-9]/g, '')) <= Number(level.replace(/[^0-9]/g, ''))).length.toLocaleString('vi-VN')} từ</div>
           </button>;
         })}
       </div>
@@ -131,7 +131,8 @@ export const LearningSystemScreen: React.FC = () => {
           </div>
           <div className="p-4 rounded-2xl bg-stone-900 text-white">
             <div className="text-xs text-amber-300 font-bold">TODAY · {user.dailyGoalMinutes} phút</div>
-            <div className="mt-2 text-sm">3 từ mới · 1 grammar · 5 flashcards · 2 speaking</div>
+            <div className="mt-2 text-sm">{user.todayMinutesSpent} phút hôm nay · {user.vocabularyLearnedCount.toLocaleString('vi-VN')} từ đã học · {getDueReviewCount()} mục cần ôn</div>
+            <div className="mt-1 text-[11px] text-stone-400">{mistakes.length} lỗi đã ghi nhận · {motivation.activities.filter(a => a.type === 'speaking').length} lượt nói</div>
             <button type="button" onClick={() => setCurrentTab('review')} className="mt-3 w-full min-h-10 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-semibold">Ôn tập ngay</button>
           </div>
         </aside>
@@ -167,6 +168,16 @@ export const LearningSystemScreen: React.FC = () => {
           </div>}
 
           {section === 'learn' && <div className="space-y-4">
+            <div className="p-5 rounded-2xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <div className="text-xs font-bold uppercase tracking-wider text-amber-800 dark:text-amber-300">Kho HSK cổ điển</div>
+                  <div className="text-xl font-bold mt-1">{selectedHsk} · ${classicVocabulary.filter(v => Number(String(v.hskLevel).replace(/[^0-9]/g, '')) <= selectedHskNumber).length.toLocaleString('vi-VN')} từ tích lũy</div>
+                  <p className="text-xs text-stone-600 dark:text-stone-400 mt-1">5.000 từ HSK cổ điển đã được gắn trực tiếp vào cấp HSK; chọn “Từ vựng” để học toàn bộ kho.</p>
+                </div>
+                <button type="button" onClick={() => setSection('vocabulary')} className="px-4 py-2.5 rounded-xl bg-amber-700 text-white text-xs font-bold">Mở kho từ vựng</button>
+              </div>
+            </div>
             <div className="grid sm:grid-cols-2 gap-3">{lesson.vocabulary.map(item => <div key={item.id} className="p-4 rounded-2xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800">
               <InteractiveChineseSentence chinese={item.hanzi} pinyin={pinyinFor(item.pinyin,item.pinyinNumbered)} vietnamese={item.vietnamese} vocabulary={lesson.vocabulary}/>
               <div className="mt-3 text-[11px] text-stone-500">{item.partOfSpeech} · {item.category} · Độ khó {item.difficulty}/3</div>
