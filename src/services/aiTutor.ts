@@ -91,7 +91,7 @@ class AITutorClientService implements AITutorProvider {
       headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
       body: JSON.stringify({
         message: sanitizePlainText(userText, 2000),
-        history: options.history.slice(-8).map(m => ({
+        history: options.history.slice(-3).map(m => ({
           sender: m.sender,
           hanzi: sanitizePlainText(m.hanzi, 700),
           text: sanitizePlainText(m.hanzi, 700),
@@ -103,7 +103,7 @@ class AITutorClientService implements AITutorProvider {
         userLevel: options.userLevel || 'Cơ bản',
         userName: sanitizePlainText(options.userName, 120) || 'Bạn',
         topicTitle: sanitizePlainText(options.topicTitleVi, 240),
-        memoryFacts: (options.memoryFacts || []).slice(-12).map(f => sanitizePlainText(f, 240)).filter(Boolean),
+        memoryFacts: (options.memoryFacts || []).slice(-8).map(f => sanitizePlainText(f, 240)).filter(Boolean),
         isSpoken: Boolean(options.isSpoken),
         isSpeakingRetry: Boolean(options.isSpeakingRetry),
         speakingCoachTarget: options.speakingCoachTarget ? sanitizePlainText(options.speakingCoachTarget, 500) : '',
