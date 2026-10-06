@@ -36,14 +36,19 @@ function clearAuthCookies(res){
 }
 async function supabase(path,options={}){
   if(!SUPABASE_URL||!SUPABASE_PUBLISHABLE_KEY) return {ok:false,status:503,data:{msg:'Cloud account chưa được cấu hình.'}};
-  const r=await fetch(SUPABASE_URL+path,{
+  try {
+    const r=await fetch(SUPABASE_URL+path,{
     ...options,
     headers:{apikey:SUPABASE_PUBLISHABLE_KEY,'Content-Type':'application/json',...(options.headers||{})}
   });
   const text=await r.text();
   let data={};
   try{data=text?JSON.parse(text):{};}catch{data={message:text.slice(0,500)};}
-  return {ok:r.ok,status:r.status,data};
+    return {ok:r.ok,status:r.status,data};
+  } catch (error) {
+    console.error('[Lina][SUPABASE_REQUEST_ERROR]', path, error?.message || error);
+    return {ok:false,status:503,data:{msg:'Không thể kết nối dịch vụ tài khoản.'}};
+  }
 }
 function publicUser(u){ return u?{id:u.id,email:u.email,name:u.user_metadata?.name}:null; }
 async function getUser(access){
