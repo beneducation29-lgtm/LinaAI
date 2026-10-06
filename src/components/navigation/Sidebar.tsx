@@ -1,16 +1,22 @@
 import React from 'react';
 import { useApp, TabType } from '../../context/AppContext';
 import { Home, BookOpen, Mic, Brain, User, Moon, Sun, Sparkles } from 'lucide-react';
+import { isDue } from '../../services/learningEngine';
 import linaAvatarImg from '../../assets/images/lina_avatar_stylized_1790862594850.jpg';
 
 export const Sidebar: React.FC = () => {
-  const { currentTab, setCurrentTab, user, preferences, toggleTheme } = useApp();
+  const { currentTab, setCurrentTab, user, preferences, toggleTheme, flashcards } = useApp();
+
+  const reviewableCount = flashcards.filter(card => (
+    (card.repetitionCount || 0) === 0 || isDue(card.nextReviewDate || new Date().toISOString())
+  )).length;
+  const todayReviewCount = Math.min(reviewableCount, 20);
 
   const navItems: Array<{ tab: TabType; label: string; icon: React.FC<{ className?: string }>; badge?: string }> = [
     { tab: 'home', label: 'Trang chủ', icon: Home },
-    { tab: 'learn', label: 'Học', icon: BookOpen, badge: 'HSK 1' },
+    { tab: 'learn', label: 'Học', icon: BookOpen, badge: user.currentHsk },
     { tab: 'speak', label: 'Nói', icon: Mic, badge: 'Lina AI' },
-    { tab: 'review', label: 'Ôn tập', icon: Brain, badge: '8 từ' },
+    { tab: 'review', label: 'Ôn tập', icon: Brain, badge: `${todayReviewCount} từ` },
     { tab: 'profile', label: 'Tôi', icon: User },
   ];
 
