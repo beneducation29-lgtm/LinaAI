@@ -177,7 +177,18 @@ jobs:
           cp android/app/build/outputs/bundle/release/app-release.aab.sha256 android/app/build/outputs/play-upload/
           cp android/app/build/outputs/bundle/release/release-summary.txt android/app/build/outputs/play-upload/
           cp android/app/build/outputs/bundle/release/release-manifest.json android/app/build/outputs/play-upload/
-          printf '%s\n' "Upload app-release.aab to Google Play Console > Testing > Internal testing." > android/app/build/outputs/play-upload/README.txt
+          cat > android/app/build/outputs/play-upload/README.txt <<'EOF'
+Lina AI Android release package
+
+1. Upload app-release.aab to Google Play Console > Testing > Internal testing.
+2. Confirm the package is com.linaai.chinese before creating the release.
+3. Use the generated release-manifest.json and SHA256 file to record the exact artifact.
+4. Complete Play Console app-content, store-listing, privacy-policy and Data safety requirements as applicable.
+5. After internal testing, move to closed testing/production only when the Play Console requirements for the developer account are satisfied.
+
+This package does not publish the app automatically.
+EOF
+          printf '%s\n' '{"technicalPipeline":"READY","signedAab":"READY","compiledManifest":"VERIFIED","playUploadPackage":"READY","internalTesting":"MANUAL_PLAY_CONSOLE","production":"BLOCKED_UNTIL_PLAY_CONSOLE_REQUIREMENTS"}' > android/app/build/outputs/play-upload/release-readiness.json
 
       - name: Verify Play upload package
         run: npm run android:verify-play-upload
