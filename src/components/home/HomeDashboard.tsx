@@ -29,7 +29,7 @@ export const HomeDashboard: React.FC = () => {
   const lessonProgressPercent = Math.round((currentSectionNumber / totalLessonSections) * 100);
   const dueReviewCount = getDueReviewCount();
   const dueFlashcards = flashcards.filter(card => isDue(card.nextReviewDate));
-  const totalDueToday = dueReviewCount + dueFlashcards.length;
+  const totalDueToday = dueReviewCount;
   const retention = buildRetentionSnapshot(reviewSchedules, aiMemory.mistakes);
 
   return (
