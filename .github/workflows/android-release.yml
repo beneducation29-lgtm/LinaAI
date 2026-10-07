@@ -127,6 +127,12 @@ jobs:
           curl -fsSL -o bundletool.jar "https://github.com/google/bundletool/releases/download/${BUNDLETOOL_VERSION}/bundletool-all-${BUNDLETOOL_VERSION}.jar"
           java -jar bundletool.jar validate --bundle android/app/build/outputs/bundle/release/app-release.aab
 
+      - name: Verify compiled AAB manifest
+        env:
+          ANDROID_VERSION_CODE: ${{ inputs.version_code }}
+          ANDROID_VERSION_NAME: ${{ inputs.version_name }}
+        run: node scripts/verify-android-aab-manifest.mjs
+
       - name: Build local-testing APK set
         run: |
           set -euo pipefail
