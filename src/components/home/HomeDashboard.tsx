@@ -111,7 +111,7 @@ export const HomeDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* 2. MAIN CARD: CONTINUE LEARNING */>
+      {/* 2. MAIN CARD: CONTINUE LEARNING */}
       <div className="relative overflow-hidden rounded-3xl bg-linear-to-br from-stone-900 to-stone-800 text-white p-6 shadow-md border border-stone-800">
         <div className="absolute right-0 top-0 bottom-0 w-1/3 opacity-20 hidden sm:block pointer-events-none">
           <img
