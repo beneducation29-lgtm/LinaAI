@@ -171,8 +171,7 @@ export const LearningSystemScreen: React.FC = () => {
 
   const finishReview = (correct:boolean) => {
     analytics.track('quiz_answer', { lessonId: lesson.id, questionType: currentReview.type, correct });
-    if(correct) recordLearningResult(currentReview.vocabularyId || lesson.id,true);
-    else addMistake({type:'vocabulary',original:currentReview.prompt,corrected:currentReview.answer,explanation:'Ôn lại mục này trong lượt review tiếp theo.',mastery:0});
+    if(!correct) addMistake({type:'vocabulary',original:currentReview.prompt,corrected:currentReview.answer,explanation:'Ôn lại mục này trong lượt review tiếp theo.',mastery:0});
     recordLearningResult(currentReview.vocabularyId || lesson.id,correct);
     if(reviewIndex + 1 < lesson.review.length) setReviewIndex(reviewIndex + 1); else { setReviewDone(true); const startedAt=lessonStartedAt.current[lesson.id]||Date.now(); const minutes=Math.max(1,Math.round((Date.now()-startedAt)/60000)); analytics.track('quiz_complete', { lessonId: lesson.id, score: correct ? 100 : 0, minutes: 1 }); analytics.track('lesson_complete', { lessonId: lesson.id, hskLevel: lesson.hskLevel, minutes }); }
   };
