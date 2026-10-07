@@ -19,7 +19,7 @@ if (!manifest.includes('android.permission.RECORD_AUDIO')) {
   throw new Error('RECORD_AUDIO permission is missing from AndroidManifest.xml');
 }
 
-const packageMatch = manifest.match(/package="([^"]+)"/);
+const packageMatch = manifest.match(/package=["']([^"']+)["']/);
 if (packageMatch && packageMatch[1] !== expectedAppId) {
   throw new Error(`Unexpected Android package: ${packageMatch[1]} (expected ${expectedAppId})`);
 }
@@ -37,7 +37,7 @@ if (targetSdk < requiredTargetSdk) {
   throw new Error(`Android target SDK ${targetSdk} is below required API ${requiredTargetSdk}`);
 }
 
-const versionNameMatch = gradle.match(/versionName\s+"([^"]+)"/);
+const versionNameMatch = gradle.match(/versionName\s+["']([^"']+)["']/);
 const versionCodeMatch = gradle.match(/versionCode\s+(\d+)/);
 if (!versionNameMatch) throw new Error('Android versionName is missing from build.gradle');
 if (!versionCodeMatch) throw new Error('Android versionCode is missing from build.gradle');
@@ -55,6 +55,15 @@ const signingRequired = process.env.ANDROID_REQUIRE_SIGNING === 'true';
 const signingConfigured = gradle.includes('signingConfig signingConfigs.release');
 if (signingRequired && !signingConfigured) {
   throw new Error('Android release signing is required but release signingConfig is not configured.');
+}
+
+const expectedVersionCode = process.env.ANDROID_VERSION_CODE;
+const expectedVersionName = process.env.ANDROID_VERSION_NAME;
+if (expectedVersionCode && versionCode !== Number(expectedVersionCode)) {
+  throw new Error(`Android versionCode mismatch: expected ${expectedVersionCode}, got ${versionCode}`);
+}
+if (expectedVersionName && versionName !== expectedVersionName) {
+  throw new Error(`Android versionName mismatch: expected ${expectedVersionName}, got ${versionName}`);
 }
 
 console.log('Android release preflight passed.');
