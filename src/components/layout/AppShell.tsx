@@ -164,7 +164,7 @@ export const AppShell: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#FAF8F5] dark:bg-stone-950 text-stone-900 dark:text-stone-100 flex flex-col md:flex-row transition-colors">
+    <div className="min-h-screen bg-[#FAF8F5] dark:bg-stone-950 text-stone-900 dark:text-stone-100 flex flex-col md:flex-row transition-colors safe-area-top">
       {/* 1. DESKTOP SIDEBAR */}
       <Sidebar />
 
@@ -209,7 +209,7 @@ export const AppShell: React.FC = () => {
         </header>
 
         {/* Dynamic Screen View */}
-        <main className="flex-1 overflow-x-hidden">
+        <main className="flex-1 overflow-x-hidden mobile-content-safe">
           {renderActiveScreen()}
         </main>
 
