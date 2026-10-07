@@ -8,7 +8,7 @@ if (!existsSync(gradlePath)) throw new Error(`Android app Gradle file not found:
 if (!existsSync(packagePath)) throw new Error(`package.json not found: ${packagePath}`);
 
 const packageJson = JSON.parse(readFileSync(packagePath, 'utf8'));
-const versionName = String(packageJson.version || '').trim();
+const versionName = String(process.env.ANDROID_VERSION_NAME || packageJson.version || '').trim();
 if (!/^\d+\.\d+\.\d+$/.test(versionName)) {
   throw new Error(`Invalid app version "${versionName}". Expected semver x.y.z.`);
 }
