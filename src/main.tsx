@@ -1,6 +1,9 @@
 import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
+import { registerPwa } from './services/pwa';
+
+registerPwa();
 
 const root = document.getElementById('root');
 if (root) createRoot(root).render(<App />);
