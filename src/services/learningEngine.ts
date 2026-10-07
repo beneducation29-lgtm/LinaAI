@@ -73,3 +73,38 @@ export function buildLearnerMemory(profile: {level:string; goal:string; dailyMin
     preferredTopics: profile.preferredTopics, recentMistakes: mistakes.slice(-5).map(m => m.original)
   };
 }
+
+
+export interface RetentionSnapshot {
+  totalTracked: number;
+  due: number;
+  fading: number;
+  struggling: number;
+  mastered: number;
+  newItems: number;
+  recentErrors: number;
+  priority: 'urgent' | 'balanced' | 'maintenance';
+}
+
+export function buildRetentionSnapshot(
+  schedules: Record<string, ReviewSchedule>,
+  mistakes: MistakeRecord[],
+  now = new Date()
+): RetentionSnapshot {
+  const values = Object.values(schedules);
+  const due = values.filter(s => isDue(s.nextReview, now)).length;
+  const fading = values.filter(s => {
+    const dueNow = isDue(s.nextReview, now);
+    return dueNow && s.mastery >= 35 && s.mastery < 70;
+  }).length;
+  const struggling = values.filter(s => s.mastery < 35 || s.incorrectCount > s.correctCount).length;
+  const mastered = values.filter(s => s.mastery >= 80 && !isDue(s.nextReview, now)).length;
+  const newItems = values.filter(s => s.correctCount + s.incorrectCount === 0).length;
+  const recentErrors = mistakes.slice(-12).filter(m => !m.resolved).length;
+  const priority = due + fading + recentErrors >= 8
+    ? 'urgent'
+    : due + fading + recentErrors >= 3
+      ? 'balanced'
+      : 'maintenance';
+  return { totalTracked: values.length, due, fading, struggling, mastered, newItems, recentErrors, priority };
+}
