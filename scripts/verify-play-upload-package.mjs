@@ -6,6 +6,7 @@ const requiredFiles = [
   'app-release.aab',
   'app-release.aab.sha256',
   'release-summary.txt',
+  'release-manifest.json',
   'README.txt',
 ];
 
@@ -22,6 +23,11 @@ const actual = execFileSync('sha256sum', [`${outputDir}/app-release.aab`], { enc
 
 if (!expected || expected !== actual) {
   throw new Error(`Play upload AAB checksum mismatch: expected ${expected || 'missing'}, got ${actual}`);
+}
+
+const manifest = JSON.parse(readFileSync(`${outputDir}/release-manifest.json`, 'utf8'));
+if (manifest.package !== 'com.linaai.chinese' || manifest.aabSha256 !== actual) {
+  throw new Error('Play release manifest does not match the expected package or AAB checksum.');
 }
 
 const readme = readFileSync(`${outputDir}/README.txt`, 'utf8');
