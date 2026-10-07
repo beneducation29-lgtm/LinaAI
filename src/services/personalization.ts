@@ -10,8 +10,9 @@ function buildMetric(schedule:{mastery:number;correctCount:number;incorrectCount
 }
 function bandFor(mastery:number,confidence:number,due:boolean,attempts:number):MasteryBand{
  if(attempts===0)return 'NEW';
- if(due&&mastery>=60)return 'REVIEW_DUE';
  if(mastery<35||confidence<40)return 'STRUGGLING';
+ if(due&&mastery>=35&&mastery<70)return 'FADING';
+ if(due&&mastery>=60)return 'REVIEW_DUE';
  if(mastery<60)return 'LEARNING';
  if(mastery<85)return 'FAMILIAR';
  return 'MASTERED';
