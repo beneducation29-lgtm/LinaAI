@@ -8,6 +8,11 @@ on:
         required: true
         type: number
         default: 1
+      version_name:
+        description: "Android versionName, for example 1.0.0"
+        required: true
+        type: string
+        default: "1.0.0"
 
 permissions:
   contents: read
@@ -54,6 +59,7 @@ jobs:
       - name: Prepare Android release metadata
         env:
           ANDROID_VERSION_CODE: ${{ inputs.version_code }}
+          ANDROID_VERSION_NAME: ${{ inputs.version_name }}
         run: node scripts/prepare-android-release.mjs
 
       - name: Verify Capacitor setup
