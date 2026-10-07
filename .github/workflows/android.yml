@@ -34,7 +34,10 @@ jobs:
         uses: android-actions/setup-android@v3
 
       - name: Install dependencies
-        run: npm install
+        run: npm install --no-audit --no-fund
+
+      - name: Typecheck web app
+        run: npm run typecheck
 
       - name: Build web app
         run: npm run build
@@ -45,8 +48,14 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync android
 
+      - name: Verify Capacitor setup
+        run: npx cap doctor
+
       - name: Install Android SDK packages
         run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Accept Android SDK licenses
+        run: yes | sdkmanager --licenses >/dev/null || true
 
       - name: Build debug APK
         working-directory: android
@@ -57,3 +66,5 @@ jobs:
         with:
           name: lina-ai-android-debug
           path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
