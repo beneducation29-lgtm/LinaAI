@@ -1,4 +1,4 @@
-export interface PwaInstallState { canInstall: boolean; isInstalled: boolean; isIos: boolean; }
+export interface PwaInstallState { canInstall: boolean; isInstalled: boolean; }
 export function isIosDevice() { return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); }
 type BeforeInstallPromptEvent = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: 'accepted'|'dismissed'; platform: string }>; };
 let deferredPrompt: BeforeInstallPromptEvent | null = null;
@@ -9,7 +9,7 @@ export function registerPwa() {
 export function isStandaloneDisplay() {
   return window.matchMedia?.('(display-mode: standalone)').matches || Boolean((navigator as Navigator & { standalone?: boolean }).standalone);
 }
-export function getPwaInstallState(): PwaInstallState { return { canInstall: Boolean(deferredPrompt), isInstalled: isStandaloneDisplay(), isIos: isIosDevice() }; }
+export function getPwaInstallState(): PwaInstallState { return { canInstall: Boolean(deferredPrompt), isInstalled: isStandaloneDisplay() }; }
 export function subscribePwaInstall(listener: (state: PwaInstallState) => void) {
   const emit = () => listener(getPwaInstallState());
   const onBeforeInstall = (event: Event) => { event.preventDefault(); deferredPrompt = event as BeforeInstallPromptEvent; emit(); };
