@@ -104,7 +104,6 @@ jobs:
         with:
           name: lina-ai-android-release-${{ inputs.version_code }}
           path: |
-            android/app/build/outputs/debug/app-debug.apk
             android/app/build/outputs/bundle/release/app-release.aab
             android/app/build/outputs/apk/debug/app-debug.apk
             android/app/build/outputs/apk/debug/app-debug.apk.sha256
