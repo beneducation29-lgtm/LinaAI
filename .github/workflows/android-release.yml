@@ -29,6 +29,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Validate Android release inputs
+        env:
+          ANDROID_VERSION_CODE: ${{ inputs.version_code }}
+          ANDROID_VERSION_NAME: ${{ inputs.version_name }}
+        run: node scripts/verify-android-release-inputs.mjs
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
