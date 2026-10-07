@@ -32,3 +32,11 @@
 
 @keyframes avatarBreath{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-2px) scale(1.006)}}
 @media (prefers-reduced-motion:reduce){.animate-\[avatarBreath_4s_ease-in-out_infinite\]{animation:none!important}}
+
+
+.safe-area-top { padding-top: env(safe-area-inset-top); }
+.safe-area-bottom { padding-bottom: env(safe-area-inset-bottom); }
+.mobile-content-safe { padding-bottom: calc(4.5rem + env(safe-area-inset-bottom)); }
+@media (min-width: 768px) {
+  .mobile-content-safe { padding-bottom: 0; }
+}
