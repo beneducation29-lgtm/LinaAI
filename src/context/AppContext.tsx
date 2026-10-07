@@ -10,7 +10,7 @@ import {
   Vocabulary,
   TutorMode 
 } from '../types';
-import { ReviewSchedule, MistakeRecord, MistakeType, AIStoredMemory, LearnerProfile } from '../types/learning';
+import { ReviewSchedule, MistakeRecord, MistakeType, AIStoredMemory, LearnerProfile, MemoryRepository } from '../types/learning';
 import { LessonEngineLesson, LessonQuizResult, LessonCompletionResult } from '../types/lessonEngine';
 import { syncEngine } from '../services/syncEngine';
 import { analytics } from '../services/analytics';
@@ -632,7 +632,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const getDueReviewCount = () => Object.values(reviewSchedules).filter(s => isDue(s.nextReview)).length;
-  const learnerProfileMemory = () => buildLearnerMemory({ level: user.currentHsk, goal: 'conversation', dailyMinutes: user.dailyGoalMinutes, weakGrammar: aiMemory.grammarWeaknesses, weakVocabulary: aiMemory.weakVocabulary, weakTones: aiMemory.pronunciationWeaknesses, preferredTopics: aiMemory.preferences, recentMistakes: aiMemory.mistakes.slice(-5).map(m=>m.original) }, aiMemory.mistakes);
+  const learnerProfileMemory = () => buildLearnerMemory({ level: user.currentHsk, goal: 'conversation', dailyMinutes: user.dailyGoalMinutes, preferredTopics: aiMemory.preferences, recentMistakes: aiMemory.mistakes.slice(-5).map(m=>m.original) }, aiMemory.mistakes);
 
   const toggleSaveVocabulary = (vocabId: string) => {
     setUser(prev => {
