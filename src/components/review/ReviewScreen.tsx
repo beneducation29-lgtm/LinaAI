@@ -4,11 +4,12 @@ import { Flashcard } from '../flashcard/Flashcard';
 import { VocabularyCard } from '../vocabulary/VocabularyCard';
 import { LayerToggles } from '../common/LayerToggles';
 import { ReviewRating } from '../../types';
-import { isDue } from '../../services/learningEngine';
+import { MistakeRecord } from '../../types/learning';
+import { buildReviewQueue, isDue } from '../../services/learningEngine';
 import { Brain, RotateCcw, CheckCircle, Sparkles, BookMarked, Stethoscope, Check, RefreshCcw } from 'lucide-react';
 
 export const ReviewScreen: React.FC = () => {
-  const { flashcards, allVocabularies, updateFlashcardRating, setCurrentTab, user, mistakes, resolveMistake, reopenMistake } = useApp();
+  const { flashcards, allVocabularies, updateFlashcardRating, setCurrentTab, user, mistakes, resolveMistake, reopenMistake, reviewSchedules } = useApp();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isCompleted, setIsCompleted] = useState(false);
   const [activeTab, setActiveTab] = useState<'flashcards' | 'saved' | 'clinic'>('flashcards');
@@ -17,14 +18,19 @@ export const ReviewScreen: React.FC = () => {
 
   const reviewQueue = useMemo(() => {
     const now = new Date();
-    return [...flashcards].sort((a, b) => {
-      const aDue = isDue(a.nextReviewDate || now.toISOString(), now) ? 1 : 0;
-      const bDue = isDue(b.nextReviewDate || now.toISOString(), now) ? 1 : 0;
-      if (aDue !== bDue) return bDue - aDue;
-      const urgency = (rating?: ReviewRating) => rating === 'again' ? 3 : rating === 'hard' ? 2 : rating === 'good' ? 1 : 0;
-      return urgency(b.lastRating) - urgency(a.lastRating);
-    }).slice(0, 20);
-  }, [flashcards]);
+    const prioritized = buildReviewQueue(reviewSchedules, now);
+    const priorityById = new Map(prioritized.map(item => [item.itemId, item.priorityScore]));
+    const dueCards = [...flashcards]
+      .filter(card => isDue(card.nextReviewDate || now.toISOString(), now))
+      .sort((a, b) => (priorityById.get(b.id) ?? -1) - (priorityById.get(a.id) ?? -1));
+    const freshCards = [...flashcards]
+      .filter(card => !isDue(card.nextReviewDate || now.toISOString(), now))
+      .sort((a, b) => {
+        const urgency = (rating?: ReviewRating) => rating === 'again' ? 3 : rating === 'hard' ? 2 : rating === 'good' ? 1 : 0;
+        return urgency(b.lastRating) - urgency(a.lastRating);
+      });
+    return [...dueCards, ...freshCards].slice(0, 20);
+  }, [flashcards, reviewSchedules]);
 
   const currentCard = reviewQueue[currentIndex];
 
@@ -52,7 +58,11 @@ export const ReviewScreen: React.FC = () => {
   const savedVocabularies = allVocabularies.filter(v => user.savedVocabularyIds.includes(v.id));
   const clinicMistakes = [...mistakes]
     .filter(m => !m.resolved)
-    .sort((a, b) => (b.frequency - a.frequency) || (b.severity === 'high' ? 1 : 0) - (a.severity === 'high' ? 1 : 0))
+    .sort((a, b) => {
+      const severity = (value: MistakeRecord['severity']) => value === 'high' ? 3 : value === 'medium' ? 2 : 1;
+      const score = (m: typeof a) => (100 - Math.min(100, m.mastery)) + Math.min(30, m.frequency * 5) + severity(m.severity) * 8;
+      return score(b) - score(a) || Date.parse(b.lastSeen) - Date.parse(a.lastSeen);
+    })
     .slice(0, 12);
 
   return (
