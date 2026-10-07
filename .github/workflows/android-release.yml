@@ -117,6 +117,11 @@ jobs:
         run: |
           java -jar bundletool.jar validate --apks android/app/build/outputs/bundle/release/lina-ai-local-testing.apks
 
+      - name: Generate artifact checksums
+        run: |
+          sha256sum android/app/build/outputs/apk/debug/app-debug.apk > android/app/build/outputs/apk/debug/app-debug.apk.sha256
+          sha256sum android/app/build/outputs/bundle/release/app-release.aab > android/app/build/outputs/bundle/release/app-release.aab.sha256
+
       - name: Generate release manifest summary
         run: |
           set -euo pipefail
@@ -142,6 +147,8 @@ jobs:
             android/app/build/outputs/apk/debug/app-debug.apk
             android/app/build/outputs/apk/debug/app-debug.apk.sha256
             android/app/build/outputs/bundle/release/app-release.aab.sha256
+            android/app/build/outputs/bundle/release/lina-ai-local-testing.apks
+            android/app/build/outputs/bundle/release/release-summary.txt
           if-no-files-found: error
           retention-days: 30
 
