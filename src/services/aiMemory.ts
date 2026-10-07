@@ -18,8 +18,14 @@ export function updateMemory(memory:AIStoredMemory,input:{fact?:string;lessonId?
  if(input.fact){m.learnerFacts=[...new Set([...m.learnerFacts,clean(input.fact)])].slice(-20);}
  if(input.lessonId && !m.learningHistory.some(x=>x.lessonId===input.lessonId)){m.learningHistory=[...m.learningHistory,{lessonId:input.lessonId,completedAt:now()}].slice(-30);}
  if(input.mistake){const existing=m.mistakes.find(x=>x.type===input.mistake!.type&&x.original===input.mistake!.original&&x.corrected===input.mistake!.corrected);m.mistakes=existing?m.mistakes.map(x=>x.id===existing.id?{...x,frequency:x.frequency+1,lastSeen:now(),resolved:false}:x):[...m.mistakes,input.mistake].slice(-100);}
- if(input.masteredVocabulary)m.masteredVocabulary=[...new Set([...m.masteredVocabulary,input.masteredVocabulary])];
- if(input.weakVocabulary)m.weakVocabulary=[...new Set([...m.weakVocabulary,input.weakVocabulary])].slice(-30);
+ if(input.masteredVocabulary){
+   m.masteredVocabulary=[...new Set([...m.masteredVocabulary,input.masteredVocabulary])];
+   m.weakVocabulary=m.weakVocabulary.filter(item=>item!==input.masteredVocabulary);
+ }
+ if(input.weakVocabulary){
+   m.weakVocabulary=[...new Set([...m.weakVocabulary,input.weakVocabulary])].slice(-30);
+   m.masteredVocabulary=m.masteredVocabulary.filter(item=>item!==input.weakVocabulary);
+ }
  if(input.grammarWeakness)m.grammarWeaknesses=[...new Set([...m.grammarWeaknesses,input.grammarWeakness])].slice(-20);
  if(input.pronunciationWeakness)m.pronunciationWeaknesses=[...new Set([...m.pronunciationWeaknesses,input.pronunciationWeakness])].slice(-20);
  if(input.conversationSummary)m.conversationSummary=clean(input.conversationSummary);
