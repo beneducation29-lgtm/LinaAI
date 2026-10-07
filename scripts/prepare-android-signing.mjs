@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 
-const gradlePath = 'android/app/build.gradle';
+const gradlePath = resolve('android/app/build.gradle');
 const required = [
   'ANDROID_KEYSTORE_PATH',
   'ANDROID_KEYSTORE_PASSWORD',
@@ -16,13 +17,12 @@ if (!required.every((name) => process.env[name])) {
 if (!existsSync(gradlePath)) throw new Error(`Android app Gradle file not found: ${gradlePath}`);
 
 const source = readFileSync(gradlePath, 'utf8');
-if (source.includes('signingConfigs {') && source.includes('signingConfig signingConfigs.release')) {
+if (source.includes('signingConfig signingConfigs.release')) {
   console.log('Android release signing configuration already present.');
   process.exit(0);
 }
 
 const signingBlock = [
-  '',
   '    signingConfigs {',
   '        release {',
   "            storeFile file(System.getenv('ANDROID_KEYSTORE_PATH'))",
@@ -31,22 +31,23 @@ const signingBlock = [
   "            keyPassword System.getenv('ANDROID_KEY_PASSWORD')",
   '        }',
   '    }',
-  '',
 ].join('\n');
 
-const androidMarker = 'android {\n';
-if (!source.includes(androidMarker)) throw new Error('Could not find android { block in app/build.gradle');
+const androidMarker = /^android\s*\{\s*$/m;
+if (!androidMarker.test(source)) throw new Error('Could not find android { block in app/build.gradle');
 
-let updated = source.replace(androidMarker, androidMarker + signingBlock);
-const buildTypesIndex = updated.indexOf('buildTypes {');
-if (buildTypesIndex < 0) throw new Error('Could not find buildTypes block in app/build.gradle');
+let updated = source.replace(androidMarker, (match) => `${match}\n${signingBlock}`);
 
-const releaseIndex = updated.indexOf('release {', buildTypesIndex);
-if (releaseIndex < 0) throw new Error('Could not find buildTypes release block in app/build.gradle');
+const releaseBlock = /(buildTypes\s*\{[\s\S]*?release\s*\{)([\s\S]*?)(\n\s*\})/m;
+if (!releaseBlock.test(updated)) throw new Error('Could not find buildTypes release block in app/build.gradle');
 
-const closeIndex = updated.indexOf('\n        }', releaseIndex);
-if (closeIndex < 0) throw new Error('Could not locate buildTypes release block end in app/build.gradle');
+updated = updated.replace(
+  releaseBlock,
+  (match, opening, body, closing) =>
+    body.includes('signingConfig signingConfigs.release')
+      ? match
+      : `${opening}${body}\n            signingConfig signingConfigs.release${closing}`,
+);
 
-updated = updated.slice(0, closeIndex) + '\n            signingConfig signingConfigs.release' + updated.slice(closeIndex);
 writeFileSync(gradlePath, updated);
 console.log('Android release signing configuration prepared.');
