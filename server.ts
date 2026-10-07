@@ -720,10 +720,30 @@ app.post('/api/tts/elevenlabs/stream', async (req: Request, res: Response) => {
 app.post('/api/stt/transcribe', async (req: Request, res: Response) => {
   try {
     const { audioBase64, mimeType = 'audio/webm' } = req.body;
+    const normalizedMimeType = typeof mimeType === 'string'
+      ? mimeType.split(';', 1)[0].trim().toLowerCase()
+      : 'audio/webm';
+    const supportedAudioMimeTypes = new Set([
+      'audio/webm',
+      'audio/mp4',
+      'audio/wav',
+      'audio/wave',
+      'audio/x-wav',
+      'audio/mpeg',
+      'audio/mp3',
+      'audio/ogg',
+      'audio/opus',
+      'audio/flac',
+    ]);
     const aiAccess = await requireAIEntitlement(req, 'voice', 1);
     if ('error' in aiAccess) { res.status(aiAccess.status).json({ error: aiAccess.error, ...(aiAccess.error === 'LIMIT_REACHED' ? { code: 'LIMIT_REACHED' } : {}) }); return; }
     if (!audioBase64 || typeof audioBase64 !== 'string') {
       res.status(400).json({ error: 'Audio base64 string is required' });
+      return;
+    }
+
+    if (!supportedAudioMimeTypes.has(normalizedMimeType)) {
+      res.status(400).json({ error: 'Unsupported audio format' });
       return;
     }
 
@@ -734,7 +754,7 @@ app.post('/api/stt/transcribe', async (req: Request, res: Response) => {
 
     const audioPart = {
       inlineData: {
-        mimeType: mimeType,
+        mimeType: normalizedMimeType,
         data: audioBase64,
       },
     };
