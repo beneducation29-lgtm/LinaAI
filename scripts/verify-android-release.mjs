@@ -5,6 +5,7 @@ const gradlePath = 'android/app/build.gradle';
 const releaseAabPath = 'android/app/build/outputs/bundle/release/app-release.aab';
 const debugApkPath = 'android/app/build/outputs/apk/debug/app-debug.apk';
 const expectedAppId = 'com.linaai.chinese';
+const requiredTargetSdk = 36;
 
 if (!existsSync(manifestPath)) throw new Error(`Android manifest not found: ${manifestPath}`);
 if (!existsSync(gradlePath)) throw new Error(`Android Gradle file not found: ${gradlePath}`);
@@ -21,6 +22,19 @@ if (!manifest.includes('android.permission.RECORD_AUDIO')) {
 const packageMatch = manifest.match(/package="([^"]+)"/);
 if (packageMatch && packageMatch[1] !== expectedAppId) {
   throw new Error(`Unexpected Android package: ${packageMatch[1]} (expected ${expectedAppId})`);
+}
+
+const applicationIdMatch = gradle.match(/applicationId\s+["']([^"']+)["']/);
+if (!applicationIdMatch) throw new Error('Android applicationId is missing from build.gradle');
+if (applicationIdMatch[1] !== expectedAppId) {
+  throw new Error(`Unexpected applicationId: ${applicationIdMatch[1]} (expected ${expectedAppId})`);
+}
+
+const targetSdkMatch = gradle.match(/targetSdk(?:Version)?\s*[= ]\s*(\d+)/);
+if (!targetSdkMatch) throw new Error('Android target SDK is missing from build.gradle');
+const targetSdk = Number(targetSdkMatch[1]);
+if (targetSdk < requiredTargetSdk) {
+  throw new Error(`Android target SDK ${targetSdk} is below required API ${requiredTargetSdk}`);
 }
 
 const versionNameMatch = gradle.match(/versionName\s+"([^"]+)"/);
@@ -45,6 +59,7 @@ if (signingRequired && !signingConfigured) {
 
 console.log('Android release preflight passed.');
 console.log(`App ID: ${expectedAppId}`);
+console.log(`Target SDK: ${targetSdk}`);
 console.log(`Version: ${versionName} (${versionCode})`);
 console.log(`Release signing: ${signingConfigured ? 'configured' : 'not configured'}`);
 console.log(`Debug APK: ${debugApkPath}`);
