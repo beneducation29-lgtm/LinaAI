@@ -1,0 +1,117 @@
+name: Android release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_code:
+        description: "Android versionCode (must be higher than the previous Play release)"
+        required: true
+        type: number
+        default: 1
+
+permissions:
+  contents: read
+
+jobs:
+  release-android:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Typecheck web app
+        run: npm run typecheck
+
+      - name: Build web app
+        run: npm run build
+
+      - name: Generate Android project
+        run: npx cap add android
+
+      - name: Sync Capacitor
+        run: npx cap sync android
+
+      - name: Prepare Android microphone permission
+        run: node scripts/prepare-android.mjs
+
+      - name: Prepare Android release metadata
+        env:
+          ANDROID_VERSION_CODE: ${{ inputs.version_code }}
+        run: node scripts/prepare-android-release.mjs
+
+      - name: Verify Capacitor setup
+        run: npx cap doctor
+
+      - name: Install Android SDK packages
+        run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Accept Android SDK licenses
+        run: yes | sdkmanager --licenses >/dev/null || true
+
+      - name: Build debug APK
+        working-directory: android
+        run: ./gradlew assembleDebug
+
+      - name: Prepare Android release signing
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [ -z "$ANDROID_KEYSTORE_BASE64" ] || [ -z "$ANDROID_KEYSTORE_PASSWORD" ] || [ -z "$ANDROID_KEY_ALIAS" ] || [ -z "$ANDROID_KEY_PASSWORD" ]; then
+            echo "Android release signing secrets are required for a production release."
+            exit 1
+          fi
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/lina-ai-release.keystore"
+          export ANDROID_KEYSTORE_PATH="$RUNNER_TEMP/lina-ai-release.keystore"
+          npm run android:prepare-signing
+
+      - name: Build release AAB
+        working-directory: android
+        run: ./gradlew bundleRelease
+
+      - name: Verify signed Android release
+        env:
+          ANDROID_REQUIRE_SIGNING: "true"
+        run: npm run android:verify-release
+
+      - name: Generate artifact checksums
+        run: |
+          sha256sum android/app/build/outputs/apk/debug/app-debug.apk > android/app/build/outputs/apk/debug/app-debug.apk.sha256
+          sha256sum android/app/build/outputs/bundle/release/app-release.aab > android/app/build/outputs/bundle/release/app-release.aab.sha256
+
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: lina-ai-android-release-${{ inputs.version_code }}
+          path: |
+            android/app/build/outputs/debug/app-debug.apk
+            android/app/build/outputs/bundle/release/app-release.aab
+            android/app/build/outputs/apk/debug/app-debug.apk
+            android/app/build/outputs/apk/debug/app-debug.apk.sha256
+            android/app/build/outputs/bundle/release/app-release.aab.sha256
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Clean signing material
+        if: always()
+        run: rm -f "$RUNNER_TEMP/lina-ai-release.keystore"
