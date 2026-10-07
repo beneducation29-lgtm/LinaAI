@@ -29,7 +29,15 @@ export const HomeDashboard: React.FC = () => {
   const lessonProgressPercent = Math.round((currentSectionNumber / totalLessonSections) * 100);
   const dueReviewCount = getDueReviewCount();
   const dueFlashcards = flashcards.filter(card => isDue(card.nextReviewDate));
-  const totalDueToday = dueReviewCount;
+  // Review schedules and flashcards can temporarily drift (e.g. after first install or sync).
+  // Count the union by card id so the dashboard never double-counts and never hides starter cards.
+  const scheduledDueIds = new Set(
+    Object.entries(reviewSchedules)
+      .filter(([, schedule]) => isDue(schedule.nextReview))
+      .map(([id]) => id)
+  );
+  const dueItemIds = new Set([...scheduledDueIds, ...dueFlashcards.map(card => card.id)]);
+  const totalDueToday = Math.max(dueReviewCount, dueItemIds.size);
   const retention = buildRetentionSnapshot(reviewSchedules, aiMemory.mistakes);
 
   return (
