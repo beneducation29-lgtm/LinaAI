@@ -117,6 +117,17 @@ jobs:
         run: |
           java -jar bundletool.jar validate --apks android/app/build/outputs/bundle/release/lina-ai-local-testing.apks
 
+      - name: Generate release manifest summary
+        run: |
+          set -euo pipefail
+          {
+            echo "Lina AI Android release"
+            echo "versionCode=${{ inputs.version_code }}"
+            grep -E 'applicationId|versionName|targetSdk' android/app/build.gradle || true
+            echo "AAB SHA256:"
+            cat android/app/build/outputs/bundle/release/app-release.aab.sha256 2>/dev/null || true
+          } > android/app/build/outputs/bundle/release/release-summary.txt
+
       - name: Generate artifact checksums
         run: |
           sha256sum android/app/build/outputs/apk/debug/app-debug.apk > android/app/build/outputs/apk/debug/app-debug.apk.sha256
