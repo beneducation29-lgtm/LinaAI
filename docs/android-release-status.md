@@ -83,3 +83,6 @@ This does **not** mean the app has already been submitted to Google Play. The si
 **Google Play Production: NOT READY YET** until Play Console setup, policy declarations, real-device testing, and any applicable closed-testing requirement are completed.
 
 Do not treat a green Vercel deployment as proof that the Android release artifact has been signed or accepted by Google Play.
+## Android smoke-test gate
+
+The repository now includes a device-level release smoke-test checklist at `docs/android-release-smoke-test.md`. The CI pipeline verifies the compiled AAB and packages explicit release-readiness metadata, while the remaining device/Play Console checks must be completed with a real signed release.
