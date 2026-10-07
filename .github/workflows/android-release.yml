@@ -100,6 +100,22 @@ jobs:
           ANDROID_REQUIRE_SIGNING: "true"
         run: npm run android:verify-release
 
+      - name: Generate Play preflight report
+        run: |
+          set -euo pipefail
+          {
+            echo "Lina AI Play release preflight"
+            echo "Package: com.linaai.chinese"
+            echo "Version name: ${{ inputs.version_name }}"
+            echo "Version code: ${{ inputs.version_code }}"
+            echo "Target SDK:"
+            grep -E 'targetSdk(?:Version)?' android/app/build.gradle || true
+            echo "Permissions:"
+            grep -o 'android.permission.[A-Z_]*' android/app/src/main/AndroidManifest.xml | sort -u || true
+            echo "Privacy/Data Safety: configure in Play Console before production/closed testing."
+            echo "Internal testing can be used before completing full app setup."
+          } > android/app/build/outputs/bundle/release/play-preflight.txt
+
       - name: Verify AAB signature
         run: jarsigner -verify -verbose -certs android/app/build/outputs/bundle/release/app-release.aab >/dev/null
 
@@ -164,6 +180,7 @@ jobs:
             android/app/build/outputs/bundle/release/app-release.aab.sha256
             android/app/build/outputs/bundle/release/lina-ai-local-testing.apks
             android/app/build/outputs/bundle/release/release-summary.txt
+            android/app/build/outputs/bundle/release/play-preflight.txt
           if-no-files-found: error
           retention-days: 30
 
