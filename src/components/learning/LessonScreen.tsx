@@ -28,6 +28,8 @@ export const LessonScreen: React.FC = () => {
   const [isSpeakingMicActive, setIsSpeakingMicActive] = useState<boolean>(false);
   const [speakingFeedback, setSpeakingFeedback] = useState<PronunciationScore | null>(null);
   const [isAiScoring, setIsAiScoring] = useState(false);
+  const [shadowingAttempt, setShadowingAttempt] = useState(1);
+  const [shadowingRetryCount, setShadowingRetryCount] = useState(0);
 
   const sections = currentLesson.sections;
   const activeSection = sections[lessonSectionIndex] || sections[0];
@@ -42,6 +44,8 @@ export const LessonScreen: React.FC = () => {
       setSelectedAnswer(null);
       setAnswerSubmitted(false);
       setSpeakingFeedback(null);
+      setShadowingAttempt(1);
+      setShadowingRetryCount(0);
     } else {
       recordMotivationActivity({
         id: `lesson:${currentLesson.id}:${Date.now()}`,
@@ -63,6 +67,8 @@ export const LessonScreen: React.FC = () => {
       setSelectedAnswer(null);
       setAnswerSubmitted(false);
       setSpeakingFeedback(null);
+      setShadowingAttempt(1);
+      setShadowingRetryCount(0);
     }
   };
 
@@ -91,7 +97,7 @@ export const LessonScreen: React.FC = () => {
         const response = await aiTutor.sendMessage({
           conversationId: currentLesson.id, topicTitleVi: currentLesson.titleVi, hskLevel: currentLesson.hskLevel,
           userLevel: user.currentLevel, userName: user.name, history: [], mode: 'teacher',
-          memoryFacts: learnerProfileMemory().recentMistakes, isSpoken: true, speakingCoachTarget: targetText, speakingAttempt: 1
+          memoryFacts: learnerProfileMemory().recentMistakes, isSpoken: true, speakingCoachTarget: targetText, speakingAttempt: shadowingAttempt
         }, cleanTranscript);
         const coach = response.speakingCoach;
         const score = coach?.naturalnessScore ?? 0;
@@ -99,9 +105,17 @@ export const LessonScreen: React.FC = () => {
         if (coach?.betterSentence && coach.betterSentence !== cleanTranscript) feedback += ' Câu nên luyện lại: ' + coach.betterSentence + '.';
         setSpeakingFeedback({ overall: score, tones: null, initials: null, finals: null, fluency: score, feedback, isAcousticAvailable: false, status: 'provider-unavailable', provider: 'gemini-speaking-coach', recognizedText: cleanTranscript });
         const passed = score >= 85 && !coach?.needsRetry;
-        recordLearningResult(currentLesson.id + ':shadowing', passed);
-        recordMotivationActivity({ id: 'shadowing:' + currentLesson.id + ':' + Date.now(), type: 'pronunciation', minutes: 1, lessonId: currentLesson.id, metadata: { score, provider: 'gemini-speaking-coach', recognizedText: cleanTranscript } });
-        if (!passed) addMistake({ type: 'pronunciation', original: cleanTranscript, corrected: coach?.betterSentence || targetText, explanation: feedback, mastery: 0 });
+        const canRetry = !passed && shadowingRetryCount < 2;
+        if (passed) {
+          const rating = score >= 95 ? 'easy' : 'good';
+          recordLearningResult(currentLesson.id + ':shadowing', true, rating);
+          recordMotivationActivity({ id: 'shadowing:' + currentLesson.id + ':' + Date.now(), type: 'pronunciation', minutes: 1, lessonId: currentLesson.id, metadata: { score, provider: 'gemini-speaking-coach', recognizedText: cleanTranscript, attempt: shadowingAttempt, outcome: 'passed' } });
+        } else if (!canRetry) {
+          recordLearningResult(currentLesson.id + ':shadowing', false, 'again');
+          recordMotivationActivity({ id: 'shadowing:' + currentLesson.id + ':' + Date.now(), type: 'pronunciation', minutes: 1, lessonId: currentLesson.id, metadata: { score, provider: 'gemini-speaking-coach', recognizedText: cleanTranscript, attempt: shadowingAttempt, outcome: 'needs-review' } });
+          addMistake({ type: 'pronunciation', original: cleanTranscript, corrected: coach?.betterSentence || targetText, explanation: feedback, mastery: Math.max(0, Math.min(100, score)), severity: score < 60 ? 'high' : 'medium', relatedPronunciation: [targetText] });
+        }
+        if (canRetry) setSpeakingFeedback({ overall: score, tones: null, initials: null, finals: null, fluency: score, feedback: feedback + ' Bạn còn ' + (2 - shadowingRetryCount) + ' lần thử lại để củng cố phản xạ.', isAcousticAvailable: false, status: 'provider-unavailable', provider: 'gemini-speaking-coach', recognizedText: cleanTranscript });
       } catch {
         const local = speechService.analyzePronunciation(targetText, cleanTranscript);
         setSpeakingFeedback({ ...local, feedback: 'Lina AI chưa phản hồi kịp. STT đã nhận diện: “' + cleanTranscript + '”. Bạn thử lại sau một chút nhé.', provider: 'web-speech-stt' });
@@ -162,6 +176,8 @@ export const LessonScreen: React.FC = () => {
                   setSelectedAnswer(null);
                   setAnswerSubmitted(false);
                   setSpeakingFeedback(null);
+                  setShadowingAttempt(1);
+                  setShadowingRetryCount(0);
                 }}
                 className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer min-h-[36px] ${
                   lessonSectionIndex === idx
@@ -432,8 +448,9 @@ export const LessonScreen: React.FC = () => {
                 </div>
 
                 {speakingFeedback && (
-                  <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-2xl space-y-1.5">
-                    <div className="flex items-center justify-between text-xs font-bold text-emerald-800 dark:text-emerald-300">
+                  <div className={`p-3.5 rounded-2xl space-y-2 border ${speakingFeedback.overall != null && speakingFeedback.overall >= 85 ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800' : 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800'}`}>
+                    <div className={`flex items-center justify-between text-xs font-bold ${speakingFeedback.overall != null && speakingFeedback.overall >= 85 ? 'text-emerald-800 dark:text-emerald-300' : 'text-amber-800 dark:text-amber-300'}`}>
+
                       <span className="flex items-center gap-1.5">
                         <CheckCircle2 className="w-4 h-4" /> Lina AI chấm Shadowing
                       </span>
@@ -443,8 +460,17 @@ export const LessonScreen: React.FC = () => {
                       {speakingFeedback.feedback}
                     </p>
                     <div className="text-[10px] text-stone-400 pt-1 flex items-center gap-1">
-                      <Info className="w-3 h-3" /> AI chấm độ khớp và tự nhiên dựa trên transcript STT; chưa phải phân tích cao độ âm thanh
+                      <Info className="w-3 h-3" /> Lần thử {shadowingAttempt}/3 · điểm được dùng để cập nhật mastery Shadowing khi bạn hoàn tất lượt luyện.
                     </div>
+                    {speakingFeedback.overall != null && speakingFeedback.overall < 85 && shadowingRetryCount < 2 && !isAiScoring && (
+                      <button
+                        type="button"
+                        onClick={() => { setShadowingRetryCount(prev => prev + 1); setShadowingAttempt(prev => prev + 1); setSpeakingFeedback(null); handleTestSpeech(ex.targetSentence?.hanzi || ''); }}
+                        className="w-full mt-1 py-2.5 rounded-xl bg-amber-700 hover:bg-amber-800 text-white text-xs font-bold flex items-center justify-center gap-2"
+                      >
+                        <Mic className="w-4 h-4" /> Thử lại Shadowing
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
