@@ -108,3 +108,40 @@ export function buildRetentionSnapshot(
       : 'maintenance';
   return { totalTracked: values.length, due, fading, struggling, mastered, newItems, recentErrors, priority };
 }
+
+
+export interface ReviewQueueItem extends ReviewSchedule {
+  priorityScore: number;
+  priorityReason: 'struggling' | 'fading' | 'due' | 'maintenance';
+}
+
+/**
+ * Builds a deterministic review queue so the learner sees the most valuable
+ * cards first instead of simply reviewing in object/insertion order.
+ */
+export function buildReviewQueue(
+  schedules: Record<string, ReviewSchedule>,
+  now = new Date()
+): ReviewQueueItem[] {
+  return Object.values(schedules)
+    .filter(schedule => isDue(schedule.nextReview, now))
+    .map(schedule => {
+      const overdueDays = Math.max(0, (now.getTime() - new Date(schedule.nextReview).getTime()) / DAY);
+      const accuracy = schedule.correctCount + schedule.incorrectCount > 0
+        ? schedule.correctCount / (schedule.correctCount + schedule.incorrectCount)
+        : 0;
+      const struggling = schedule.mastery < 35 || schedule.incorrectCount > schedule.correctCount;
+      const fading = schedule.mastery >= 35 && schedule.mastery < 70;
+      const priorityScore =
+        (struggling ? 100 : 0) +
+        (fading ? 45 : 0) +
+        Math.min(40, Math.round(overdueDays * 4)) +
+        Math.round((1 - accuracy) * 20);
+      return {
+        ...schedule,
+        priorityScore,
+        priorityReason: struggling ? 'struggling' : fading ? 'fading' : overdueDays > 0 ? 'due' : 'maintenance'
+      };
+    })
+    .sort((a, b) => b.priorityScore - a.priorityScore || a.nextReview.localeCompare(b.nextReview));
+}
