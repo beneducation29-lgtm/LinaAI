@@ -5,7 +5,7 @@ import { ProgressCard } from './ProgressCard';
 import { LayerToggles } from '../common/LayerToggles';
 import { ToneTrainingModal } from '../voice/ToneTrainingModal';
 import { motivationMessage, ACHIEVEMENTS } from '../../services/motivationEngine';
-import { isDue } from '../../services/learningEngine';
+import { buildRetentionSnapshot, isDue } from '../../services/learningEngine';
 import { 
   ArrowRight, 
   Mic, 
@@ -30,6 +30,7 @@ export const HomeDashboard: React.FC = () => {
   const dueReviewCount = getDueReviewCount();
   const dueFlashcards = flashcards.filter(card => isDue(card.nextReviewDate));
   const totalDueToday = dueReviewCount + dueFlashcards.length;
+  const retention = buildRetentionSnapshot(reviewSchedules, aiMemory.mistakes);
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 pb-24 md:pb-12 space-y-6">
@@ -91,7 +92,26 @@ export const HomeDashboard: React.FC = () => {
         <div className="mt-4 pt-4 border-t border-stone-100 dark:border-stone-800"><div className="text-xs font-bold">Tóm tắt 7 ngày</div><div className="grid sm:grid-cols-4 gap-2 mt-2 text-xs"><span>{motivationSnapshot.weekly.minutesStudied} phút học</span><span>{motivationSnapshot.weekly.lessonsCompleted} bài học</span><span>{motivationSnapshot.weekly.wordsReviewed} lượt từ</span><span>{motivationSnapshot.weekly.speakingSessions} lượt nói</span></div><div className="text-[11px] text-stone-500 mt-2">{motivationSnapshot.weekly.nextRecommendedPractice}</div></div>
       </div>
 
-      {/* 2. MAIN CARD: CONTINUE LEARNING */}
+      {/* 2. MEMORY MAP */}
+      <div className="p-5 rounded-3xl bg-white dark:bg-stone-900 border border-stone-200/90 dark:border-stone-800">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <div>
+            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-stone-500"><Brain className="w-4 h-4 text-amber-600"/>Bản đồ trí nhớ</div>
+            <div className="text-sm font-semibold mt-1">Lina đang theo dõi mục nào mới, đang học, đã nhớ và đang phai.</div>
+          </div>
+          <span className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-stone-100 dark:bg-stone-800">{retention.totalTracked.toLocaleString('vi-VN')} mục có lịch sử</span>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 mt-4">
+          {[['Mới', retention.newItems], ['Đang học', Math.max(0, retention.totalTracked - retention.newItems - retention.mastered - retention.fading - retention.struggling)], ['Đã nhớ', retention.mastered], ['Đang phai', retention.fading], ['Đang yếu', retention.struggling], ['Đến hạn', retention.due]].map(([label,value]) => (
+            <div key={String(label)} className="p-3 rounded-xl bg-stone-50 dark:bg-stone-800"><div className="text-base font-bold">{value}</div><div className="text-[10px] text-stone-500 mt-0.5">{label}</div></div>
+          ))}
+        </div>
+        <div className="mt-3 text-[11px] text-stone-500">
+          {retention.totalTracked === 0 ? 'Chưa có đủ lịch sử ôn tập để dựng bản đồ. Lina sẽ bắt đầu đo từ những lượt học đầu tiên.' : retention.priority === 'urgent' ? 'Ưu tiên hôm nay: xử lý mục đến hạn, mục đang phai và lỗi chưa được chữa.' : retention.priority === 'balanced' ? 'Nhịp hiện tại khá cân bằng: ôn đúng hạn rồi luyện thêm điểm yếu.' : 'Nhịp ôn đang ổn: duy trì đều để kiến thức không bị quên.'}
+        </div>
+      </div>
+
+      {/* 2. MAIN CARD: CONTINUE LEARNING */>
       <div className="relative overflow-hidden rounded-3xl bg-linear-to-br from-stone-900 to-stone-800 text-white p-6 shadow-md border border-stone-800">
         <div className="absolute right-0 top-0 bottom-0 w-1/3 opacity-20 hidden sm:block pointer-events-none">
           <img
