@@ -138,6 +138,15 @@ jobs:
           sha256sum android/app/build/outputs/apk/debug/app-debug.apk > android/app/build/outputs/apk/debug/app-debug.apk.sha256
           sha256sum android/app/build/outputs/bundle/release/app-release.aab > android/app/build/outputs/bundle/release/app-release.aab.sha256
 
+      - name: Create Play upload package
+        run: |
+          set -euo pipefail
+          mkdir -p android/app/build/outputs/play-upload
+          cp android/app/build/outputs/bundle/release/app-release.aab android/app/build/outputs/play-upload/
+          cp android/app/build/outputs/bundle/release/app-release.aab.sha256 android/app/build/outputs/play-upload/
+          cp android/app/build/outputs/bundle/release/release-summary.txt android/app/build/outputs/play-upload/
+          printf '%s\n' "Upload app-release.aab to Google Play Console > Testing > Internal testing." > android/app/build/outputs/play-upload/README.txt
+
       - name: Upload release artifacts
         uses: actions/upload-artifact@v4
         with:
