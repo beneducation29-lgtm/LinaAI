@@ -16,7 +16,8 @@
     "android:open": "npx cap open android",
     "android:run": "npm run build && npx cap run android",
     "android:prepare": "node scripts/prepare-android.mjs",
-    "android:verify-release": "node scripts/verify-android-release.mjs"
+    "android:verify-release": "node scripts/verify-android-release.mjs",
+    "android:prepare-signing": "node scripts/prepare-android-signing.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
