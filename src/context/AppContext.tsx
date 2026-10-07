@@ -73,6 +73,8 @@ interface AppContextType {
   isStructuredVocabularySaved: (id: string) => boolean;
   recordLearningResult: (itemId: string, correct: boolean, rating?: ReviewRating) => void;
   addMistake: (input: { type: MistakeType; original: string; corrected: string; explanation: string; mastery?: number; severity?: 'low'|'medium'|'high'; resolved?: boolean; relatedVocabulary?: string[]; relatedGrammar?: string[]; relatedPronunciation?: string[] }) => void;
+  resolveMistake: (mistakeId: string) => void;
+  reopenMistake: (mistakeId: string) => void;
   getDueReviewCount: () => number;
   learnerProfileMemory: () => ReturnType<typeof buildLearnerMemory>;
   aiMemory: AIStoredMemory;
@@ -514,6 +516,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const updateFlashcardRating = (cardId: string, rating: ReviewRating) => {
     const now = new Date().toISOString();
+    const ratedCard = flashcards.find(card => card.id === cardId);
     setReviewSchedules(prev => {
       const existing = prev[cardId] || {
         itemId: cardId,
@@ -543,6 +546,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       };
     }));
 
+    setAiMemory(prev => updateMemory(prev, {
+      masteredVocabulary: rating === 'easy' ? ratedCard?.vocabulary.hanzi : undefined,
+      weakVocabulary: rating === 'again' || rating === 'hard' ? ratedCard?.vocabulary.hanzi : undefined
+    }));
     recordMotivationActivity({ id: `review:${cardId}:${Date.now()}`, type: 'review', minutes: 1, vocabularyCount: 1, metadata: { cardId, rating } });
     analytics.track('vocabulary_review', { cardId, rating });
     if (rating === 'easy') analytics.track('vocabulary_mastered', { cardId });
@@ -566,6 +573,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setMistakes(prev => recordMistake(prev, input));
     setAiMemory(prev => updateMemory(prev, { mistake: created, weakVocabulary: input.type === 'vocabulary' ? input.original : undefined, grammarWeakness: input.type === 'grammar' ? input.corrected : undefined, pronunciationWeakness: input.type === 'tone' || input.type === 'pronunciation' ? input.original : undefined }));
   };
+  const resolveMistake = (mistakeId: string) => {
+    setMistakes(prev => prev.map(m => m.id === mistakeId
+      ? { ...m, resolved: true, mastery: Math.max(70, m.mastery + 20), lastSeen: new Date().toISOString() }
+      : m
+    ));
+    setAiMemory(prev => ({ ...prev, mistakes: prev.mistakes.map(m => m.id === mistakeId
+      ? { ...m, resolved: true, mastery: Math.max(70, m.mastery + 20), lastSeen: new Date().toISOString() }
+      : m
+    )}));
+    analytics.track('mistake_resolved', { mistakeId });
+  };
+
+  const reopenMistake = (mistakeId: string) => {
+    setMistakes(prev => prev.map(m => m.id === mistakeId
+      ? { ...m, resolved: false, frequency: m.frequency + 1, mastery: Math.max(0, m.mastery - 10), lastSeen: new Date().toISOString() }
+      : m
+    ));
+    setAiMemory(prev => ({ ...prev, mistakes: prev.mistakes.map(m => m.id === mistakeId
+      ? { ...m, resolved: false, frequency: m.frequency + 1, mastery: Math.max(0, m.mastery - 10), lastSeen: new Date().toISOString() }
+      : m
+    )}));
+    analytics.track('mistake_reopened', { mistakeId });
+  };
+
   const completeGeneratedLesson = (lesson: LessonEngineLesson, results: LessonQuizResult[]): LessonCompletionResult => {
     const outcome = completeLesson(lesson, results, reviewSchedules);
     setReviewSchedules(outcome.schedules);
@@ -673,6 +704,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         isStructuredVocabularySaved,
         recordLearningResult,
         addMistake,
+        resolveMistake,
+        reopenMistake,
         getDueReviewCount,
         learnerProfileMemory,
         aiMemory,
