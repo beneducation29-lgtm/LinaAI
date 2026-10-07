@@ -11,7 +11,10 @@
     "clean": "rm -rf dist server.js",
     "lint": "npm run typecheck",
     "test": "tsx tests/prompt12.test.ts && tsx tests/prompt14b.test.ts && tsx tests/prompt14d.test.ts && tsx tests/prompt15.test.ts && tsx tests/prompt16.test.ts && tsx tests/prompt17.test.ts && tsx tests/prompt18.test.ts && tsx tests/prompt19.test.ts && tsx tests/prompt20.test.ts && tsx tests/avatarTutor.test.ts && tsx tests/prompt21-23.test.ts && tsx tests/prompt24.test.ts && tsx tests/prompt30.test.ts && tsx tests/speakingCoach.test.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "android:sync": "npm run build && npx cap sync android",
+    "android:open": "npx cap open android",
+    "android:run": "npm run build && npx cap run android"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
@@ -24,7 +27,9 @@
     "express": "^4.21.2",
     "dotenv": "^17.2.3",
     "motion": "^12.23.24",
-    "@supabase/ssr": "^0.12.7"
+    "@supabase/ssr": "^0.12.7",
+    "@capacitor/core": "^8.0.0",
+    "@capacitor/android": "^8.0.0"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
@@ -35,6 +40,7 @@
     "tailwindcss": "^4.3.3",
     "tsx": "^4.21.0",
     "typescript": "^7.0.2",
-    "@types/express": "^4.17.21"
+    "@types/express": "^4.17.21",
+    "@capacitor/cli": "^8.0.0"
   }
 }
