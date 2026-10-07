@@ -36,6 +36,13 @@ export function updateMemory(memory:AIStoredMemory,input:{fact?:string;lessonId?
  return m;
 }
 
+export function syncMistakeMemory(memory:AIStoredMemory, mistake:MistakeRecord):AIStoredMemory{
+ const existing=memory.mistakes.find(m=>m.id===mistake.id);
+ return {...memory,mistakes:existing
+   ? memory.mistakes.map(m=>m.id===mistake.id?mistake:m)
+   : [...memory.mistakes,mistake].slice(-100)};
+}
+
 export function buildTutorContext(profile:LearnerProfile,memory:AIStoredMemory,lesson?:{id:string;title:string;hskLevel:any;vocabulary:string[];grammar:string[]},topic?:string):TutorContext{
  const terms=new Set([...(lesson?.vocabulary||[]),topic||''].map(x=>x.toLowerCase()));
  const relevant=memory.mistakes.filter(m=>!terms.size||[m.original,m.corrected,...(m.relatedVocabulary||[]),...(m.relatedGrammar||[])].some(x=>terms.has(x.toLowerCase()))).sort((a,b)=>{const priority=(m:MistakeRecord)=>m.resolved?-100:m.frequency*(m.severity==='high'?3:m.severity==='medium'?2:1);return priority(b)-priority(a);}).slice(0,8);
