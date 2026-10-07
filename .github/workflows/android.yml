@@ -90,6 +90,8 @@ jobs:
         run: ./gradlew bundleRelease
 
       - name: Verify Android release outputs
+        env:
+          ANDROID_REQUIRE_SIGNING: ${{ secrets.ANDROID_REQUIRE_SIGNING }}
         run: npm run android:verify-release
 
       - name: Upload Android artifacts
