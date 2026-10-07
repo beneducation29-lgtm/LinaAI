@@ -155,11 +155,6 @@ jobs:
             cat android/app/build/outputs/bundle/release/app-release.aab.sha256 2>/dev/null || true
           } > android/app/build/outputs/bundle/release/release-summary.txt
 
-      - name: Generate artifact checksums
-        run: |
-          sha256sum android/app/build/outputs/apk/debug/app-debug.apk > android/app/build/outputs/apk/debug/app-debug.apk.sha256
-          sha256sum android/app/build/outputs/bundle/release/app-release.aab > android/app/build/outputs/bundle/release/app-release.aab.sha256
-
       - name: Create Play upload package
         run: |
           set -euo pipefail
@@ -168,6 +163,9 @@ jobs:
           cp android/app/build/outputs/bundle/release/app-release.aab.sha256 android/app/build/outputs/play-upload/
           cp android/app/build/outputs/bundle/release/release-summary.txt android/app/build/outputs/play-upload/
           printf '%s\n' "Upload app-release.aab to Google Play Console > Testing > Internal testing." > android/app/build/outputs/play-upload/README.txt
+
+      - name: Verify Play upload package
+        run: npm run android:verify-play-upload
 
       - name: Upload release artifacts
         uses: actions/upload-artifact@v4
@@ -181,6 +179,7 @@ jobs:
             android/app/build/outputs/bundle/release/lina-ai-local-testing.apks
             android/app/build/outputs/bundle/release/release-summary.txt
             android/app/build/outputs/bundle/release/play-preflight.txt
+            android/app/build/outputs/play-upload/
           if-no-files-found: error
           retention-days: 30
 
