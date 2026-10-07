@@ -19,7 +19,7 @@ import type { AuthUser } from '../services/authService';
 import type { SyncState, SyncRecord } from '../types/sync';
 import { storage } from '../services/storage';
 import { findLessonForItem, updateLessonProgress } from '../services/progressService';
-import { createLocalMemoryRepository, emptyMemory, updateMemory } from '../services/aiMemory';
+import { createLocalMemoryRepository, emptyMemory, updateMemory, syncMistakeMemory } from '../services/aiMemory';
 import { buildLearnerMemory } from '../services/learningEngine';
 import { scheduleReview, isDue, recordMistake } from '../services/learningEngine';
 import { HSK1_LESSONS } from '../data/hsk1Lessons';
@@ -566,32 +566,37 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (lesson?.vocabulary.some(v => v.id === itemId)) { recordMotivationActivity({ id: `vocabulary:${itemId}:${Date.now()}`, type: 'vocabulary', minutes: 1, lessonId: lesson.id, vocabularyCount: 1, metadata: { correct } }); analytics.track('vocabulary_review', { vocabularyId: itemId, lessonId: lesson.id, correct, rating }); if (correct && rating !== 'again') analytics.track('vocabulary_mastered', { vocabularyId: itemId, lessonId: lesson.id }); }
   };
   const addMistake = (input: { type: MistakeType; original: string; corrected: string; explanation: string; mastery?: number; severity?: 'low'|'medium'|'high'; resolved?: boolean; relatedVocabulary?: string[]; relatedGrammar?: string[]; relatedPronunciation?: string[] }) => {
-    const created = { ...input, id: 'mistake-' + Date.now(), frequency: 1, firstSeen: new Date().toISOString(), lastSeen: new Date().toISOString() } as MistakeRecord;
     analytics.track('mistake', { category: input.type, severity: input.severity || 'medium' });
-    setMistakes(prev => recordMistake(prev, input));
-    setAiMemory(prev => updateMemory(prev, { mistake: created, weakVocabulary: input.type === 'vocabulary' ? input.original : undefined, grammarWeakness: input.type === 'grammar' ? input.corrected : undefined, pronunciationWeakness: input.type === 'tone' || input.type === 'pronunciation' ? input.original : undefined }));
+    setMistakes(prev => {
+      const next = recordMistake(prev, input);
+      const match = next.find(m => m.type === input.type && m.original === input.original && m.corrected === input.corrected);
+      if (match) {
+        setAiMemory(memory => syncMistakeMemory(memory, match));
+      }
+      return next;
+    });
   };
   const resolveMistake = (mistakeId: string) => {
-    setMistakes(prev => prev.map(m => m.id === mistakeId
-      ? { ...m, resolved: true, mastery: Math.max(70, m.mastery + 20), lastSeen: new Date().toISOString() }
-      : m
-    ));
-    setAiMemory(prev => ({ ...prev, mistakes: prev.mistakes.map(m => m.id === mistakeId
-      ? { ...m, resolved: true, mastery: Math.max(70, m.mastery + 20), lastSeen: new Date().toISOString() }
-      : m
-    )}));
+    const now = new Date().toISOString();
+    setMistakes(prev => {
+      const current = prev.find(m => m.id === mistakeId);
+      if (!current) return prev;
+      const updated = { ...current, resolved: true, mastery: Math.max(70, current.mastery + 20), lastSeen: now };
+      setAiMemory(memory => syncMistakeMemory(memory, updated));
+      return prev.map(m => m.id === mistakeId ? updated : m);
+    });
     analytics.track('mistake_resolved', { mistakeId });
   };
 
   const reopenMistake = (mistakeId: string) => {
-    setMistakes(prev => prev.map(m => m.id === mistakeId
-      ? { ...m, resolved: false, frequency: m.frequency + 1, mastery: Math.max(0, m.mastery - 10), lastSeen: new Date().toISOString() }
-      : m
-    ));
-    setAiMemory(prev => ({ ...prev, mistakes: prev.mistakes.map(m => m.id === mistakeId
-      ? { ...m, resolved: false, frequency: m.frequency + 1, mastery: Math.max(0, m.mastery - 10), lastSeen: new Date().toISOString() }
-      : m
-    )}));
+    const now = new Date().toISOString();
+    setMistakes(prev => {
+      const current = prev.find(m => m.id === mistakeId);
+      if (!current) return prev;
+      const updated = { ...current, resolved: false, frequency: current.frequency + 1, mastery: Math.max(0, current.mastery - 10), lastSeen: now };
+      setAiMemory(memory => syncMistakeMemory(memory, updated));
+      return prev.map(m => m.id === mistakeId ? updated : m);
+    });
     analytics.track('mistake_reopened', { mistakeId });
   };
 
