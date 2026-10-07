@@ -20,7 +20,7 @@ function bandFor(mastery:number,confidence:number,due:boolean,attempts:number):M
 
 export function buildKnowledgeProfile(profile:LearnerProfile,memory:AIStoredMemory,schedules:Record<string,{mastery:number;correctCount:number;incorrectCount:number;lastReviewed:string|null;nextReview:string}>,progress:Record<string,{mastery:number;speaking:number;listening:number;grammar:number}>):LearnerKnowledgeProfile{
  const scheduleEntries=Object.entries(schedules);
- const vocabularyItems=scheduleEntries.slice(-50).map(([id,s])=>({id,mastery:clamp(s.mastery),confidence:buildMetric(s).confidence,band:bandFor(s.mastery,buildMetric(s).confidence,new Date(s.nextReview).getTime()<=Date.now(),s.correctCount+s.incorrectCount),attempts:s.correctCount+s.incorrectCount,correct:s.correctCount,incorrect:s.incorrectCount,lastPracticed:s.lastReviewed,reviewDueAt:s.nextReview}));
+ const vocabularyItems=scheduleEntries.map(([id,s])=>({id,mastery:clamp(s.mastery),confidence:buildMetric(s).confidence,band:bandFor(s.mastery,buildMetric(s).confidence,new Date(s.nextReview).getTime()<=Date.now(),s.correctCount+s.incorrectCount),attempts:s.correctCount+s.incorrectCount,correct:s.correctCount,incorrect:s.incorrectCount,lastPracticed:s.lastReviewed,reviewDueAt:s.nextReview}));
  const dueReviewCount=scheduleEntries.filter(([,s])=>new Date(s.nextReview).getTime()<=Date.now()).length;
  const values=Object.values(progress);
  const avg=(key:keyof typeof values[number])=>values.length?values.reduce((n,p)=>n+p[key],0)/values.length:0;
