@@ -46,11 +46,11 @@ jobs:
       - name: Generate Android project
         run: npx cap add android
 
-      - name: Prepare Android microphone permission
-        run: node scripts/prepare-android.mjs
-
       - name: Sync Capacitor
         run: npx cap sync android
+
+      - name: Prepare Android microphone permission
+        run: node scripts/prepare-android.mjs
 
       - name: Verify Capacitor setup
         run: npx cap doctor
@@ -64,6 +64,21 @@ jobs:
       - name: Build debug APK
         working-directory: android
         run: ./gradlew assembleDebug
+
+      - name: Prepare Android release signing
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -z "$ANDROID_KEYSTORE_BASE64" ] || [ -z "$ANDROID_KEYSTORE_PASSWORD" ] || [ -z "$ANDROID_KEY_ALIAS" ] || [ -z "$ANDROID_KEY_PASSWORD" ]; then
+            echo "Android release signing secrets are not configured; continuing with unsigned release build."
+          else
+            echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/lina-ai-release.keystore"
+            export ANDROID_KEYSTORE_PATH="$RUNNER_TEMP/lina-ai-release.keystore"
+            npm run android:prepare-signing
+          fi
 
       - name: Build release AAB
         working-directory: android
