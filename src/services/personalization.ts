@@ -1,4 +1,5 @@
 import { AIStoredMemory, DailyPlan, LearnerProfile, LearnerKnowledgeProfile, PersonalizedDifficulty, PersonalizationRecommendation, KnowledgeMetric, MasteryBand } from '../types/learning';
+import { buildReviewQueue } from './learningEngine';
 
 const clamp=(n:number,min=0,max=100)=>Math.max(min,Math.min(max,Math.round(n)));
 const metric=(mastery:number,confidence:number,attemptCount:number,lastPracticed:string|null,lastCorrect:string|null,lastIncorrect:string|null,reviewDueAt:string|null):KnowledgeMetric=>({mastery:clamp(mastery),confidence:clamp(confidence),attemptCount,lastPracticed,lastCorrect,lastIncorrect,reviewDueAt});
@@ -56,7 +57,11 @@ export function generateDailyPlan(profile:LearnerProfile,memory:AIStoredMemory,d
  const items:PersonalizationRecommendation[]=[];
  const level=knowledge?.adaptiveDifficulty.level||'balanced';
  const reason=(s:string)=>'Lina đề xuất vì '+s+'.';
- if(dueReviews)items.push({type:'review',title:'Cứu trí nhớ trước khi quên',target:dueReviews+' mục đang đến hạn hoặc cần củng cố',minutes:Math.min(7,Math.max(3,Math.round(minutes*.25))),reason:reason('ôn gần thời điểm quên giúp giữ kiến thức lâu hơn'),difficulty:'balanced'});
+ if(dueReviews){
+  const reviewQueue=knowledge ? buildReviewQueue(Object.fromEntries(knowledge.vocabulary.map(item=>[item.id,{itemId:item.id,lastReviewed:item.lastPracticed,nextReview:item.reviewDueAt||new Date().toISOString(),interval:0,ease:2.5,correctCount:item.correct,incorrectCount:item.incorrect,mastery:item.mastery}]))) : [];
+  const priorityLabel=reviewQueue[0]?.priorityReason==='struggling'?'mục đang yếu':reviewQueue[0]?.priorityReason==='fading'?'mục đang phai':'mục đến hạn';
+  items.push({type:'review',title:'Cứu trí nhớ trước khi quên',target:dueReviews+' mục cần ôn · ưu tiên '+priorityLabel,minutes:Math.min(7,Math.max(3,Math.round(minutes*.25))),reason:reason('ôn theo mức độ yếu và thời điểm quên thay vì chọn ngẫu nhiên'),difficulty:'balanced'});
+ }
  if(knowledge?.strugglingAreas.length||memory.weakVocabulary.length)items.push({type:'vocabulary',title:'Gỡ điểm yếu',target:(knowledge?.strugglingAreas||memory.weakVocabulary).slice(0,3).join(' · '),minutes:Math.max(2,Math.round(minutes*.2)),reason:reason('những mục này đang cần thêm một lần nhớ chủ động'),difficulty:level});
  if(memory.grammarWeaknesses.length)items.push({type:'grammar',title:'Luyện ngữ pháp mục tiêu',target:memory.grammarWeaknesses.slice(-2).join(' · '),minutes:Math.max(2,Math.round(minutes*.15)),reason:reason('một điểm ngữ pháp xuất hiện trong các lỗi gần đây'),difficulty:level});
  const weakest=knowledge?Object.entries(knowledge.skills).sort((a,b)=>a[1].mastery-b[1].mastery)[0]?.[0]:'speaking';
