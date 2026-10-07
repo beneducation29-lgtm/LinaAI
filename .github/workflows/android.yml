@@ -52,6 +52,11 @@ jobs:
       - name: Prepare Android microphone permission
         run: node scripts/prepare-android.mjs
 
+      - name: Prepare Android release metadata
+        env:
+          ANDROID_VERSION_CODE: ${{ github.run_number }}
+        run: node scripts/prepare-android-release.mjs
+
       - name: Verify Capacitor setup
         run: npx cap doctor
 
