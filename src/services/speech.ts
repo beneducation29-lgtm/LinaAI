@@ -97,6 +97,10 @@ export type PlaybackListener = (audio: HTMLAudioElement | null) => void;
 class SpeechService {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private recognition: any = null;
+  private mediaRecorder: MediaRecorder | null = null;
+  private mediaStream: MediaStream | null = null;
+  private mediaChunks: Blob[] = [];
+  private usingMediaRecorderFallback = false;
   private playbackListeners = new Set<PlaybackListener>();
   private isListeningActive = false;
   private synth: SpeechSynthesis | null = null;
@@ -126,7 +130,11 @@ class SpeechService {
   // ===================== SPEECH-TO-TEXT (STT) =====================
 
   isSttSupported(): boolean {
-    return this.recognition !== null;
+    return this.recognition !== null || (
+      typeof navigator !== 'undefined' &&
+      Boolean(navigator.mediaDevices?.getUserMedia) &&
+      typeof MediaRecorder !== 'undefined'
+    );
   }
 
   isCurrentlyListening(): boolean {
@@ -140,12 +148,12 @@ class SpeechService {
     onEnd: () => void;
   }): void {
     if (!this.recognition) {
-      options.onError('Trình duyệt hiện tại không hỗ trợ Web Speech API trực tiếp.');
-      options.onEnd();
+      this.startMediaRecorderFallback(options);
       return;
     }
 
     try {
+      this.usingMediaRecorderFallback = false;
       this.recognition.lang = options.lang || 'zh-CN';
       this.isListeningActive = true;
 
@@ -199,7 +207,98 @@ class SpeechService {
     }
   }
 
+  private async startMediaRecorderFallback(options: {
+    lang?: SpeechLanguage;
+    onResult: (res: { transcript: string; isFinal: boolean; confidence?: number }) => void;
+    onError: (friendlyErrorMessage: string) => void;
+    onEnd: () => void;
+  }): Promise<void> {
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
+      options.onError('Thiết bị chưa hỗ trợ thu âm trên ứng dụng này.');
+      options.onEnd();
+      return;
+    }
+
+    try {
+      this.mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const preferredMimeTypes = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'];
+      const mimeType = preferredMimeTypes.find(type => MediaRecorder.isTypeSupported(type)) || '';
+      this.mediaRecorder = new MediaRecorder(this.mediaStream, mimeType ? { mimeType } : undefined);
+      this.mediaChunks = [];
+      this.usingMediaRecorderFallback = true;
+      this.isListeningActive = true;
+
+      this.mediaRecorder.ondataavailable = event => {
+        if (event.data.size > 0) this.mediaChunks.push(event.data);
+      };
+
+      this.mediaRecorder.onerror = () => {
+        this.isListeningActive = false;
+        this.cleanupMediaRecorder();
+        options.onError('Đang gặp sự cố khi thu âm. Bạn thử lại nhé.');
+        options.onEnd();
+      };
+
+      this.mediaRecorder.onstop = async () => {
+        const chunks = this.mediaChunks;
+        const stream = this.mediaStream;
+        this.mediaRecorder = null;
+        this.mediaChunks = [];
+        this.mediaStream = null;
+        this.isListeningActive = false;
+        stream?.getTracks().forEach(track => track.stop());
+
+        if (!chunks.length) {
+          this.usingMediaRecorderFallback = false;
+          options.onError('Mình chưa nhận được đoạn ghi âm. Bạn thử nói lại nhé.');
+          options.onEnd();
+          return;
+        }
+
+        const blob = new Blob(chunks, { type: mimeType || 'audio/webm' });
+        const transcript = await this.transcribeAudio(blob);
+        this.usingMediaRecorderFallback = false;
+
+        if (!transcript) {
+          options.onError('Lina chưa nhận diện được giọng nói. Bạn thử nói chậm và rõ hơn nhé.');
+          options.onEnd();
+          return;
+        }
+
+        options.onResult({ transcript, isFinal: true, confidence: 0.9 });
+        options.onEnd();
+      };
+
+      this.mediaRecorder.start();
+    } catch (error) {
+      this.usingMediaRecorderFallback = false;
+      this.cleanupMediaRecorder();
+      const name = error instanceof Error ? error.name : '';
+      options.onError(name === 'NotAllowedError' || name === 'SecurityError'
+        ? 'Bạn chưa cấp quyền microphone cho Lina AI.'
+        : 'Không thể mở microphone trên thiết bị này.');
+      options.onEnd();
+    }
+  }
+
+  private cleanupMediaRecorder(): void {
+    this.mediaRecorder = null;
+    this.mediaChunks = [];
+    this.mediaStream?.getTracks().forEach(track => track.stop());
+    this.mediaStream = null;
+    this.isListeningActive = false;
+  }
+
   stopListening(): void {
+    if (this.usingMediaRecorderFallback && this.mediaRecorder) {
+      try {
+        this.mediaRecorder.stop();
+      } catch {
+        this.cleanupMediaRecorder();
+      }
+      return;
+    }
+
     if (this.recognition && this.isListeningActive) {
       try {
         this.recognition.stop();
