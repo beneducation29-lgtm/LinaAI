@@ -97,6 +97,14 @@ jobs:
       - name: Verify AAB signature
         run: jarsigner -verify -verbose -certs android/app/build/outputs/bundle/release/app-release.aab >/dev/null
 
+      - name: Validate AAB with bundletool
+        env:
+          BUNDLETOOL_VERSION: "1.18.2"
+        run: |
+          set -euo pipefail
+          curl -fsSL -o bundletool.jar "https://github.com/google/bundletool/releases/download/${BUNDLETOOL_VERSION}/bundletool-all-${BUNDLETOOL_VERSION}.jar"
+          java -jar bundletool.jar validate --bundle android/app/build/outputs/bundle/release/app-release.aab
+
       - name: Generate artifact checksums
         run: |
           sha256sum android/app/build/outputs/apk/debug/app-debug.apk > android/app/build/outputs/apk/debug/app-debug.apk.sha256
