@@ -517,25 +517,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const updateFlashcardRating = (cardId: string, rating: ReviewRating) => {
     const now = new Date().toISOString();
     const ratedCard = flashcards.find(card => card.id === cardId);
-    setReviewSchedules(prev => {
-      const existing = prev[cardId] || {
-        itemId: cardId,
-        lastReviewed: null,
-        nextReview: now,
-        interval: 0,
-        ease: 2.5,
-        correctCount: 0,
-        incorrectCount: 0,
-        mastery: 0
-      };
-      const next = scheduleReview(existing, rating);
-      return { ...prev, [cardId]: next };
-    });
+    const existing = reviewSchedules[cardId] || {
+      itemId: cardId,
+      lastReviewed: null,
+      nextReview: now,
+      interval: 0,
+      ease: 2.5,
+      correctCount: 0,
+      incorrectCount: 0,
+      mastery: 0
+    };
+    // Compute the next schedule once so the schedule record and flashcard metadata
+    // always advance from the same previous state.
+    const next = scheduleReview(existing, rating);
 
+    setReviewSchedules(prev => ({ ...prev, [cardId]: next }));
     setFlashcards(prev => prev.map(card => {
       if (card.id !== cardId) return card;
-      const existing = reviewSchedules[cardId];
-      const next = scheduleReview(existing, rating);
       return {
         ...card,
         nextReviewDate: next.nextReview,
