@@ -10,6 +10,7 @@ import { ReviewScreen } from '../review/ReviewScreen';
 import { Profile } from '../profile/Profile';
 import { Onboarding } from '../onboarding/Onboarding';
 import { Flame, Moon, Sun, LockKeyhole, Mail, Eye, EyeOff } from 'lucide-react';
+import { PwaInstallBanner } from '../common/PwaInstallBanner';
 import linaAvatarImg from '../../assets/images/tutor_lina_avatar_1790861417833.jpg';
 
 const AnalyticsDashboard = React.lazy(() => import('../analytics/AnalyticsDashboard').then(module => ({ default: module.AnalyticsDashboard })));
@@ -219,6 +220,7 @@ export const AppShell: React.FC = () => {
 
       {/* Onboarding Flow Overlay Modal */}
       {showOnboarding && <Onboarding />}
+      <PwaInstallBanner />
     </div>
   );
 };
