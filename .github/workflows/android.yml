@@ -69,6 +69,9 @@ jobs:
         working-directory: android
         run: ./gradlew bundleRelease
 
+      - name: Verify Android release outputs
+        run: npm run android:verify-release
+
       - name: Upload Android artifacts
         uses: actions/upload-artifact@v4
         with:
