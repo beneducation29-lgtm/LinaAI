@@ -17,18 +17,27 @@ for (const name of requiredFiles) {
 }
 
 const checksumFile = `${outputDir}/app-release.aab.sha256`;
-const expected = readFileSync(checksumFile, 'utf8').trim().split(/\\s+/)[0];
+const expected = readFileSync(checksumFile, 'utf8').trim().split(/\s+/)[0];
 const actual = execFileSync('sha256sum', [`${outputDir}/app-release.aab`], { encoding: 'utf8' })
   .trim()
-  .split(/\\s+/)[0];
+  .split(/\s+/)[0];
 
 if (!expected || expected !== actual) {
   throw new Error(`Play upload AAB checksum mismatch: expected ${expected || 'missing'}, got ${actual}`);
 }
 
 const manifest = JSON.parse(readFileSync(`${outputDir}/release-manifest.json`, 'utf8'));
-if (manifest.package !== 'com.linaai.chinese' || manifest.aabSha256 !== actual) {
-  throw new Error('Play release manifest does not match the expected package or AAB checksum.');
+if (
+  manifest.package !== 'com.linaai.chinese' ||
+  typeof manifest.versionName !== 'string' ||
+  !/^\d+\.\d+\.\d+$/.test(manifest.versionName) ||
+  !Number.isInteger(manifest.versionCode) ||
+  manifest.versionCode < 1 ||
+  !Number.isInteger(manifest.targetSdk) ||
+  manifest.targetSdk < 36 ||
+  manifest.aabSha256 !== actual
+) {
+  throw new Error('Play release manifest does not contain valid package, version, target SDK, or AAB checksum metadata.');
 }
 
 const readiness = JSON.parse(readFileSync(`${outputDir}/release-readiness.json`, 'utf8'));
@@ -36,15 +45,24 @@ if (
   readiness.technicalPipeline !== 'READY' ||
   readiness.signedAab !== 'READY' ||
   readiness.compiledManifest !== 'VERIFIED' ||
-  readiness.playUploadPackage !== 'READY'
+  readiness.playUploadPackage !== 'READY' ||
+  readiness.internalTesting !== 'MANUAL_PLAY_CONSOLE' ||
+  readiness.production !== 'BLOCKED_UNTIL_PLAY_CONSOLE_REQUIREMENTS'
 ) {
   throw new Error('Play release readiness artifact is not in a ready state.');
 }
 
 const readme = readFileSync(`${outputDir}/README.txt`, 'utf8');
-if (!readme.includes('app-release.aab') || !readme.includes('Internal testing')) {
-  throw new Error('Play upload README does not describe the expected internal-testing upload.');
+if (
+  !readme.includes('app-release.aab') ||
+  !readme.includes('Internal testing') ||
+  !readme.includes('does not publish the app automatically')
+) {
+  throw new Error('Play upload README does not describe the expected manual internal-testing flow.');
 }
 
 console.log('Play upload package verified.');
+console.log(`Package: ${manifest.package}`);
+console.log(`Version: ${manifest.versionName} (${manifest.versionCode})`);
+console.log(`Target SDK: ${manifest.targetSdk}`);
 console.log(`AAB SHA256: ${actual}`);
