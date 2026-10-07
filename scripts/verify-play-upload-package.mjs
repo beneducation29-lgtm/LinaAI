@@ -8,6 +8,7 @@ const requiredFiles = [
   'release-summary.txt',
   'release-manifest.json',
   'README.txt',
+  'release-readiness.json',
 ];
 
 for (const name of requiredFiles) {
@@ -28,6 +29,16 @@ if (!expected || expected !== actual) {
 const manifest = JSON.parse(readFileSync(`${outputDir}/release-manifest.json`, 'utf8'));
 if (manifest.package !== 'com.linaai.chinese' || manifest.aabSha256 !== actual) {
   throw new Error('Play release manifest does not match the expected package or AAB checksum.');
+}
+
+const readiness = JSON.parse(readFileSync(`${outputDir}/release-readiness.json`, 'utf8'));
+if (
+  readiness.technicalPipeline !== 'READY' ||
+  readiness.signedAab !== 'READY' ||
+  readiness.compiledManifest !== 'VERIFIED' ||
+  readiness.playUploadPackage !== 'READY'
+) {
+  throw new Error('Play release readiness artifact is not in a ready state.');
 }
 
 const readme = readFileSync(`${outputDir}/README.txt`, 'utf8');
