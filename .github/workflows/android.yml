@@ -10,6 +10,7 @@ on:
       - 'index.html'
       - 'package.json'
       - 'capacitor.config.ts'
+      - 'scripts/**'
       - '.github/workflows/android.yml'
 
 jobs:
@@ -44,6 +45,9 @@ jobs:
 
       - name: Generate Android project
         run: npx cap add android
+
+      - name: Prepare Android microphone permission
+        run: node scripts/prepare-android.mjs
 
       - name: Sync Capacitor
         run: npx cap sync android
