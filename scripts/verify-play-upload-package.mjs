@@ -22,15 +22,19 @@ if (aabSize < 1024) throw new Error(`Play upload AAB is unexpectedly small: ${aa
 
 const checksumFile = `${outputDir}/app-release.aab.sha256`;
 const checksumText = readFileSync(checksumFile, 'utf8').trim();
-const checksumParts = checksumText.split(/\s+/);
+const checksumParts = checksumText.split(/\\s+/);
 const expected = checksumParts[0];
 const checksumTarget = checksumParts[checksumParts.length - 1];
-if (!/^[0-9a-f]{64}$/i.test(expected) || checksumParts.length < 2 || !checksumTarget.split('/').pop() === 'app-release.aab') {
+if (
+  !/^[0-9a-f]{64}$/i.test(expected) ||
+  checksumParts.length < 2 ||
+  checksumTarget.split('/').pop() !== 'app-release.aab'
+) {
   throw new Error('Play upload AAB checksum file is malformed.');
 }
-const actual = execFileSync('sha256sum', [`${outputDir}/app-release.aab`], { encoding: 'utf8' })
+const actual = execFileSync('sha256sum', [aabPath], { encoding: 'utf8' })
   .trim()
-  .split(/\s+/)[0];
+  .split(/\\s+/)[0];
 
 if (!expected || expected !== actual) {
   throw new Error(`Play upload AAB checksum mismatch: expected ${expected || 'missing'}, got ${actual}`);
@@ -49,7 +53,7 @@ if (
   manifest.artifact !== 'app-release.aab' ||
   manifest.package !== 'com.linaai.chinese' ||
   typeof manifest.versionName !== 'string' ||
-  !/^\d+\.\d+\.\d+$/.test(manifest.versionName) ||
+  !/^\\d+\\.\\d+\\.\\d+$/.test(manifest.versionName) ||
   !Number.isInteger(manifest.versionCode) ||
   manifest.versionCode < 1 ||
   manifest.versionCode > 2100000000 ||
@@ -113,17 +117,31 @@ if (
 }
 
 const summary = readFileSync(`${outputDir}/release-summary.txt`, 'utf8');
-const summaryRequired = [
-  'artifact=app-release.aab',
-  `package=${manifest.package}`,
-  `versionName=${manifest.versionName}`,
-  `versionCode=${manifest.versionCode}`,
-  `targetSdk=${manifest.targetSdk}`,
-  `aabSha256=${manifest.aabSha256}`,
-  `sourceCommit=${manifest.sourceCommit}`,
-];
-for (const field of summaryRequired) {
-  if (!summary.includes(field)) throw new Error(`Release summary is inconsistent with the verified manifest: ${field}`);
+const summaryFields = new Map();
+for (const line of summary.split(/\\r?\\n/)) {
+  const separator = line.indexOf('=');
+  if (separator < 1) continue;
+  const key = line.slice(0, separator).trim();
+  const value = line.slice(separator + 1).trim();
+  if (summaryFields.has(key)) throw new Error(`Release summary contains duplicate field: ${key}`);
+  summaryFields.set(key, value);
+}
+const expectedSummary = new Map([
+  ['artifact', 'app-release.aab'],
+  ['package', manifest.package],
+  ['versionName', manifest.versionName],
+  ['versionCode', String(manifest.versionCode)],
+  ['targetSdk', String(manifest.targetSdk)],
+  ['aabSha256', manifest.aabSha256],
+  ['sourceCommit', manifest.sourceCommit],
+]);
+if (summaryFields.size !== expectedSummary.size) {
+  throw new Error('Release summary contains unexpected or missing fields.');
+}
+for (const [key, value] of expectedSummary) {
+  if (summaryFields.get(key) !== value) {
+    throw new Error(`Release summary is inconsistent with the verified manifest: ${key}`);
+  }
 }
 
 const readme = readFileSync(`${outputDir}/README.txt`, 'utf8');
@@ -137,18 +155,20 @@ if (
   throw new Error('Play upload README does not describe the expected manual internal-testing flow.');
 }
 
-const expectedReadinessPath = `${outputDir}/release-readiness.json`;
 const readinessKeys = ['technicalPipeline', 'signedAab', 'compiledManifest', 'playUploadPackage', 'internalTesting', 'production'];
 for (const key of readinessKeys) {
   if (!(key in readiness)) throw new Error(`Play release readiness is missing required field: ${key}`);
 }
+
+const productionBlocked =
+  handoff.productionPublish === 'BLOCKED' &&
+  readiness.production === 'BLOCKED_UNTIL_PLAY_CONSOLE_REQUIREMENTS';
+if (!productionBlocked) throw new Error('Production release must remain blocked until Play Console requirements are complete.');
 
 console.log('Play upload package verified.');
 console.log(`Package: ${manifest.package}`);
 console.log(`Version: ${manifest.versionName} (${manifest.versionCode})`);
 console.log(`Target SDK: ${manifest.targetSdk}`);
 console.log(`AAB SHA256: ${actual}`);
-console.log(`Source commit: ${manifest.sourceCommit}`);\nconsole.log('Release handoff: matched and production remains BLOCKED');
-const productionBlocked = handoff.productionPublish === 'BLOCKED' && readiness.production === 'BLOCKED_UNTIL_PLAY_CONSOLE_REQUIREMENTS';
-if (!productionBlocked) throw new Error('Production release must remain blocked until Play Console requirements are complete.');
-
+console.log(`Source commit: ${manifest.sourceCommit}`);
+console.log('Release handoff: matched and production remains BLOCKED');
