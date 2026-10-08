@@ -227,8 +227,9 @@ Lina AI Android release package
 2. Confirm the package is com.linaai.chinese before creating the release.
 3. Use the generated release-manifest.json and SHA256 file to record the exact artifact and source commit.
 4. Confirm the release targets Android 16 / API 36+ before upload.
-5. Complete Play Console app-content, store-listing, privacy-policy and Data safety requirements as applicable.
-6. After internal testing, move to closed testing/production only when the Play Console requirements for the developer account are satisfied.
+5. Preserve the signing certificate SHA-256 fingerprint from signing-certificate-sha256.txt as release provenance.
+6. Complete Play Console app-content, store-listing, privacy-policy and Data safety requirements as applicable.
+7. After internal testing, move to closed testing/production only when the Play Console requirements for the developer account are satisfied.
 
 This package does not publish the app automatically.
 EOF
