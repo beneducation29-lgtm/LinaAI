@@ -63,6 +63,7 @@ jobs:
           node --check scripts/verify-release-handoff.mjs
           node --check scripts/verify-production-gate.mjs
           node --check scripts/verify-android-smoke-test-evidence.mjs
+          node --check scripts/verify-release-artifact-inventory.mjs
 
       - name: Typecheck web app
         run: npm run typecheck
@@ -294,6 +295,29 @@ EOF
 
       - name: Verify Android smoke test evidence
         run: node scripts/verify-android-smoke-test-evidence.mjs
+
+      - name: Generate release artifact inventory
+        run: |
+          set -euo pipefail
+          {
+            echo "artifact-inventory-version=1"
+            sha256sum \
+              android/app/build/outputs/bundle/release/app-release.aab \
+              android/app/build/outputs/apk/debug/app-debug.apk \
+              android/app/build/outputs/apk/debug/app-debug.apk.sha256 \
+              android/app/build/outputs/bundle/release/app-release.aab.sha256 \
+              android/app/build/outputs/bundle/release/lina-ai-local-testing.apks \
+              android/app/build/outputs/bundle/release/release-summary.txt \
+              android/app/build/outputs/bundle/release/play-preflight.txt \
+              android/app/build/outputs/bundle/release/release-manifest.json \
+              android/app/build/outputs/play-upload/README.txt \
+              android/app/build/outputs/play-upload/release-readiness.json \
+              android/app/build/outputs/play-upload/production-gate.txt \
+              android/app/build/outputs/play-upload/release-handoff.json
+          } > android/app/build/outputs/play-upload/release-artifact-sha256.txt
+
+      - name: Verify release artifact inventory
+        run: node scripts/verify-release-artifact-inventory.mjs
 
       - name: Upload release artifacts
         uses: actions/upload-artifact@v4
