@@ -277,6 +277,8 @@ EOF
             android/app/build/outputs/bundle/release/app-release.aab \
             --repo "$GITHUB_REPOSITORY" \
             --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/android-release.yml" \
+            --source-digest "$GITHUB_SHA" \
+            --source-ref "$GITHUB_REF" \
             --bundle android/app/build/outputs/play-upload/aab-attestation.bundle.json
 
       - name: Verify Play upload package
