@@ -16,8 +16,17 @@ for (const name of requiredFiles) {
   if (!existsSync(file)) throw new Error(`Play upload artifact missing: ${file}`);
 }
 
+const aabPath = `${outputDir}/app-release.aab`;
+const aabSize = readFileSync(aabPath).length;
+if (aabSize < 1024) throw new Error(`Play upload AAB is unexpectedly small: ${aabSize} bytes`);
+
 const checksumFile = `${outputDir}/app-release.aab.sha256`;
-const expected = readFileSync(checksumFile, 'utf8').trim().split(/\s+/)[0];
+const checksumText = readFileSync(checksumFile, 'utf8').trim();
+const checksumParts = checksumText.split(/\s+/);
+const expected = checksumParts[0];
+if (!/^[0-9a-f]{64}$/i.test(expected) || checksumParts.length < 2) {
+  throw new Error('Play upload AAB checksum file is malformed.');
+}
 const actual = execFileSync('sha256sum', [`${outputDir}/app-release.aab`], { encoding: 'utf8' })
   .trim()
   .split(/\s+/)[0];
