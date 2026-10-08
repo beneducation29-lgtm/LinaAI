@@ -16,6 +16,9 @@ on:
 
 permissions:
   contents: read
+  id-token: write
+  attestations: write
+  artifact-metadata: write
 
 concurrency:
   group: android-release
@@ -125,6 +128,17 @@ jobs:
           ANDROID_REQUIRE_SIGNING: "true"
         run: npm run android:verify-release
 
+      - name: Attest signed AAB provenance
+        uses: actions/attest@v4
+        with:
+          subject-path: android/app/build/outputs/bundle/release/app-release.aab
+
+      - name: Verify AAB attestation was created
+        run: |
+          set -euo pipefail
+          test -s "$RUNNER_TEMP/created_attestation_paths.txt"
+          echo "AAB build provenance attestation created."
+
       - name: Verify signing certificate provenance
         env:
           ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/lina-ai-release.keystore
@@ -228,8 +242,9 @@ Lina AI Android release package
 3. Use the generated release-manifest.json and SHA256 file to record the exact artifact and source commit.
 4. Confirm the release targets Android 16 / API 36+ before upload.
 5. Preserve the signing certificate SHA-256 fingerprint from signing-certificate-sha256.txt as release provenance.
-6. Complete Play Console app-content, store-listing, privacy-policy and Data safety requirements as applicable.
-7. After internal testing, move to closed testing/production only when the Play Console requirements for the developer account are satisfied.
+6. GitHub build provenance attestation is generated for the signed AAB.
+7. Complete Play Console app-content, store-listing, privacy-policy and Data safety requirements as applicable.
+8. After internal testing, move to closed testing/production only when the Play Console requirements for the developer account are satisfied.
 
 This package does not publish the app automatically.
 EOF
