@@ -240,6 +240,7 @@ EOF
       - name: Generate release handoff manifest
         run: |
           set -euo pipefail
+          AAB_SHA256=$(sha256sum android/app/build/outputs/bundle/release/app-release.aab | cut -d " " -f1)
           cat > android/app/build/outputs/play-upload/release-handoff.json <<'EOF'
           {
             "app": "Lina AI",
@@ -258,6 +259,7 @@ EOF
             "productionPublish": "BLOCKED"
           }
           EOF
+          sed -i "s/__AAB_SHA256__/$AAB_SHA256/" android/app/build/outputs/play-upload/release-handoff.json
 
       - name: Verify release handoff manifest
         env:

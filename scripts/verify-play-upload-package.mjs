@@ -45,6 +45,7 @@ const expectedVersionCode = process.env.ANDROID_VERSION_CODE;
 const expectedVersionName = process.env.ANDROID_VERSION_NAME;
 
 if (
+  manifest.artifact !== 'app-release.aab' ||
   manifest.package !== 'com.linaai.chinese' ||
   typeof manifest.versionName !== 'string' ||
   !/^\d+\.\d+\.\d+$/.test(manifest.versionName) ||
@@ -91,6 +92,8 @@ try {
 }
 if (
   handoff.app !== 'Lina AI' ||
+  handoff.artifact !== manifest.artifact ||
+  handoff.aabSha256 !== manifest.aabSha256 ||
   handoff.packageId !== manifest.package ||
   handoff.versionName !== manifest.versionName ||
   handoff.versionCode !== manifest.versionCode ||

@@ -35,6 +35,7 @@ if (expectedSourceCommit && handoff.sourceCommit !== expectedSourceCommit) {
 
 const required = {
   app: "Lina AI",
+  artifact: "app-release.aab",
   packageId: "com.linaai.chinese",
   technicalPipeline: "READY",
   signedAab: "READY",
