@@ -68,6 +68,7 @@ jobs:
           node --check scripts/verify-android-smoke-test-evidence.mjs
           node --check scripts/verify-release-artifact-inventory.mjs
           node --check scripts/verify-android-signing-certificate.mjs
+          node --check scripts/verify-aab-attestation-provenance.mjs
 
       - name: Typecheck web app
         run: npm run typecheck
@@ -343,6 +344,14 @@ EOF
           AAB_SHA256=$(sha256sum android/app/build/outputs/bundle/release/app-release.aab | cut -d " " -f1)
           ATTESTATION_BUNDLE_SHA256=$(sha256sum "$ATTESTATION_BUNDLE_PATH" | cut -d " " -f1)
           printf '%s\n' "{\"attestationId\":\"$ATTESTATION_ID\",\"attestationUrl\":\"$ATTESTATION_URL\",\"subject\":\"app-release.aab\",\"subjectSha256\":\"$AAB_SHA256\",\"bundleSha256\":\"$ATTESTATION_BUNDLE_SHA256\"}" > android/app/build/outputs/play-upload/aab-attestation.json
+
+      - name: Verify AAB attestation provenance
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          node scripts/verify-aab-attestation-provenance.mjs
+          gh attestation verify             android/app/build/outputs/bundle/release/app-release.aab             --repo "$GITHUB_REPOSITORY"             --bundle android/app/build/outputs/play-upload/aab-attestation.bundle.json
 
       - name: Generate release artifact inventory
         run: |
