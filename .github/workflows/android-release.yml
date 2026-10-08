@@ -253,6 +253,9 @@ EOF
           EOF
 
       - name: Verify release handoff manifest
+        env:
+          ANDROID_VERSION_CODE: ${{ inputs.version_code }}
+          ANDROID_VERSION_NAME: ${{ inputs.version_name }}
         run: node scripts/verify-release-handoff.mjs
 
       - name: Verify production gate report
