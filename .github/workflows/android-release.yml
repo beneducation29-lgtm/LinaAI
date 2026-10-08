@@ -176,9 +176,10 @@ jobs:
         run: |
           set -euo pipefail
           AAB_SHA256=$(cut -d " " -f1 android/app/build/outputs/bundle/release/app-release.aab.sha256)
+          SOURCE_COMMIT="${GITHUB_SHA}"
           TARGET_SDK=$(grep -E "targetSdk(?:Version)?" android/app/build.gradle | head -n1 | grep -oE "[0-9]+" | tail -n1)
           APPLICATION_ID=$(grep -E "applicationId" android/app/build.gradle | head -n1 | sed -E "s/.*[\"\x27]([^\"\x27]+)[\"\x27].*/\1/")
-          printf "%s\n" "{\"package\":\"$APPLICATION_ID\",\"versionName\":\"${{ inputs.version_name }}\",\"versionCode\":${{ inputs.version_code }},\"targetSdk\":$TARGET_SDK,\"aabSha256\":\"$AAB_SHA256\"}" > android/app/build/outputs/bundle/release/release-manifest.json
+          printf "%s\n" "{\"package\":\"$APPLICATION_ID\",\"versionName\":\"${{ inputs.version_name }}\",\"versionCode\":${{ inputs.version_code }},\"targetSdk\":$TARGET_SDK,\"aabSha256\":\"$AAB_SHA256\",\"sourceCommit\":\"$SOURCE_COMMIT\"}" > android/app/build/outputs/bundle/release/release-manifest.json
 
       - name: Create Play upload package
         run: |
@@ -248,6 +249,7 @@ EOF
             "signedAab": "READY",
             "googlePlayTargetApiRequired": 36,
             "targetApiCompliant": true,
+            "sourceCommit": "${{ github.sha }}",
             "internalTesting": "MANUAL_REQUIRED",
             "realDeviceSmokeTest": "MANUAL_REQUIRED",
             "playConsolePolicySetup": "MANUAL_REQUIRED",
