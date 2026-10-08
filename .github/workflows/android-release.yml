@@ -252,6 +252,29 @@ This package does not publish the app automatically.
 EOF
           printf '%s\n' '{"technicalPipeline":"READY","signedAab":"READY","compiledManifest":"VERIFIED","playUploadPackage":"READY","internalTesting":"MANUAL_PLAY_CONSOLE","production":"BLOCKED_UNTIL_PLAY_CONSOLE_REQUIREMENTS"}' > android/app/build/outputs/play-upload/release-readiness.json
 
+      - name: Preserve AAB attestation provenance
+        env:
+          ATTESTATION_ID: ${{ steps.attest_aab.outputs.attestation-id }}
+          ATTESTATION_URL: ${{ steps.attest_aab.outputs.attestation-url }}
+          ATTESTATION_BUNDLE_PATH: ${{ steps.attest_aab.outputs.bundle-path }}
+        run: |
+          set -euo pipefail
+          test -n "$ATTESTATION_ID"
+          test -n "$ATTESTATION_URL"
+          test -s "$ATTESTATION_BUNDLE_PATH"
+          cp "$ATTESTATION_BUNDLE_PATH" android/app/build/outputs/play-upload/aab-attestation.bundle.json
+          AAB_SHA256=$(sha256sum android/app/build/outputs/bundle/release/app-release.aab | cut -d " " -f1)
+          ATTESTATION_BUNDLE_SHA256=$(sha256sum "$ATTESTATION_BUNDLE_PATH" | cut -d " " -f1)
+          printf '%s\n' "{\"attestationId\":\"$ATTESTATION_ID\",\"attestationUrl\":\"$ATTESTATION_URL\",\"subject\":\"app-release.aab\",\"subjectSha256\":\"$AAB_SHA256\",\"bundleSha256\":\"$ATTESTATION_BUNDLE_SHA256\"}" > android/app/build/outputs/play-upload/aab-attestation.json
+
+      - name: Verify AAB attestation provenance
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          node scripts/verify-aab-attestation-provenance.mjs
+          gh attestation verify             android/app/build/outputs/bundle/release/app-release.aab             --repo "$GITHUB_REPOSITORY"             --bundle android/app/build/outputs/play-upload/aab-attestation.bundle.json
+
       - name: Verify Play upload package
         env:
           ANDROID_VERSION_CODE: ${{ inputs.version_code }}
@@ -330,29 +353,6 @@ EOF
       - name: Preserve signing certificate provenance
         run: cp "$RUNNER_TEMP/lina-ai-signing-certificate-sha256.txt" android/app/build/outputs/play-upload/signing-certificate-sha256.txt
 
-      - name: Preserve AAB attestation provenance
-        env:
-          ATTESTATION_ID: ${{ steps.attest_aab.outputs.attestation-id }}
-          ATTESTATION_URL: ${{ steps.attest_aab.outputs.attestation-url }}
-          ATTESTATION_BUNDLE_PATH: ${{ steps.attest_aab.outputs.bundle-path }}
-        run: |
-          set -euo pipefail
-          test -n "$ATTESTATION_ID"
-          test -n "$ATTESTATION_URL"
-          test -s "$ATTESTATION_BUNDLE_PATH"
-          cp "$ATTESTATION_BUNDLE_PATH" android/app/build/outputs/play-upload/aab-attestation.bundle.json
-          AAB_SHA256=$(sha256sum android/app/build/outputs/bundle/release/app-release.aab | cut -d " " -f1)
-          ATTESTATION_BUNDLE_SHA256=$(sha256sum "$ATTESTATION_BUNDLE_PATH" | cut -d " " -f1)
-          printf '%s\n' "{\"attestationId\":\"$ATTESTATION_ID\",\"attestationUrl\":\"$ATTESTATION_URL\",\"subject\":\"app-release.aab\",\"subjectSha256\":\"$AAB_SHA256\",\"bundleSha256\":\"$ATTESTATION_BUNDLE_SHA256\"}" > android/app/build/outputs/play-upload/aab-attestation.json
-
-      - name: Verify AAB attestation provenance
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          node scripts/verify-aab-attestation-provenance.mjs
-          gh attestation verify             android/app/build/outputs/bundle/release/app-release.aab             --repo "$GITHUB_REPOSITORY"             --bundle android/app/build/outputs/play-upload/aab-attestation.bundle.json
-
       - name: Generate release artifact inventory
         run: |
           set -euo pipefail
@@ -372,6 +372,8 @@ EOF
               android/app/build/outputs/play-upload/production-gate.txt \
               android/app/build/outputs/play-upload/release-handoff.json \
               android/app/build/outputs/play-upload/signing-certificate-sha256.txt
+              android/app/build/outputs/play-upload/aab-attestation.json \
+              android/app/build/outputs/play-upload/aab-attestation.bundle.json
           } > android/app/build/outputs/play-upload/release-artifact-sha256.txt
 
       - name: Verify release artifact inventory
