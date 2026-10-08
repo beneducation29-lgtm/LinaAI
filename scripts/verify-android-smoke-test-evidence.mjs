@@ -23,6 +23,17 @@ if (!checklist.includes('Result: PASS / PASS WITH NOTES / FAIL')) {
   throw new Error('Smoke test checklist must record a final result.');
 }
 
+const executionStatus = checklist.match(/Execution status:\s*(NOT_RUN|PASS|PASS WITH NOTES|FAIL)/)?.[1];
+if (!executionStatus) {
+  throw new Error('Smoke test checklist must declare an execution status.');
+}
+
+if (executionStatus === 'NOT_RUN') {
+  console.log('Android smoke test checklist is present but has not been executed on a real release device yet.');
+} else {
+  console.log(`Android smoke test checklist execution status: ${executionStatus}`);
+}
+
 console.log('Android smoke test evidence gate passed.');
 console.log(`Checklist: ${checklistPath}`);
 console.log(`Required sections: ${requiredSections.length}`);
