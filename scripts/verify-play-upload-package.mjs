@@ -88,6 +88,12 @@ if (
   handoff.googlePlayTargetApiRequired !== 36 ||
   handoff.targetApiCompliant !== true ||
   handoff.sourceCommit !== sourceCommit ||
+  handoff.technicalPipeline !== 'READY' ||
+  handoff.signedAab !== 'READY' ||
+  handoff.internalTesting !== 'MANUAL_REQUIRED' ||
+  handoff.realDeviceSmokeTest !== 'MANUAL_REQUIRED' ||
+  handoff.playConsolePolicySetup !== 'MANUAL_REQUIRED' ||
+  handoff.productionAccess !== 'MANUAL_REQUIRED' ||
   handoff.productionPublish !== 'BLOCKED'
 ) {
   throw new Error('Play release handoff does not match the verified release manifest.');
