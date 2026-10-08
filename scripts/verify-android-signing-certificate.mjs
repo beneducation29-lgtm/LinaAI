@@ -5,6 +5,7 @@ const keystore = process.env.ANDROID_KEYSTORE_PATH;
 const storePassword = process.env.ANDROID_KEYSTORE_PASSWORD;
 const alias = process.env.ANDROID_KEY_ALIAS;
 const aabPath = 'android/app/build/outputs/bundle/release/app-release.aab';
+const outputPath = process.env.ANDROID_SIGNING_CERTIFICATE_OUTPUT;
 
 if (!keystore || !storePassword || !alias) {
   throw new Error('Android signing verification requires the keystore path, password, and alias.');
@@ -37,6 +38,11 @@ if (expected.length !== 64 || actual.length !== 64) {
 }
 if (expected !== actual) {
   throw new Error('Release AAB signing certificate does not match the configured release keystore alias.');
+}
+
+if (outputPath) {
+  const { writeFile } = await import('node:fs/promises');
+  await writeFile(outputPath, actual + '\n', 'utf8');
 }
 
 console.log('Android release signing certificate verified against the configured keystore alias.');
