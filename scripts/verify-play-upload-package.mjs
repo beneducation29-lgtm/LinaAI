@@ -122,3 +122,6 @@ console.log(`Version: ${manifest.versionName} (${manifest.versionCode})`);
 console.log(`Target SDK: ${manifest.targetSdk}`);
 console.log(`AAB SHA256: ${actual}`);
 console.log(`Source commit: ${manifest.sourceCommit}`);\nconsole.log('Release handoff: matched and production remains BLOCKED');
+const productionBlocked = handoff.productionPublish === 'BLOCKED' && readiness.production === 'BLOCKED_UNTIL_PLAY_CONSOLE_REQUIREMENTS';
+if (!productionBlocked) throw new Error('Production release must remain blocked until Play Console requirements are complete.');
+
