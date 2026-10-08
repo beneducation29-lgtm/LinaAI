@@ -17,6 +17,7 @@ const expectedFiles = [
   'android/app/build/outputs/play-upload/release-readiness.json',
   'android/app/build/outputs/play-upload/production-gate.txt',
   'android/app/build/outputs/play-upload/release-handoff.json',
+  'android/app/build/outputs/play-upload/signing-certificate-sha256.txt',
 ];
 
 const lines = readFileSync(inventoryPath, 'utf8').trim().split(/\r?\n/);
