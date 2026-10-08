@@ -35,6 +35,7 @@ This does **not** mean the app has already been submitted to Google Play. The si
 - Play upload package checksum/manifest validation.
 - CI artifact retention for release files.
 - Signing certificate SHA-256 provenance is captured and preserved in the release package.
+- GitHub build provenance attestation is generated for the signed AAB.
 
 ### Google Play preparation
 - Internal testing upload instructions.
@@ -48,6 +49,7 @@ This does **not** mean the app has already been submitted to Google Play. The si
 - CI verifies that the handoff source commit matches `GITHUB_SHA`, preventing artifact provenance drift.
 - Google Play target API readiness is explicitly recorded as API 36+.
 - The exact signing certificate SHA-256 fingerprint is bound across the release manifest, handoff, and upload package.
+- The signed AAB receives a GitHub/Sigstore-backed build provenance attestation during the release workflow.
 
 ## Still required before Google Play submission
 
