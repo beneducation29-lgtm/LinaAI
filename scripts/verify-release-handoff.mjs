@@ -42,12 +42,17 @@ const required = {
   googlePlayTargetApiRequired: 36,
   targetApiCompliant: true,
   sourceCommit: process.env.GITHUB_SHA,
+  signingCertificateSha256: handoff.signingCertificateSha256,
   internalTesting: "MANUAL_REQUIRED",
   realDeviceSmokeTest: "MANUAL_REQUIRED",
   playConsolePolicySetup: "MANUAL_REQUIRED",
   productionAccess: "MANUAL_REQUIRED",
   productionPublish: "BLOCKED",
 };
+
+if (!/^[0-9a-f]{64}$/.test(handoff.signingCertificateSha256 ?? "")) {
+  throw new Error("Release handoff signing certificate SHA-256 fingerprint is malformed.");
+}
 
 for (const [key, expected] of Object.entries(required)) {
   if (handoff[key] !== expected) {
