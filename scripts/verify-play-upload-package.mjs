@@ -110,6 +110,12 @@ if (
   throw new Error('Play upload README does not describe the expected manual internal-testing flow.');
 }
 
+const expectedReadinessPath = `${outputDir}/release-readiness.json`;
+const readinessKeys = ['technicalPipeline', 'signedAab', 'compiledManifest', 'playUploadPackage', 'internalTesting', 'production'];
+for (const key of readinessKeys) {
+  if (!(key in readiness)) throw new Error(`Play release readiness is missing required field: ${key}`);
+}
+
 console.log('Play upload package verified.');
 console.log(`Package: ${manifest.package}`);
 console.log(`Version: ${manifest.versionName} (${manifest.versionCode})`);
