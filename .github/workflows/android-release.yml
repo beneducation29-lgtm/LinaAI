@@ -69,6 +69,8 @@ jobs:
           node --check scripts/verify-release-artifact-inventory.mjs
           node --check scripts/verify-android-signing-certificate.mjs
           node --check scripts/verify-aab-attestation-provenance.mjs
+          node --check scripts/verify-android-workflow-action-pins.mjs
+          node scripts/verify-android-workflow-action-pins.mjs
 
       - name: Typecheck web app
         run: npm run typecheck
