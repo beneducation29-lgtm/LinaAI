@@ -64,6 +64,7 @@ jobs:
           node --check scripts/verify-production-gate.mjs
           node --check scripts/verify-android-smoke-test-evidence.mjs
           node --check scripts/verify-release-artifact-inventory.mjs
+          node --check scripts/verify-android-signing-certificate.mjs
 
       - name: Typecheck web app
         run: npm run typecheck
@@ -124,6 +125,12 @@ jobs:
           ANDROID_REQUIRE_SIGNING: "true"
         run: npm run android:verify-release
 
+      - name: Verify signing certificate provenance
+        env:
+          ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/lina-ai-release.keystore
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: node scripts/verify-android-signing-certificate.mjs
       - name: Generate Play preflight report
         run: |
           set -euo pipefail
