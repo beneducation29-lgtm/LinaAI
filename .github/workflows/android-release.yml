@@ -224,6 +224,7 @@ EOF
             android/app/build/outputs/bundle/release/play-preflight.txt
             android/app/build/outputs/bundle/release/release-manifest.json
             android/app/build/outputs/play-upload/
+            docs/android-release-smoke-test.md
           if-no-files-found: error
           retention-days: 30
 
