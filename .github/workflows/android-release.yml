@@ -242,6 +242,8 @@ EOF
           {
             "app": "Lina AI",
             "packageId": "com.linaai.chinese",
+            "versionName": "${{ inputs.version_name }}",
+            "versionCode": ${{ inputs.version_code }},
             "technicalPipeline": "READY",
             "signedAab": "READY",
             "internalTesting": "MANUAL_REQUIRED",
