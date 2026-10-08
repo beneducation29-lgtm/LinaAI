@@ -18,6 +18,7 @@ const versionCode = manifest.match(/android:versionCode=['"]([^'"]+)['"]/i)?.[1]
 const versionName = manifest.match(/android:versionName=['"]([^'"]+)['"]/i)?.[1];
 const targetSdk = manifest.match(/android:targetSdkVersion=['"]([^'"]+)['"]/i)?.[1];
 const hasMicrophone = /android\.permission\.RECORD_AUDIO/i.test(manifest);
+const hasLauncherActivity = /android:name=['"][^'"]+['"][^>]+android:exported=['"]true['"]/i.test(manifest) && /android.intent.action.MAIN/i.test(manifest) && /android.intent.category.LAUNCHER/i.test(manifest);
 
 const expectedPackage = 'com.linaai.chinese';
 const expectedVersionCode = process.env.ANDROID_VERSION_CODE;
@@ -38,6 +39,9 @@ if (!targetSdk || Number(targetSdk) < 36) {
 if (!hasMicrophone) {
   throw new Error('Compiled AAB is missing android.permission.RECORD_AUDIO');
 }
+if (!hasLauncherActivity) {
+  throw new Error('Compiled AAB is missing an exported launcher activity');
+}
 
 readFileSync(aab);
 
@@ -46,3 +50,4 @@ console.log(`Package: ${packageName}`);
 console.log(`Version: ${versionName} (${versionCode})`);
 console.log(`Target SDK: ${targetSdk}`);
 console.log('Microphone permission: RECORD_AUDIO');
+console.log('Launcher activity: exported MAIN/LAUNCHER verified');
