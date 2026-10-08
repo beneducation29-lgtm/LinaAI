@@ -253,6 +253,7 @@ EOF
             android/app/build/outputs/bundle/release/release-manifest.json
             android/app/build/outputs/play-upload/
             docs/android-release-smoke-test.md
+            android/app/build/outputs/play-upload/production-gate.txt
           if-no-files-found: error
           retention-days: 30
 
