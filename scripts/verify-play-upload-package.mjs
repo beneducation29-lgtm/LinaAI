@@ -26,7 +26,12 @@ if (!expected || expected !== actual) {
   throw new Error(`Play upload AAB checksum mismatch: expected ${expected || 'missing'}, got ${actual}`);
 }
 
-const manifest = JSON.parse(readFileSync(`${outputDir}/release-manifest.json`, 'utf8'));
+let manifest;
+try {
+  manifest = JSON.parse(readFileSync(`${outputDir}/release-manifest.json`, 'utf8'));
+} catch (error) {
+  throw new Error(`Play release manifest is not valid JSON: ${error.message}`);
+}
 const expectedVersionCode = process.env.ANDROID_VERSION_CODE;
 const expectedVersionName = process.env.ANDROID_VERSION_NAME;
 
@@ -49,7 +54,12 @@ if (
   throw new Error('Play release manifest does not contain valid package, version, target SDK, or AAB checksum metadata.');
 }
 
-const readiness = JSON.parse(readFileSync(`${outputDir}/release-readiness.json`, 'utf8'));
+let readiness;
+try {
+  readiness = JSON.parse(readFileSync(`${outputDir}/release-readiness.json`, 'utf8'));
+} catch (error) {
+  throw new Error(`Play release readiness is not valid JSON: ${error.message}`);
+}
 if (
   readiness.technicalPipeline !== 'READY' ||
   readiness.signedAab !== 'READY' ||
