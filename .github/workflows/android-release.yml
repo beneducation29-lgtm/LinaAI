@@ -277,6 +277,7 @@ EOF
             android/app/build/outputs/play-upload/
             docs/android-release-smoke-test.md
             android/app/build/outputs/play-upload/production-gate.txt
+            android/app/build/outputs/play-upload/release-handoff.json
           if-no-files-found: error
           retention-days: 30
 
