@@ -2,6 +2,9 @@
 
 Use this checklist with the signed AAB from the Android release workflow.
 
+**Execution status: NOT_RUN**  
+Change this only after testing the real signed release on physical Android devices. Allowed values: `NOT_RUN`, `PASS`, `PASS WITH NOTES`, `FAIL`.
+
 ## Install and launch
 - [ ] Install the release build from Google Play Internal testing.
 - [ ] App launches without crash.
