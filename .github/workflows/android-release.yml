@@ -129,6 +129,7 @@ jobs:
         run: npm run android:verify-release
 
       - name: Attest signed AAB provenance
+        id: attest_aab
         uses: actions/attest@v4
         with:
           subject-path: android/app/build/outputs/bundle/release/app-release.aab
@@ -301,6 +302,7 @@ EOF
             "googlePlayTargetApiRequired": 36,
             "targetApiCompliant": true,
             "sourceCommit": "${{ github.sha }}",
+            "signingCertificateSha256": "__SIGNING_CERTIFICATE_SHA256__",
             "internalTesting": "MANUAL_REQUIRED",
             "realDeviceSmokeTest": "MANUAL_REQUIRED",
             "playConsolePolicySetup": "MANUAL_REQUIRED",
@@ -326,6 +328,21 @@ EOF
 
       - name: Preserve signing certificate provenance
         run: cp "$RUNNER_TEMP/lina-ai-signing-certificate-sha256.txt" android/app/build/outputs/play-upload/signing-certificate-sha256.txt
+
+      - name: Preserve AAB attestation provenance
+        env:
+          ATTESTATION_ID: ${{ steps.attest_aab.outputs.attestation-id }}
+          ATTESTATION_URL: ${{ steps.attest_aab.outputs.attestation-url }}
+          ATTESTATION_BUNDLE_PATH: ${{ steps.attest_aab.outputs.bundle-path }}
+        run: |
+          set -euo pipefail
+          test -n "$ATTESTATION_ID"
+          test -n "$ATTESTATION_URL"
+          test -s "$ATTESTATION_BUNDLE_PATH"
+          cp "$ATTESTATION_BUNDLE_PATH" android/app/build/outputs/play-upload/aab-attestation.bundle.json
+          AAB_SHA256=$(sha256sum android/app/build/outputs/bundle/release/app-release.aab | cut -d " " -f1)
+          ATTESTATION_BUNDLE_SHA256=$(sha256sum "$ATTESTATION_BUNDLE_PATH" | cut -d " " -f1)
+          printf '%s\n' "{\"attestationId\":\"$ATTESTATION_ID\",\"attestationUrl\":\"$ATTESTATION_URL\",\"subject\":\"app-release.aab\",\"subjectSha256\":\"$AAB_SHA256\",\"bundleSha256\":\"$ATTESTATION_BUNDLE_SHA256\"}" > android/app/build/outputs/play-upload/aab-attestation.json
 
       - name: Generate release artifact inventory
         run: |
