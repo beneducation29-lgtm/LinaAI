@@ -8,8 +8,8 @@ if (!/^\d+$/.test(versionCodeRaw)) {
 }
 
 const versionCode = Number(versionCodeRaw);
-if (!Number.isSafeInteger(versionCode) || versionCode < 1) {
-  throw new Error(`Android versionCode must be a positive safe integer, got "${versionCodeRaw}".`);
+if (!Number.isSafeInteger(versionCode) || versionCode < 1 || versionCode > 2100000000) {
+  throw new Error(`Android versionCode must be between 1 and 2100000000, got "${versionCodeRaw}".`);
 }
 
 if (!/^\d+\.\d+\.\d+$/.test(versionName)) {
