@@ -235,6 +235,26 @@ MANUAL: REQUIRED
 PRODUCTION STATUS: BLOCKED_UNTIL_MANUAL_GATES_COMPLETE
 EOF
 
+      - name: Generate release handoff manifest
+        run: |
+          set -euo pipefail
+          cat > android/app/build/outputs/play-upload/release-handoff.json <<'EOF'
+          {
+            "app": "Lina AI",
+            "packageId": "com.linaai.chinese",
+            "technicalPipeline": "READY",
+            "signedAab": "READY",
+            "internalTesting": "MANUAL_REQUIRED",
+            "realDeviceSmokeTest": "MANUAL_REQUIRED",
+            "playConsolePolicySetup": "MANUAL_REQUIRED",
+            "productionAccess": "MANUAL_REQUIRED",
+            "productionPublish": "BLOCKED"
+          }
+          EOF
+
+      - name: Verify release handoff manifest
+        run: node scripts/verify-release-handoff.mjs
+
       - name: Verify production gate report
         run: node scripts/verify-production-gate.mjs
 
