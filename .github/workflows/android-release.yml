@@ -273,7 +273,11 @@ EOF
         run: |
           set -euo pipefail
           node scripts/verify-aab-attestation-provenance.mjs
-          gh attestation verify             android/app/build/outputs/bundle/release/app-release.aab             --repo "$GITHUB_REPOSITORY"             --bundle android/app/build/outputs/play-upload/aab-attestation.bundle.json
+          gh attestation verify \
+            android/app/build/outputs/bundle/release/app-release.aab \
+            --repo "$GITHUB_REPOSITORY" \
+            --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/android-release.yml" \
+            --bundle android/app/build/outputs/play-upload/aab-attestation.bundle.json
 
       - name: Verify Play upload package
         env:
@@ -371,7 +375,7 @@ EOF
               android/app/build/outputs/play-upload/release-readiness.json \
               android/app/build/outputs/play-upload/production-gate.txt \
               android/app/build/outputs/play-upload/release-handoff.json \
-              android/app/build/outputs/play-upload/signing-certificate-sha256.txt
+              android/app/build/outputs/play-upload/signing-certificate-sha256.txt \
               android/app/build/outputs/play-upload/aab-attestation.json \
               android/app/build/outputs/play-upload/aab-attestation.bundle.json
           } > android/app/build/outputs/play-upload/release-artifact-sha256.txt
