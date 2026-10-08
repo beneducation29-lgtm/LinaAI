@@ -25,7 +25,7 @@ const checksumText = readFileSync(checksumFile, 'utf8').trim();
 const checksumParts = checksumText.split(/\s+/);
 const expected = checksumParts[0];
 const checksumTarget = checksumParts[checksumParts.length - 1];
-if (!/^[0-9a-f]{64}$/i.test(expected) || checksumParts.length < 2 || !checksumTarget.endsWith('app-release.aab')) {
+if (!/^[0-9a-f]{64}$/i.test(expected) || checksumParts.length < 2 || !checksumTarget.split('/').pop() === 'app-release.aab') {
   throw new Error('Play upload AAB checksum file is malformed.');
 }
 const actual = execFileSync('sha256sum', [`${outputDir}/app-release.aab`], { encoding: 'utf8' })
