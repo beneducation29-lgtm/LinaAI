@@ -19,6 +19,7 @@ try {
 
 const expectedVersionCode = process.env.ANDROID_VERSION_CODE;
 const expectedVersionName = process.env.ANDROID_VERSION_NAME;
+const expectedSourceCommit = process.env.GITHUB_SHA;
 
 if (expectedVersionCode && String(handoff.versionCode) !== String(expectedVersionCode)) {
   throw new Error(`Release handoff versionCode mismatch: expected ${expectedVersionCode}, got ${handoff.versionCode}`);
@@ -28,6 +29,10 @@ if (expectedVersionName && handoff.versionName !== expectedVersionName) {
   throw new Error(`Release handoff versionName mismatch: expected ${expectedVersionName}, got ${handoff.versionName}`);
 }
 
+if (expectedSourceCommit && handoff.sourceCommit !== expectedSourceCommit) {
+  throw new Error(`Release handoff sourceCommit mismatch: expected ${expectedSourceCommit}, got ${handoff.sourceCommit}`);
+}
+
 const required = {
   app: "Lina AI",
   packageId: "com.linaai.chinese",
@@ -35,6 +40,7 @@ const required = {
   signedAab: "READY",
   googlePlayTargetApiRequired: 36,
   targetApiCompliant: true,
+  sourceCommit: process.env.GITHUB_SHA,
   internalTesting: "MANUAL_REQUIRED",
   realDeviceSmokeTest: "MANUAL_REQUIRED",
   playConsolePolicySetup: "MANUAL_REQUIRED",
