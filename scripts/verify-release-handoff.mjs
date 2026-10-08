@@ -12,6 +12,17 @@ if (!fs.existsSync(outputPath)) {
 
 const handoff = JSON.parse(fs.readFileSync(outputPath, "utf8"));
 
+const expectedVersionCode = process.env.ANDROID_VERSION_CODE;
+const expectedVersionName = process.env.ANDROID_VERSION_NAME;
+
+if (expectedVersionCode && String(handoff.versionCode) !== String(expectedVersionCode)) {
+  throw new Error(`Release handoff versionCode mismatch: expected ${expectedVersionCode}, got ${handoff.versionCode}`);
+}
+
+if (expectedVersionName && handoff.versionName !== expectedVersionName) {
+  throw new Error(`Release handoff versionName mismatch: expected ${expectedVersionName}, got ${handoff.versionName}`);
+}
+
 const required = {
   app: "Lina AI",
   packageId: "com.linaai.chinese",
