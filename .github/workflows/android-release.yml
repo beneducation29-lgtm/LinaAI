@@ -98,14 +98,14 @@ jobs:
       - name: Verify Capacitor setup
         run: npx cap doctor
 
-      - name: Record release dependency provenance
-        run: node scripts/record-release-dependency-provenance.mjs
-
       - name: Install Android SDK packages
         run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
 
       - name: Accept Android SDK licenses
         run: yes | sdkmanager --licenses >/dev/null || true
+
+      - name: Record release dependency provenance
+        run: node scripts/record-release-dependency-provenance.mjs
 
       - name: Build debug APK
         working-directory: android
