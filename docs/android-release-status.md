@@ -104,3 +104,5 @@ The repository now includes a device-level release smoke-test checklist at `docs
 The release pipeline also generates and verifies an explicit `release-handoff.json` manifest. It keeps the engineering pipeline marked READY while forcing Internal testing, real-device validation, Play Console policy setup and production access to remain MANUAL_REQUIRED, with production publishing BLOCKED until those gates are completed.
 
 The smoke-test gate now also records whether physical-device testing has actually been executed. A checklist existing in the repository is not treated as proof that a real signed release passed testing.
+
+Release handoff integrity is also enforced: version identity is checked, malformed handoff JSON is rejected, and production remains explicitly blocked even when the engineering pipeline and signed AAB are ready.
