@@ -36,6 +36,7 @@ if (
   !/^\d+\.\d+\.\d+$/.test(manifest.versionName) ||
   !Number.isInteger(manifest.versionCode) ||
   manifest.versionCode < 1 ||
+  manifest.versionCode > 2100000000 ||
   !Number.isInteger(manifest.targetSdk) ||
   manifest.targetSdk < 36 ||
   manifest.aabSha256 !== actual ||
@@ -64,6 +65,8 @@ const readme = readFileSync(`${outputDir}/README.txt`, 'utf8');
 if (
   !readme.includes('app-release.aab') ||
   !readme.includes('Internal testing') ||
+  !readme.includes('API 36') ||
+  !readme.includes('source commit') ||
   !readme.includes('does not publish the app automatically')
 ) {
   throw new Error('Play upload README does not describe the expected manual internal-testing flow.');
