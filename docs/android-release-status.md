@@ -74,13 +74,25 @@ This does **not** mean the app has already been submitted to Google Play. The si
 
 ## Release decision
 
+**Current stage: Release Candidate → Play Console / Internal Testing.**
+
 **Technical release pipeline: READY.**
 
 **Signed AAB artifact: NOT YET GENERATED/VERIFIED in this project history.**
 
 **Google Play Internal testing: NOT YET SUBMITTED.**
 
-**Google Play Production: NOT READY YET** until Play Console setup, policy declarations, real-device testing, and any applicable closed-testing requirement are completed.
+**Google Play Production: NOT READY YET.**
+
+The remaining path is operational rather than a major code migration:
+1. Generate and verify the first signed AAB.
+2. Upload it to Internal testing.
+3. Complete Play Console listing, App content, privacy policy and Data safety declarations as applicable.
+4. Complete real-device smoke testing and resolve blockers.
+5. If applicable, complete the required closed test before requesting production access.
+6. Apply for production access and then publish the production release.
+
+**Proximity to production:** the repository is technically close to release, but production is still blocked by the manual Google Play and real-device gates above.
 
 Do not treat a green Vercel deployment as proof that the Android release artifact has been signed or accepted by Google Play.
 ## Android smoke-test gate
