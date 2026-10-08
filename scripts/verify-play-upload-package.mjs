@@ -71,6 +71,28 @@ if (
   throw new Error('Play release readiness artifact is not in a ready state.');
 }
 
+const sourceCommit = manifest.sourceCommit;
+const handoffPath = `${outputDir}/release-handoff.json`;
+if (!existsSync(handoffPath)) throw new Error(`Play release handoff missing: ${handoffPath}`);
+let handoff;
+try {
+  handoff = JSON.parse(readFileSync(handoffPath, 'utf8'));
+} catch (error) {
+  throw new Error(`Play release handoff is not valid JSON: ${error.message}`);
+}
+if (
+  handoff.app !== 'Lina AI' ||
+  handoff.packageId !== manifest.package ||
+  handoff.versionName !== manifest.versionName ||
+  handoff.versionCode !== manifest.versionCode ||
+  handoff.googlePlayTargetApiRequired !== 36 ||
+  handoff.targetApiCompliant !== true ||
+  handoff.sourceCommit !== sourceCommit ||
+  handoff.productionPublish !== 'BLOCKED'
+) {
+  throw new Error('Play release handoff does not match the verified release manifest.');
+}
+
 const readme = readFileSync(`${outputDir}/README.txt`, 'utf8');
 if (
   !readme.includes('app-release.aab') ||
@@ -87,4 +109,4 @@ console.log(`Package: ${manifest.package}`);
 console.log(`Version: ${manifest.versionName} (${manifest.versionCode})`);
 console.log(`Target SDK: ${manifest.targetSdk}`);
 console.log(`AAB SHA256: ${actual}`);
-console.log(`Source commit: ${manifest.sourceCommit}`);
+console.log(`Source commit: ${manifest.sourceCommit}`);\nconsole.log('Release handoff: matched and production remains BLOCKED');
