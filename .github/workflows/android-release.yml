@@ -71,6 +71,8 @@ jobs:
           node --check scripts/verify-aab-attestation-provenance.mjs
           node --check scripts/verify-android-workflow-action-pins.mjs
           node scripts/verify-android-workflow-action-pins.mjs
+          node --check scripts/record-release-dependency-provenance.mjs
+          node --check scripts/verify-release-dependency-provenance.mjs
 
       - name: Typecheck web app
         run: npm run typecheck
@@ -95,6 +97,9 @@ jobs:
 
       - name: Verify Capacitor setup
         run: npx cap doctor
+
+      - name: Record release dependency provenance
+        run: node scripts/record-release-dependency-provenance.mjs
 
       - name: Install Android SDK packages
         run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
@@ -400,7 +405,13 @@ EOF
               android/app/build/outputs/play-upload/signing-certificate-sha256.txt \
               android/app/build/outputs/play-upload/aab-attestation.json \
               android/app/build/outputs/play-upload/aab-attestation.bundle.json
+              android/app/build/outputs/play-upload/dependency-provenance.json
+              android/app/build/outputs/play-upload/npm-dependency-tree.json
+              android/app/build/outputs/play-upload/gradle-release-runtime-dependencies.txt
           } > android/app/build/outputs/play-upload/release-artifact-sha256.txt
+
+      - name: Verify release dependency provenance
+        run: node scripts/verify-release-dependency-provenance.mjs
 
       - name: Verify release artifact inventory
         run: node scripts/verify-release-artifact-inventory.mjs
