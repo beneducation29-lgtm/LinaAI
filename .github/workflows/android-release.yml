@@ -246,6 +246,8 @@ EOF
             "versionCode": ${{ inputs.version_code }},
             "technicalPipeline": "READY",
             "signedAab": "READY",
+            "googlePlayTargetApiRequired": 36,
+            "targetApiCompliant": true,
             "internalTesting": "MANUAL_REQUIRED",
             "realDeviceSmokeTest": "MANUAL_REQUIRED",
             "playConsolePolicySetup": "MANUAL_REQUIRED",
