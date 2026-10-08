@@ -102,6 +102,23 @@ jobs:
       - name: Accept Android SDK licenses
         run: yes | sdkmanager --licenses >/dev/null || true
 
+      - name: Record release build environment
+        run: |
+          set -euo pipefail
+          mkdir -p android/app/build/outputs/play-upload
+          {
+            echo "environment-record-version=1"
+            echo "source-commit=$GITHUB_SHA"
+            echo "runner-os=$RUNNER_OS"
+            echo "runner-arch=$RUNNER_ARCH"
+            echo "node=$(node --version)"
+            echo "npm=$(npm --version)"
+            echo "java=$(java -version 2>&1 | head -n 1)"
+            echo "gradle=$(cd android && ./gradlew --version | grep '^Gradle ' | head -n 1)"
+            echo "sdkmanager=$(sdkmanager --version | head -n 1)"
+            echo "bundletool-sha256=$(sha256sum bundletool.jar 2>/dev/null | cut -d ' ' -f1 || echo unavailable)"
+          } > android/app/build/outputs/play-upload/release-environment.txt
+
       - name: Build debug APK
         working-directory: android
         run: ./gradlew assembleDebug
