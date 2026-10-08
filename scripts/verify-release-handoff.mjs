@@ -10,7 +10,12 @@ if (!fs.existsSync(outputPath)) {
   throw new Error(`Missing release handoff manifest: ${outputPath}`);
 }
 
-const handoff = JSON.parse(fs.readFileSync(outputPath, "utf8"));
+let handoff;
+try {
+  handoff = JSON.parse(fs.readFileSync(outputPath, "utf8"));
+} catch (error) {
+  throw new Error(`Invalid release handoff JSON: ${error.message}`);
+}
 
 const expectedVersionCode = process.env.ANDROID_VERSION_CODE;
 const expectedVersionName = process.env.ANDROID_VERSION_NAME;
@@ -43,6 +48,10 @@ for (const [key, expected] of Object.entries(required)) {
 
 if (handoff.productionPublish === "READY") {
   throw new Error("Release handoff must never claim production publish is READY from CI alone.");
+}
+
+if (handoff.technicalPipeline === "READY" && handoff.signedAab === "READY" && handoff.productionPublish !== "BLOCKED") {
+  throw new Error("A release handoff with ready engineering artifacts must remain blocked for production.");
 }
 
 console.log("Release handoff manifest verified.");
