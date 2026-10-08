@@ -102,3 +102,5 @@ Do not treat a green Vercel deployment as proof that the Android release artifac
 The repository now includes a device-level release smoke-test checklist at `docs/android-release-smoke-test.md`. The CI pipeline verifies the compiled AAB and packages explicit release-readiness metadata, while the remaining device/Play Console checks must be completed with a real signed release.
 
 The release pipeline also generates and verifies an explicit `release-handoff.json` manifest. It keeps the engineering pipeline marked READY while forcing Internal testing, real-device validation, Play Console policy setup and production access to remain MANUAL_REQUIRED, with production publishing BLOCKED until those gates are completed.
+
+The smoke-test gate now also records whether physical-device testing has actually been executed. A checklist existing in the repository is not treated as proof that a real signed release passed testing.
