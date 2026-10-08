@@ -33,6 +33,8 @@ const required = {
   packageId: "com.linaai.chinese",
   technicalPipeline: "READY",
   signedAab: "READY",
+  googlePlayTargetApiRequired: 36,
+  targetApiCompliant: true,
   internalTesting: "MANUAL_REQUIRED",
   realDeviceSmokeTest: "MANUAL_REQUIRED",
   playConsolePolicySetup: "MANUAL_REQUIRED",
