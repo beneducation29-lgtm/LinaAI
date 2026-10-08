@@ -60,6 +60,8 @@ if (
   !Number.isInteger(manifest.targetSdk) ||
   manifest.targetSdk < 36 ||
   manifest.aabSha256 !== actual ||
+  typeof manifest.signingCertificateSha256 !== 'string' ||
+  !/^[0-9a-f]{64}$/.test(manifest.signingCertificateSha256) ||
   typeof manifest.sourceCommit !== 'string' ||
   !/^[0-9a-f]{40}$/.test(manifest.sourceCommit) ||
   (process.env.GITHUB_SHA && manifest.sourceCommit !== process.env.GITHUB_SHA) ||
@@ -99,6 +101,7 @@ if (
   handoff.app !== 'Lina AI' ||
   handoff.artifact !== manifest.artifact ||
   handoff.aabSha256 !== manifest.aabSha256 ||
+  handoff.signingCertificateSha256 !== manifest.signingCertificateSha256 ||
   handoff.packageId !== manifest.package ||
   handoff.versionName !== manifest.versionName ||
   handoff.versionCode !== manifest.versionCode ||
@@ -134,6 +137,7 @@ const expectedSummary = new Map([
   ['targetSdk', String(manifest.targetSdk)],
   ['aabSha256', manifest.aabSha256],
   ['sourceCommit', manifest.sourceCommit],
+  ['signingCertificateSha256', manifest.signingCertificateSha256],
 ]);
 if (summaryFields.size !== expectedSummary.size) {
   throw new Error('Release summary contains unexpected or missing fields.');
@@ -150,12 +154,17 @@ if (
   !readme.includes('Internal testing') ||
   !readme.includes('API 36') ||
   !readme.includes('source commit') ||
+  !readme.includes('signing certificate SHA-256') ||
   !readme.includes('does not publish the app automatically')
 ) {
   throw new Error('Play upload README does not describe the expected manual internal-testing flow.');
 }
 
 const readinessKeys = ['technicalPipeline', 'signedAab', 'compiledManifest', 'playUploadPackage', 'internalTesting', 'production'];
+const signingCertificateFile = outputDir + '/signing-certificate-sha256.txt';
+if (!existsSync(signingCertificateFile)) throw new Error('Signing certificate provenance artifact is missing.');
+const signingCertificate = readFileSync(signingCertificateFile, 'utf8').trim();
+if (signingCertificate !== manifest.signingCertificateSha256) throw new Error('Signing certificate provenance artifact does not match the release manifest.');
 for (const key of readinessKeys) {
   if (!(key in readiness)) throw new Error(`Play release readiness is missing required field: ${key}`);
 }
@@ -170,5 +179,6 @@ console.log(`Package: ${manifest.package}`);
 console.log(`Version: ${manifest.versionName} (${manifest.versionCode})`);
 console.log(`Target SDK: ${manifest.targetSdk}`);
 console.log(`AAB SHA256: ${actual}`);
+console.log(`Signing certificate SHA-256: ${manifest.signingCertificateSha256}`);
 console.log(`Source commit: ${manifest.sourceCommit}`);
 console.log('Release handoff: matched and production remains BLOCKED');
