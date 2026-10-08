@@ -76,6 +76,8 @@ This does **not** mean the app has already been submitted to Google Play. The si
 
 **Current stage: Release Candidate → Play Console / Internal Testing.**
 
+**Production proximity: close on engineering; not yet releaseable.** The remaining gates are now explicitly separated into automated CI checks and developer-owned Play Console/device checks.
+
 **Technical release pipeline: READY.**
 
 **Signed AAB artifact: NOT YET GENERATED/VERIFIED in this project history.**
