@@ -235,6 +235,9 @@ MANUAL: REQUIRED
 PRODUCTION STATUS: BLOCKED_UNTIL_MANUAL_GATES_COMPLETE
 EOF
 
+      - name: Verify production gate report
+        run: node scripts/verify-production-gate.mjs
+
       - name: Verify Android smoke test evidence
         run: node scripts/verify-android-smoke-test-evidence.mjs
 
