@@ -39,6 +39,9 @@ if (
   !Number.isInteger(manifest.targetSdk) ||
   manifest.targetSdk < 36 ||
   manifest.aabSha256 !== actual ||
+  typeof manifest.sourceCommit !== 'string' ||
+  !/^[0-9a-f]{40}$/.test(manifest.sourceCommit) ||
+  (process.env.GITHUB_SHA && manifest.sourceCommit !== process.env.GITHUB_SHA) ||
   (expectedVersionCode && String(manifest.versionCode) !== String(expectedVersionCode)) ||
   (expectedVersionName && manifest.versionName !== expectedVersionName)
 ) {
@@ -71,3 +74,4 @@ console.log(`Package: ${manifest.package}`);
 console.log(`Version: ${manifest.versionName} (${manifest.versionCode})`);
 console.log(`Target SDK: ${manifest.targetSdk}`);
 console.log(`AAB SHA256: ${actual}`);
+console.log(`Source commit: ${manifest.sourceCommit}`);
