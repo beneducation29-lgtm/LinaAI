@@ -148,6 +148,8 @@ jobs:
         run: |
           set -euo pipefail
           curl -fsSL -o bundletool.jar "https://github.com/google/bundletool/releases/download/${BUNDLETOOL_VERSION}/bundletool-all-${BUNDLETOOL_VERSION}.jar"
+          BUNDLETOOL_SHA256=$(sha256sum bundletool.jar | cut -d " " -f1)
+          test "$BUNDLETOOL_SHA256" = "378b5434cd1378bef6b2bc527b8c7f0ff2584b273830335bce54d6d0813c8584"
           java -jar bundletool.jar validate --bundle android/app/build/outputs/bundle/release/app-release.aab
 
       - name: Verify compiled AAB manifest
