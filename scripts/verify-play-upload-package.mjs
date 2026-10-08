@@ -27,6 +27,9 @@ if (!expected || expected !== actual) {
 }
 
 const manifest = JSON.parse(readFileSync(`${outputDir}/release-manifest.json`, 'utf8'));
+const expectedVersionCode = process.env.ANDROID_VERSION_CODE;
+const expectedVersionName = process.env.ANDROID_VERSION_NAME;
+
 if (
   manifest.package !== 'com.linaai.chinese' ||
   typeof manifest.versionName !== 'string' ||
@@ -35,7 +38,9 @@ if (
   manifest.versionCode < 1 ||
   !Number.isInteger(manifest.targetSdk) ||
   manifest.targetSdk < 36 ||
-  manifest.aabSha256 !== actual
+  manifest.aabSha256 !== actual ||
+  (expectedVersionCode && String(manifest.versionCode) !== String(expectedVersionCode)) ||
+  (expectedVersionName && manifest.versionName !== expectedVersionName)
 ) {
   throw new Error('Play release manifest does not contain valid package, version, target SDK, or AAB checksum metadata.');
 }
