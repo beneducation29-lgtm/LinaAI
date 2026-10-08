@@ -164,12 +164,18 @@ jobs:
       - name: Generate release manifest summary
         run: |
           set -euo pipefail
+          AAB_SHA256=$(cut -d " " -f1 android/app/build/outputs/bundle/release/app-release.aab.sha256)
+          TARGET_SDK=$(grep -E "targetSdk(?:Version)?" android/app/build.gradle | head -n1 | grep -oE "[0-9]+" | tail -n1)
+          APPLICATION_ID=$(grep -E "applicationId" android/app/build.gradle | head -n1 | sed -E "s/.*[\"\x27]([^\"\x27]+)[\"\x27].*/\1/")
           {
             echo "Lina AI Android release"
+            echo "artifact=app-release.aab"
+            echo "package=$APPLICATION_ID"
+            echo "versionName=${{ inputs.version_name }}"
             echo "versionCode=${{ inputs.version_code }}"
-            grep -E 'applicationId|versionName|targetSdk' android/app/build.gradle || true
-            echo "AAB SHA256:"
-            cat android/app/build/outputs/bundle/release/app-release.aab.sha256 2>/dev/null || true
+            echo "targetSdk=$TARGET_SDK"
+            echo "aabSha256=$AAB_SHA256"
+            echo "sourceCommit=$GITHUB_SHA"
           } > android/app/build/outputs/bundle/release/release-summary.txt
 
       - name: Create Play release manifest
