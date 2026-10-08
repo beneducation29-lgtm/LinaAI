@@ -41,6 +41,12 @@ This does **not** mean the app has already been submitted to Google Play. The si
 - Google Play release checklist.
 - Production blockers are explicitly documented rather than invented in CI.
 
+## Release hardening completed
+
+- Release handoff now records the exact GitHub source commit used for the release workflow.
+- CI verifies that the handoff source commit matches `GITHUB_SHA`, preventing artifact provenance drift.
+- Google Play target API readiness is explicitly recorded as API 36+.
+
 ## Still required before Google Play submission
 
 1. Configure the four Android signing secrets in GitHub:
