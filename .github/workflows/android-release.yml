@@ -130,6 +130,7 @@ jobs:
           ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/lina-ai-release.keystore
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_SIGNING_CERTIFICATE_OUTPUT: ${{ runner.temp }}/lina-ai-signing-certificate-sha256.txt
         run: node scripts/verify-android-signing-certificate.mjs
       - name: Generate Play preflight report
         run: |
@@ -198,6 +199,7 @@ jobs:
             echo "targetSdk=$TARGET_SDK"
             echo "aabSha256=$AAB_SHA256"
             echo "sourceCommit=$GITHUB_SHA"
+            echo "signingCertificateSha256=$(cat \"$RUNNER_TEMP/lina-ai-signing-certificate-sha256.txt\")"
           } > android/app/build/outputs/bundle/release/release-summary.txt
 
       - name: Create Play release manifest
@@ -207,7 +209,8 @@ jobs:
           SOURCE_COMMIT="${GITHUB_SHA}"
           TARGET_SDK=$(grep -E "targetSdk(?:Version)?" android/app/build.gradle | head -n1 | grep -oE "[0-9]+" | tail -n1)
           APPLICATION_ID=$(grep -E "applicationId" android/app/build.gradle | head -n1 | sed -E "s/.*[\"\x27]([^\"\x27]+)[\"\x27].*/\1/")
-          printf "%s\n" "{\"artifact\":\"app-release.aab\",\"package\":\"$APPLICATION_ID\",\"versionName\":\"${{ inputs.version_name }}\",\"versionCode\":${{ inputs.version_code }},\"targetSdk\":$TARGET_SDK,\"aabSha256\":\"$AAB_SHA256\",\"sourceCommit\":\"$SOURCE_COMMIT\"}" > android/app/build/outputs/bundle/release/release-manifest.json
+          SIGNING_CERTIFICATE_SHA256=$(cat "$RUNNER_TEMP/lina-ai-signing-certificate-sha256.txt")
+          printf "%s\n" "{\"artifact\":\"app-release.aab\",\"package\":\"$APPLICATION_ID\",\"versionName\":\"${{ inputs.version_name }}\",\"versionCode\":${{ inputs.version_code }},\"targetSdk\":$TARGET_SDK,\"aabSha256\":\"$AAB_SHA256\",\"sourceCommit\":\"$SOURCE_COMMIT\",\"signingCertificateSha256\":\"$SIGNING_CERTIFICATE_SHA256\"}" > android/app/build/outputs/bundle/release/release-manifest.json
 
       - name: Create Play upload package
         run: |
@@ -289,7 +292,9 @@ EOF
             "productionPublish": "BLOCKED"
           }
           EOF
+          SIGNING_CERTIFICATE_SHA256=$(cat "$RUNNER_TEMP/lina-ai-signing-certificate-sha256.txt")
           sed -i "s/__AAB_SHA256__/$AAB_SHA256/" android/app/build/outputs/play-upload/release-handoff.json
+          sed -i "s/__SIGNING_CERTIFICATE_SHA256__/$SIGNING_CERTIFICATE_SHA256/" android/app/build/outputs/play-upload/release-handoff.json
 
       - name: Verify release handoff manifest
         env:
@@ -302,6 +307,9 @@ EOF
 
       - name: Verify Android smoke test evidence
         run: node scripts/verify-android-smoke-test-evidence.mjs
+
+      - name: Preserve signing certificate provenance
+        run: cp "$RUNNER_TEMP/lina-ai-signing-certificate-sha256.txt" android/app/build/outputs/play-upload/signing-certificate-sha256.txt
 
       - name: Generate release artifact inventory
         run: |
@@ -320,7 +328,8 @@ EOF
               android/app/build/outputs/play-upload/README.txt \
               android/app/build/outputs/play-upload/release-readiness.json \
               android/app/build/outputs/play-upload/production-gate.txt \
-              android/app/build/outputs/play-upload/release-handoff.json
+              android/app/build/outputs/play-upload/release-handoff.json \
+              android/app/build/outputs/play-upload/signing-certificate-sha256.txt
           } > android/app/build/outputs/play-upload/release-artifact-sha256.txt
 
       - name: Verify release artifact inventory
