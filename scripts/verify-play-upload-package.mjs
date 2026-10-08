@@ -9,6 +9,8 @@ const requiredFiles = [
   'release-manifest.json',
   'README.txt',
   'release-readiness.json',
+  'aab-attestation.json',
+  'aab-attestation.bundle.json',
 ];
 
 for (const name of requiredFiles) {
@@ -88,6 +90,29 @@ if (
   throw new Error('Play release readiness artifact is not in a ready state.');
 }
 
+const attestationMetadataPath = `${outputDir}/aab-attestation.json`;
+let attestationMetadata;
+try {
+  attestationMetadata = JSON.parse(readFileSync(attestationMetadataPath, 'utf8'));
+} catch (error) {
+  throw new Error(`AAB attestation metadata is not valid JSON: ${error.message}`);
+}
+if (
+  attestationMetadata.subject !== manifest.artifact ||
+  attestationMetadata.subjectSha256 !== manifest.aabSha256 ||
+  !/^[0-9a-f]{64}$/.test(attestationMetadata.bundleSha256 ?? '') ||
+  !/^[0-9]+$/.test(String(attestationMetadata.attestationId ?? '')) ||
+  !/^https:\\/\\/github\\.com\\/[^/]+\\/[^/]+\\/attestations\\/[0-9]+$/.test(attestationMetadata.attestationUrl ?? '')
+) {
+  throw new Error('AAB attestation metadata does not match the verified release manifest.');
+}
+const attestationBundleSha256 = execFileSync('sha256sum', [`${outputDir}/aab-attestation.bundle.json`], { encoding: 'utf8' })
+  .trim()
+  .split(/\\s+/)[0];
+if (attestationBundleSha256 !== attestationMetadata.bundleSha256) {
+  throw new Error('AAB attestation bundle checksum does not match its metadata.');
+}
+
 const sourceCommit = manifest.sourceCommit;
 const handoffPath = `${outputDir}/release-handoff.json`;
 if (!existsSync(handoffPath)) throw new Error(`Play release handoff missing: ${handoffPath}`);
@@ -155,7 +180,8 @@ if (
   !readme.includes('API 36') ||
   !readme.includes('source commit') ||
   !readme.includes('signing certificate SHA-256') ||
-  !readme.includes('does not publish the app automatically')
+  !readme.includes('does not publish the app automatically') ||
+  !readme.includes('attestation')
 ) {
   throw new Error('Play upload README does not describe the expected manual internal-testing flow.');
 }
@@ -181,4 +207,5 @@ console.log(`Target SDK: ${manifest.targetSdk}`);
 console.log(`AAB SHA256: ${actual}`);
 console.log(`Signing certificate SHA-256: ${manifest.signingCertificateSha256}`);
 console.log(`Source commit: ${manifest.sourceCommit}`);
+console.log(`AAB attestation ID: ${attestationMetadata.attestationId}`);
 console.log('Release handoff: matched and production remains BLOCKED');
