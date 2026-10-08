@@ -112,6 +112,20 @@ if (
   throw new Error('Play release handoff does not match the verified release manifest.');
 }
 
+const summary = readFileSync(`${outputDir}/release-summary.txt`, 'utf8');
+const summaryRequired = [
+  'artifact=app-release.aab',
+  `package=${manifest.package}`,
+  `versionName=${manifest.versionName}`,
+  `versionCode=${manifest.versionCode}`,
+  `targetSdk=${manifest.targetSdk}`,
+  `aabSha256=${manifest.aabSha256}`,
+  `sourceCommit=${manifest.sourceCommit}`,
+];
+for (const field of summaryRequired) {
+  if (!summary.includes(field)) throw new Error(`Release summary is inconsistent with the verified manifest: ${field}`);
+}
+
 const readme = readFileSync(`${outputDir}/README.txt`, 'utf8');
 if (
   !readme.includes('app-release.aab') ||
