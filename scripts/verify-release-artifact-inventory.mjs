@@ -18,6 +18,8 @@ const expectedFiles = [
   'android/app/build/outputs/play-upload/production-gate.txt',
   'android/app/build/outputs/play-upload/release-handoff.json',
   'android/app/build/outputs/play-upload/signing-certificate-sha256.txt',
+  'android/app/build/outputs/play-upload/aab-attestation.json',
+  'android/app/build/outputs/play-upload/aab-attestation.bundle.json',
 ];
 
 const lines = readFileSync(inventoryPath, 'utf8').trim().split(/\r?\n/);
