@@ -18,7 +18,12 @@ const versionCode = manifest.match(/android:versionCode=['"]([^'"]+)['"]/i)?.[1]
 const versionName = manifest.match(/android:versionName=['"]([^'"]+)['"]/i)?.[1];
 const targetSdk = manifest.match(/android:targetSdkVersion=['"]([^'"]+)['"]/i)?.[1];
 const hasMicrophone = /android\.permission\.RECORD_AUDIO/i.test(manifest);
-const hasLauncherActivity = /android:name=['"][^'"]+['"][^>]+android:exported=['"]true['"]/i.test(manifest) && /android.intent.action.MAIN/i.test(manifest) && /android.intent.category.LAUNCHER/i.test(manifest);
+const activityBlocks = [...manifest.matchAll(/<activity\\b[\\s\\S]*?<\\/activity>/gi)].map((match) => match[0]);
+const hasLauncherActivity = activityBlocks.some((activity) =>
+  /android:exported=['"]true['"]/i.test(activity) &&
+  /android.intent.action.MAIN/i.test(activity) &&
+  /android.intent.category.LAUNCHER/i.test(activity),
+);
 
 const expectedPackage = 'com.linaai.chinese';
 const expectedVersionCode = process.env.ANDROID_VERSION_CODE;
