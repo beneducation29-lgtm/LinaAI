@@ -207,6 +207,9 @@ EOF
           ANDROID_VERSION_NAME: ${{ inputs.version_name }}
         run: npm run android:verify-play-upload
 
+      - name: Verify Android smoke test evidence
+        run: node scripts/verify-android-smoke-test-evidence.mjs
+
       - name: Upload release artifacts
         uses: actions/upload-artifact@v4
         with:
