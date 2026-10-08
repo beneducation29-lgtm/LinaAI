@@ -207,6 +207,34 @@ EOF
           ANDROID_VERSION_NAME: ${{ inputs.version_name }}
         run: npm run android:verify-play-upload
 
+      - name: Generate production gate report
+        run: |
+          set -euo pipefail
+          mkdir -p android/app/build/outputs/play-upload
+          cat > android/app/build/outputs/play-upload/production-gate.txt <<'EOF'
+Lina AI — Production Release Gate
+
+AUTOMATED: READY
+- Android release inputs validated
+- Signed AAB verification enabled
+- Target SDK 36+ validation enabled
+- Compiled manifest/version consistency enabled
+- AAB checksum validation enabled
+- Play upload package validation enabled
+- Android smoke-test evidence gate enabled
+
+MANUAL: REQUIRED
+- Generate and download the first signed AAB
+- Upload to Google Play Internal testing
+- Complete Play Console store listing and App content
+- Publish accurate privacy policy and complete Data safety declarations as applicable
+- Complete real-device release smoke testing
+- Complete closed testing requirements if applicable
+- Obtain production access before production publishing
+
+PRODUCTION STATUS: BLOCKED_UNTIL_MANUAL_GATES_COMPLETE
+EOF
+
       - name: Verify Android smoke test evidence
         run: node scripts/verify-android-smoke-test-evidence.mjs
 
