@@ -140,7 +140,7 @@ export function buildReviewQueue(
       return {
         ...schedule,
         priorityScore,
-        priorityReason: struggling ? 'struggling' : fading ? 'fading' : overdueDays > 0 ? 'due' : 'maintenance'
+        priorityReason: (struggling ? 'struggling' : fading ? 'fading' : overdueDays > 0 ? 'due' : 'maintenance') as ReviewQueueItem['priorityReason']
       };
     })
     .sort((a, b) => b.priorityScore - a.priorityScore || a.nextReview.localeCompare(b.nextReview));
