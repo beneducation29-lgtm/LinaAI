@@ -12,6 +12,7 @@ on:
       - 'package.json'
       - 'capacitor.config.ts'
       - 'scripts/**'
+      - 'tests/**'
       - '.github/workflows/android.yml'
 
 jobs:
