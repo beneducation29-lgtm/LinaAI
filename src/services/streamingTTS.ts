@@ -90,7 +90,7 @@ export class ElevenLabsStreamingTTSProvider implements StreamingTTSProvider {
       if (done) break;
       if (value?.byteLength) { parts.push(value); total += value.byteLength; }
     }
-    const blob = new Blob(parts, { type: options.audioMimeType || configuredMimeType });
+    const blob = new Blob(parts.map(part => part.slice().buffer as ArrayBuffer), { type: options.audioMimeType || configuredMimeType });
     const prepared = { id, blob, mimeType: blob.type, createdAt: Date.now(), sizeBytes: total };
     audioBufferManager.put(prepared);
     return prepared;
