@@ -29,6 +29,11 @@ try {
   throw new Error(`npm dependency tree is not valid JSON: ${error.message}`);
 }
 
+if (npmTreeExitCode !== 0 || (Array.isArray(npmTree.problems) && npmTree.problems.length > 0)) {
+  const problems = Array.isArray(npmTree.problems) ? npmTree.problems.join('; ') : 'npm ls returned a non-zero exit code';
+  throw new Error(`npm dependency tree is not clean: ${problems}`);
+}
+
 const npmTreePath = `${outputDir}/npm-dependency-tree.json`;
 writeFileSync(npmTreePath, JSON.stringify(npmTree, null, 2) + '\n');
 
