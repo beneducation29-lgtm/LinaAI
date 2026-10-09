@@ -5,7 +5,7 @@ export const MOTIVATION_STORAGE_KEY = 'lina_motivation_v1';
 export const DAILY_GOAL_OPTIONS = [5, 10, 15, 20, 30] as const;
 export type DailyGoalMinutes = typeof DAILY_GOAL_OPTIONS[number];
 
-const XP_REWARDS: Record<MotivationActivityType, number> = { lesson:50, review:10, vocabulary:5, speaking:15, conversation:20, pronunciation:15, daily_goal:25 };
+const XP_REWARDS: Record<MotivationActivityType, number> = { lesson:50, review:10, vocabulary:5, speaking:15, conversation:20, pronunciation:15, listening:10, reading:10, writing:10, daily_goal:25 };
 
 export const ACHIEVEMENTS = [
   { id:'first-lesson', label:'First Lesson', description:'Hoàn thành bài học đầu tiên.' },
