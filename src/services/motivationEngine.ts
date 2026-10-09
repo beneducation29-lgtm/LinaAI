@@ -79,7 +79,7 @@ export const applyMotivationActivity=(state:MotivationState,input:Omit<Motivatio
   let next:MotivationState={...state,activities:[...state.activities,{...input,occurredAt,localDate:date}].slice(-1000),xp:state.xp+XP_REWARDS[input.type],streakDays:streak,lastStudyDate:date};
   const today=getTodayStats(next,date);
   if(input.type!=='daily_goal'&&today.minutes>=next.dailyGoalMinutes&&!next.activities.some(a=>a.id==='daily-goal:'+date)){
-    next={...next,activities:[...next.activities,{id:'daily-goal:'+date,type:'daily_goal',occurredAt,localDate:date,minutes:0}].slice(-1000),xp:next.xp+XP_REWARDS.daily_goal};
+    next={...next,activities:[...next.activities,{id:'daily-goal:'+date,type:'daily_goal' as const,occurredAt,localDate:date,minutes:0}].slice(-1000),xp:next.xp+XP_REWARDS.daily_goal};
   }
   next.achievementIds=calculateAchievements(next);
   return next;
