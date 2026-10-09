@@ -263,7 +263,7 @@ class AITutorClientService implements AITutorProvider {
         chinese: '我还没吃呢。你刚下班，准备吃什么？',
         pinyin: 'Wǒ hái méi chī ne. Nǐ gāng xiàbān, zhǔnbèi chī shénme?',
         vietnamese: 'Mình vẫn chưa ăn. Bạn vừa tan làm, định ăn gì vậy?',
-        responseType: 'conversation', emotion: 'friendly', correction: null, vocabulary: [], grammar: [],
+        responseType: 'conversation', emotion: 'happy', correction: null, vocabulary: [], grammar: [],
         progressiveHints: { hint1_semantic: 'Nói món bạn định ăn.', hint2_keywords: '准备, 吃, 面, 米饭', hint3_structure: '我准备 + 去吃 + món ăn', hint4_fullAnswer: '我准备去吃面。' },
         suggestedReplies: [
           { hanzi: '我准备去吃面。', pinyin: 'Wǒ zhǔnbèi qù chī miàn.', vietnamese: 'Mình định đi ăn mì.' },
