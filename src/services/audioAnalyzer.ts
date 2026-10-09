@@ -6,7 +6,7 @@ export class AudioAnalyzer {
   private context: AudioContext | null = null;
   private analyser: AnalyserNode | null = null;
   private source: MediaElementAudioSourceNode | null = null;
-  private data: Uint8Array | null = null;
+  private data: Uint8Array<ArrayBuffer> | null = null;
   private frameId: number | null = null;
   private listeners = new Set<AudioAnalyzerListener>();
   private element: HTMLAudioElement | null = null;
