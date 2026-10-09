@@ -35,7 +35,7 @@ export function isDue(nextReview: string, now = new Date()): boolean {
   return new Date(nextReview).getTime() <= now.getTime();
 }
 
-export function recordMistake(existing: MistakeRecord[], input: Omit<MistakeRecord, 'id' | 'frequency' | 'lastSeen' | 'firstSeen'> & Partial<Pick<MistakeRecord,'severity'|'resolved'|'mastery'|'relatedVocabulary'|'relatedGrammar'|'relatedPronunciation'>>): MistakeRecord[] {
+export function recordMistake(existing: MistakeRecord[], input: Omit<MistakeRecord, 'id' | 'frequency' | 'lastSeen' | 'firstSeen' | 'severity' | 'resolved' | 'mastery' | 'relatedVocabulary' | 'relatedGrammar' | 'relatedPronunciation'> & Partial<Pick<MistakeRecord,'severity'|'resolved'|'mastery'|'relatedVocabulary'|'relatedGrammar'|'relatedPronunciation'>>): MistakeRecord[] {
   const match = existing.find(m => m.type === input.type && m.original === input.original && m.corrected === input.corrected);
   if (match) {
     return existing.map(m => m.id === match.id
