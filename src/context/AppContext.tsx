@@ -218,7 +218,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return INITIAL_FLASHCARDS;
   });
 
-  useEffect(() => syncEngine.subscribe(setSyncState), []);
+  useEffect(() => {
+    const unsubscribe = syncEngine.subscribe(setSyncState);
+    return () => { unsubscribe(); };
+  }, []);
   useEffect(() => {
     analytics.track('app_open', { hskLevel: user.currentHsk });
   }, []);
