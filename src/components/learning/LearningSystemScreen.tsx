@@ -26,6 +26,10 @@ export const LearningSystemScreen: React.FC = () => {
   const [roleplayInput,setRoleplayInput] = useState('');
   const [roleplayReply,setRoleplayReply] = useState('');
   const [busy,setBusy] = useState(false);
+  const [speakingAttempt,setSpeakingAttempt] = useState(1);
+  const [speakingBusy,setSpeakingBusy] = useState(false);
+  const [speakingScores,setSpeakingScores] = useState<number[]>([]);
+  const [speakingScore,setSpeakingScore] = useState<number | null>(null);
   const [pinyinMode,setPinyinMode] = useState<'marks'|'numbers'|'hidden'>('marks');
   const lessonStartedAt = useRef<Record<string, number>>({});
 
