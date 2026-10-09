@@ -67,7 +67,7 @@ function minutesFor(total:number, count:number): number { return Math.max(1, Mat
 
 export function generatePracticeSession(input: LearningSessionInput, catalog: ActivityItem[] = []): LearningSession {
   const minutes = Math.max(5, Math.round(input.availableTime));
-  const dueIds = new Set(input.reviewDue.filter(isReviewDue).map(x => x.itemId));
+  const dueIds = new Set(input.reviewDue.filter(item => isReviewDue(item)).map(x => x.itemId));
   const due = catalog.filter(x => dueIds.has(x.id));
   const weak = new Set(input.weakAreas.map(x => x.toLowerCase()));
   const eligible = catalog.filter(x => x.hskLevel === input.hskLevel && (weak.size === 0 || x.targetIds.some(id => weak.has(id.toLowerCase()))));
