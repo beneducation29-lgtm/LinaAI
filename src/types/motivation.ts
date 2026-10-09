@@ -1,4 +1,4 @@
-export type MotivationActivityType = 'lesson' | 'review' | 'vocabulary' | 'speaking' | 'conversation' | 'pronunciation' | 'daily_goal';
+export type MotivationActivityType = 'lesson' | 'review' | 'vocabulary' | 'speaking' | 'conversation' | 'pronunciation' | 'listening' | 'reading' | 'writing' | 'daily_goal';
 
 export interface MotivationActivity {
   id: string;
