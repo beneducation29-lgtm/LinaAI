@@ -24,7 +24,7 @@ if (aabSize < 1024) throw new Error(`Play upload AAB is unexpectedly small: ${aa
 
 const checksumFile = `${outputDir}/app-release.aab.sha256`;
 const checksumText = readFileSync(checksumFile, 'utf8').trim();
-const checksumParts = checksumText.split(/\\s+/);
+const checksumParts = checksumText.split(/\s+/);
 const expected = checksumParts[0];
 const checksumTarget = checksumParts[checksumParts.length - 1];
 if (
@@ -36,7 +36,7 @@ if (
 }
 const actual = execFileSync('sha256sum', [aabPath], { encoding: 'utf8' })
   .trim()
-  .split(/\\s+/)[0];
+  .split(/\s+/)[0];
 
 if (!expected || expected !== actual) {
   throw new Error(`Play upload AAB checksum mismatch: expected ${expected || 'missing'}, got ${actual}`);
@@ -55,7 +55,7 @@ if (
   manifest.artifact !== 'app-release.aab' ||
   manifest.package !== 'com.linaai.chinese' ||
   typeof manifest.versionName !== 'string' ||
-  !/^\\d+\\.\\d+\\.\\d+$/.test(manifest.versionName) ||
+  !/^\d+\.\d+\.\d+$/.test(manifest.versionName) ||
   !Number.isInteger(manifest.versionCode) ||
   manifest.versionCode < 1 ||
   manifest.versionCode > 2100000000 ||
@@ -102,13 +102,13 @@ if (
   attestationMetadata.subjectSha256 !== manifest.aabSha256 ||
   !/^[0-9a-f]{64}$/.test(attestationMetadata.bundleSha256 ?? '') ||
   !/^[0-9]+$/.test(String(attestationMetadata.attestationId ?? '')) ||
-  !/^https:\\/\\/github\\.com\\/[^/]+\\/[^/]+\\/attestations\\/[0-9]+$/.test(attestationMetadata.attestationUrl ?? '')
+  !/^https:\/\/github\.com\/[^/]+\/[^/]+\/attestations\/[0-9]+$/.test(attestationMetadata.attestationUrl ?? '')
 ) {
   throw new Error('AAB attestation metadata does not match the verified release manifest.');
 }
 const attestationBundleSha256 = execFileSync('sha256sum', [`${outputDir}/aab-attestation.bundle.json`], { encoding: 'utf8' })
   .trim()
-  .split(/\\s+/)[0];
+  .split(/\s+/)[0];
 if (attestationBundleSha256 !== attestationMetadata.bundleSha256) {
   throw new Error('AAB attestation bundle checksum does not match its metadata.');
 }
@@ -146,7 +146,7 @@ if (
 
 const summary = readFileSync(`${outputDir}/release-summary.txt`, 'utf8');
 const summaryFields = new Map();
-for (const line of summary.split(/\\r?\\n/)) {
+for (const line of summary.split(/\r?\n/)) {
   const separator = line.indexOf('=');
   if (separator < 1) continue;
   const key = line.slice(0, separator).trim();
