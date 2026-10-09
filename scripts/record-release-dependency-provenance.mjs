@@ -9,6 +9,10 @@ const sha256 = (value) => createHash('sha256').update(value).digest('hex');
 const sha256File = (file) => sha256(readFileSync(file));
 
 const packageJson = readFileSync('package.json', 'utf8');
+const packageLockPath = 'package-lock.json';
+const packageLock = readFileSync(packageLockPath);
+const preservedPackageLockPath = `${outputDir}/npm-package-lock.json`;
+writeFileSync(preservedPackageLockPath, packageLock);
 const npmVersion = execFileSync('npm', ['--version'], { encoding: 'utf8' }).trim();
 
 let npmTreeRaw = '';
@@ -48,6 +52,8 @@ const provenance = {
   provenanceVersion: 1,
   sourceCommit: process.env.GITHUB_SHA ?? '',
   packageJsonSha256: sha256(packageJson),
+  packageLockSha256: sha256File(preservedPackageLockPath),
+  packageLockVersion: JSON.parse(packageLock.toString('utf8')).lockfileVersion,
   npmVersion,
   npmDependencyTreeSha256: sha256File(npmTreePath),
   npmDependencyTreeExitCode: npmTreeExitCode,
