@@ -3,8 +3,8 @@ import { HSKLevel, UserLevel, DailyTimeGoal, ConversationMessage } from './index
 export type PinyinDisplayMode = 'marks' | 'numbers' | 'hidden';
 export type ReviewType = 'zh-to-vi' | 'vi-to-zh' | 'audio-to-meaning' | 'pinyin-to-zh' | 'speak' | 'listen-repeat' | 'fill-blank' | 'conversation';
 
-export interface StructuredVocabulary { id:string; hanzi:string; pinyin:string; pinyinNumbered:string; vietnamese:string; partOfSpeech:string; exampleChinese:string; examplePinyin:string; exampleVietnamese:string; hskLevel:HSKLevel; category:string; audio:string; difficulty:1|2|3; }
-export interface GrammarRecord { id:string; pattern:string; meaning:string; explanationVi:string; examples:Array<{hanzi:string;pinyin:string;vietnamese:string}>; commonMistakes:string[]; practiceQuestions:string[]; }
+export interface StructuredVocabulary { id:string; hanzi:string; pinyin:string; pinyinNumbered:string; vietnamese:string; partOfSpeech:string; exampleChinese:string; examplePinyin:string; exampleVietnamese:string; hskLevel:HSKLevel; category:string; audio?:string; difficulty:1|2|3; }
+export interface GrammarRecord { id:string; pattern:string; meaning:string; explanationVi:string; examples:StructuredSentence[]; commonMistakes:string[]; practiceQuestions:string[]; }
 export interface StructuredSentence { id:string; chinese:string; pinyin:string; vietnamese:string; }
 export interface ReviewItem { id:string; type:ReviewType; prompt:string; answer:string; sentence?:StructuredSentence; vocabularyId?:string; }
 export interface SpeakingExercise { id:string; prompt:StructuredSentence; expectedMeaning:string; followUp:StructuredSentence; }
