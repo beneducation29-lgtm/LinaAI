@@ -4,6 +4,7 @@ import { existsSync, readFileSync } from 'node:fs';
 const dir = 'android/app/build/outputs/play-upload';
 const files = [
   `${dir}/dependency-provenance.json`,
+  `${dir}/npm-package-lock.json`,
   `${dir}/npm-dependency-tree.json`,
   `${dir}/gradle-release-runtime-dependencies.txt`,
   'package.json',
@@ -23,6 +24,10 @@ if (!/^[0-9a-f]{40}$/.test(provenance.sourceCommit ?? '')) throw new Error('Depe
 if (provenance.sourceCommit !== process.env.GITHUB_SHA) throw new Error('Dependency provenance source commit does not match GITHUB_SHA.');
 if (!/^[0-9a-f]{64}$/.test(provenance.packageJsonSha256 ?? '')) throw new Error('package.json SHA-256 is malformed.');
 if (provenance.packageJsonSha256 !== sha256File('package.json')) throw new Error('package.json SHA-256 mismatch.');
+if (!/^[0-9a-f]{64}$/.test(provenance.packageLockSha256 ?? '')) throw new Error('package-lock.json SHA-256 is malformed.');
+if (provenance.packageLockSha256 !== sha256File(`${dir}/npm-package-lock.json`)) throw new Error('package-lock.json SHA-256 mismatch.');
+const packageLock = JSON.parse(readFileSync(`${dir}/npm-package-lock.json`, 'utf8'));
+if (!Number.isInteger(provenance.packageLockVersion) || packageLock.lockfileVersion !== provenance.packageLockVersion) throw new Error('package-lock.json lockfile version mismatch.');
 if (!/^[0-9a-f]{64}$/.test(provenance.npmDependencyTreeSha256 ?? '')) throw new Error('npm dependency tree SHA-256 is malformed.');
 if (provenance.npmDependencyTreeSha256 !== sha256File(`${dir}/npm-dependency-tree.json`)) throw new Error('npm dependency tree SHA-256 mismatch.');
 if (!/^[0-9a-f]{64}$/.test(provenance.gradleReleaseRuntimeDependenciesSha256 ?? '')) throw new Error('Gradle dependency tree SHA-256 is malformed.');
