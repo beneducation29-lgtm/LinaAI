@@ -203,7 +203,7 @@ async function handleOAuthSession(req,res){
 
 export default async function handler(req,res){
   try{
-    const pathname=new URL(req.url||'/','http://localhost').pathname.replace(/\\/+$/,'');
+    const pathname=new URL(req.url||'/','http://localhost').pathname.replace(/\/+$/,'');
     const action=pathname.split('/').filter(Boolean).slice(2).join('/');
     if(action==='login') return await handleLogin(req,res);
     if(action==='signup') return await handleSignup(req,res);
