@@ -22,7 +22,7 @@ export class AudioAnalyzer {
       this.analyser = this.context.createAnalyser();
       this.analyser.fftSize = 512;
       this.analyser.smoothingTimeConstant = 0.72;
-      this.data = new Uint8Array(this.analyser.frequencyBinCount);
+      this.data = new Uint8Array(new ArrayBuffer(this.analyser.frequencyBinCount));
       this.source = this.context.createMediaElementSource(element);
       this.source.connect(this.analyser);
       this.analyser.connect(this.context.destination);
