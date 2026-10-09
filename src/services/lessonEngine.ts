@@ -40,7 +40,7 @@ export function validateLesson(lesson: LessonEngineLesson): LessonValidationResu
 
   lesson.grammar.forEach(g => {
     if (!g.pattern || !g.meaning || !g.explanationVi) errors.push(`Grammar ${g.id} is incomplete.`);
-    g.examples.forEach(e => { if (!e.hanzi || !e.pinyin || !e.vietnamese) errors.push(`Grammar example in ${g.id} is incomplete.`); });
+    g.examples.forEach(e => { if (!e.chinese || !e.pinyin || !e.vietnamese) errors.push(`Grammar example in ${g.id} is incomplete.`); });
   });
 
   const vocabIds = new Set(lesson.vocabulary.map(v => v.id));
