@@ -307,7 +307,6 @@ function generateFallbackResponse(userText: string, mode: string, userName: stri
 
 const SUPABASE_URL = process.env.SUPABASE_URL || '';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || '';
-const SUPABASE_SERVER_KEY = process.env.SUPABASE_SERVER_KEY || '';
 const getCookie=(req:Request,name:string)=>{const raw=req.headers.cookie||'';const match=raw.split(';').map(x=>x.trim()).find(x=>x.startsWith(name+'='));return match?decodeURIComponent(match.slice(name.length+1)):'';};
 const setAuthCookies=(res:Response,access:string,refresh:string)=>{const secure=process.env.NODE_ENV==='production'?'; Secure':'';res.setHeader('Set-Cookie',[`lina_access=${encodeURIComponent(access)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=3600${secure}`,`lina_refresh=${encodeURIComponent(refresh)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=2592000${secure}`]);};
 const clearAuthCookies=(res:Response)=>res.setHeader('Set-Cookie',['lina_access=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0','lina_refresh=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0']);
