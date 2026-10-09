@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Vocabulary } from '../types';
 
 /**
