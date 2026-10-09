@@ -21,6 +21,7 @@ const expectedFiles = [
   'android/app/build/outputs/play-upload/aab-attestation.json',
   'android/app/build/outputs/play-upload/aab-attestation.bundle.json',
   'android/app/build/outputs/play-upload/dependency-provenance.json',
+  'android/app/build/outputs/play-upload/npm-package-lock.json',
   'android/app/build/outputs/play-upload/npm-dependency-tree.json',
   'android/app/build/outputs/play-upload/gradle-release-runtime-dependencies.txt',
   'android/app/build/outputs/play-upload/release-environment.txt',
