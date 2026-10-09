@@ -59,6 +59,8 @@ jobs:
         run: |
           set -euo pipefail
           node --check scripts/verify-android-release-inputs.mjs
+          node --check scripts/test-android-release-inputs.mjs
+          node scripts/test-android-release-inputs.mjs
           node --check scripts/prepare-android-release.mjs
           node --check scripts/verify-android-release.mjs
           node --check scripts/verify-android-aab-manifest.mjs
