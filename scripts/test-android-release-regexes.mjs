@@ -7,12 +7,12 @@ const aabManifest = readFileSync('scripts/verify-android-aab-manifest.mjs', 'utf
 // Guard the exact regular-expression forms that previously regressed due to
 // double escaping when the release validation scripts were edited.
 for (const [label, source, snippet] of [
-  ['checksum whitespace split', playUpload, String.raw\`checksumText.split(/\s+/)\`],
-  ['AAB checksum whitespace split', playUpload, String.raw\`.split(/\s+/)[0]\`],
-  ['strict numeric versionName', playUpload, String.raw\`! /^\d+\.\d+\.\d+$/.test(manifest.versionName)\`.replace('! ', '!')],
-  ['GitHub attestation URL', playUpload, String.raw\`/^https:\/\/github\.com\/[^/]+\/[^/]+\/attestations\/[0-9]+$/.test\`],
-  ['summary newline split', playUpload, String.raw\`summary.split(/\r?\n/)\`],
-  ['launcher activity extraction', aabManifest, String.raw\`manifest.matchAll(/<activity\b[\s\S]*?<\/activity>/gi)\`],
+  ['checksum whitespace split', playUpload, "checksumText.split(/\\s+/)"],
+  ['AAB checksum whitespace split', playUpload, ".split(/\\s+/)[0]"],
+  ['strict numeric versionName', playUpload, "!/^\\d+\\.\\d+\\.\\d+$/.test(manifest.versionName)"],
+  ['GitHub attestation URL', playUpload, "!/^https:\\/\\/github\\.com\\/[^/]+\\/[^/]+\\/attestations\\/[0-9]+$/.test"],
+  ['summary newline split', playUpload, "summary.split(/\\r?\\n/)"],
+  ['launcher activity extraction', aabManifest, "manifest.matchAll(/<activity\\b[\\s\\S]*?<\\/activity>/gi)"],
 ]) {
   assert.ok(source.includes(snippet), 'Expected release validator source to retain correct regex: ' + label);
 }
