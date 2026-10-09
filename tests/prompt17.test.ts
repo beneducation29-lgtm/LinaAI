@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { ANALYTICS_EVENTS } from '../src/types/analytics';
 import { analytics } from '../src/services/analytics';
-assert.equal(ANALYTICS_EVENTS.length, 16);
+assert.equal(ANALYTICS_EVENTS.length, 18);
 assert.ok(ANALYTICS_EVENTS.includes('app_open'));
 assert.ok(ANALYTICS_EVENTS.includes('subscription_cancel'));
 assert.equal(typeof analytics.track, 'function');
