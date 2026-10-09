@@ -52,6 +52,7 @@ export const TutorScreen: React.FC = () => {
     user, 
     conversation, 
     addMessage, 
+    addMistake,
     updateUser, 
     tutorMode, 
     setTutorMode,
@@ -783,7 +784,7 @@ export const TutorScreen: React.FC = () => {
             {sentenceExplanation.meaningVi && <div className="mt-1 text-xs text-stone-600 dark:text-stone-300">{sentenceExplanation.meaningVi}</div>}
             {sentenceExplanation.grammarBreakdown?.length > 0 && (
               <div className="mt-2 space-y-1">
-                {sentenceExplanation.grammarBreakdown.slice(0, 4).map((item, index) => (
+                {sentenceExplanation.grammarBreakdown.slice(0, 4).map((item: { part: string; role: string }, index: number) => (
                   <div key={`${item.part}-${index}`} className="rounded-lg bg-white/70 px-2.5 py-2 text-[11px] dark:bg-stone-900/50">
                     <span className="font-cjk font-bold">{item.part}</span> · {item.role}
                   </div>
