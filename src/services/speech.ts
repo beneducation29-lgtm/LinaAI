@@ -159,6 +159,11 @@ class SpeechService {
       this.isListeningActive = true;
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      this.recognition.onstart = () => {
+        options.onStart?.();
+      };
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       this.recognition.onresult = (event: any) => {
         let transcript = '';
         let isFinal = false;
@@ -198,7 +203,6 @@ class SpeechService {
       };
 
       this.recognition.start();
-      options.onStart?.();
     } catch (err: any) {
       this.isListeningActive = false;
       const msg = err.name === 'NotAllowedError' 
