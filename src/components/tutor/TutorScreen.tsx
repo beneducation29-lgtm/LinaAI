@@ -358,18 +358,10 @@ export const TutorScreen: React.FC = () => {
     avatarService.setState('LISTENING');
 
     if (!speechService.isSttSupported()) {
-      // Environment fallback for simulation
-      setTimeout(() => {
-        const sampleSpoken = '我喜欢喝咖啡';
-        setLiveTranscript(sampleSpoken);
-        setMicState('IDLE');
-        avatarService.setState('THINKING');
-        setRecognizedReview({
-          hanzi: sampleSpoken,
-          pinyin: getQuickPinyin(sampleSpoken),
-          vietnamese: getQuickVietnamese(sampleSpoken)
-        });
-      }, 1600);
+      // Never show a simulated transcript as if it came from the learner's microphone.
+      setMicState('ERROR');
+      avatarService.setState('IDLE');
+      setErrorMessage('Trình duyệt này chưa hỗ trợ nhận diện giọng nói. Bạn hãy thử Chrome hoặc Edge mới nhất, hoặc nhập câu tiếng Trung bằng bàn phím nhé.');
       return;
     }
 
