@@ -57,7 +57,7 @@ export const ReviewScreen: React.FC = () => {
   };
 
   const normalizeSearchText = (value: unknown) =>
-    String(value ?? '').normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLocaleLowerCase();
+    String(value ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase();
   const savedVocabularies = allVocabularies.filter(v => user.savedVocabularyIds.includes(v.id));
   const normalizedSavedQuery = normalizeSearchText(savedQuery.trim());
   const filteredSavedVocabularies = savedVocabularies.filter(v => {
