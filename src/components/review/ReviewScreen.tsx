@@ -14,7 +14,8 @@ export const ReviewScreen: React.FC = () => {
   const [isCompleted, setIsCompleted] = useState(false);
   const [activeTab, setActiveTab] = useState<'flashcards' | 'saved' | 'clinic'>('flashcards');
   const [reviewedCount, setReviewedCount] = useState(0);
-  const [correctCount, setCorrectCount] = useState(0);\n  const [savedQuery, setSavedQuery] = useState('');
+  const [correctCount, setCorrectCount] = useState(0);
+  const [savedQuery, setSavedQuery] = useState('');
 
   const reviewQueue = useMemo(() => {
     const now = new Date();
@@ -55,7 +56,12 @@ export const ReviewScreen: React.FC = () => {
     setCorrectCount(0);
   };
 
-  const savedVocabularies = allVocabularies.filter(v => user.savedVocabularyIds.includes(v.id));\n  const filteredSavedVocabularies = savedVocabularies.filter(v => {\n    const query = savedQuery.trim().toLocaleLowerCase();\n    if (!query) return true;\n    return [v.hanzi, v.pinyin, v.vietnamese, v.hskLevel].some(value => String(value ?? '').toLocaleLowerCase().includes(query));\n  });
+  const savedVocabularies = allVocabularies.filter(v => user.savedVocabularyIds.includes(v.id));
+  const filteredSavedVocabularies = savedVocabularies.filter(v => {
+    const query = savedQuery.trim().toLocaleLowerCase();
+    if (!query) return true;
+    return [v.hanzi, v.pinyin, v.vietnamese, v.hskLevel].some(value => String(value ?? '').toLocaleLowerCase().includes(query));
+  });
   const clinicMistakes = [...mistakes]
     .filter(m => !m.resolved)
     .sort((a, b) => {
