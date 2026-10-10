@@ -178,7 +178,7 @@ export const Flashcard: React.FC<FlashcardProps> = ({
             type="button"
             onClick={(e) => handleRatingClick(e, 'hard')}
             disabled={!isFlipped}
-            className="flex flex-col items-center justify-center min-h-[50px] p-2 rounded-xl bg-orange-50 hover:bg-orange-100 dark:bg-orange-950/30 dark:hover:bg-orange-950/50 text-orange-700 dark:text-orange-400 border border-orange-200 dark:border-orange-900/40 transition-colors font-medium text-xs"
+            className="flex flex-col items-center justify-center min-h-[50px] p-2 rounded-xl bg-orange-50 hover:bg-orange-100 dark:bg-orange-950/30 dark:hover:bg-orange-950/50 text-orange-700 dark:text-orange-400 border border-orange-200 dark:border-orange-900/40 transition-colors font-medium text-xs disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <span className="font-semibold text-sm">Khó</span>
             <span className="text-[10px] opacity-75">1 ngày</span>
@@ -189,7 +189,7 @@ export const Flashcard: React.FC<FlashcardProps> = ({
             type="button"
             onClick={(e) => handleRatingClick(e, 'good')}
             disabled={!isFlipped}
-            className="flex flex-col items-center justify-center min-h-[50px] p-2 rounded-xl bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/30 dark:hover:bg-blue-950/50 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-900/40 transition-colors font-medium text-xs"
+            className="flex flex-col items-center justify-center min-h-[50px] p-2 rounded-xl bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/30 dark:hover:bg-blue-950/50 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-900/40 transition-colors font-medium text-xs disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <span className="font-semibold text-sm">Tốt</span>
             <span className="text-[10px] opacity-75">3 ngày</span>
@@ -200,7 +200,7 @@ export const Flashcard: React.FC<FlashcardProps> = ({
             type="button"
             onClick={(e) => handleRatingClick(e, 'easy')}
             disabled={!isFlipped}
-            className="flex flex-col items-center justify-center min-h-[50px] p-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/30 dark:hover:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/40 transition-colors font-medium text-xs"
+            className="flex flex-col items-center justify-center min-h-[50px] p-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/30 dark:hover:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/40 transition-colors font-medium text-xs disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <span className="font-semibold text-sm">Dễ</span>
             <span className="text-[10px] opacity-75">5 ngày</span>
