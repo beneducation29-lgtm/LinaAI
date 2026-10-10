@@ -25,9 +25,16 @@ export const Flashcard: React.FC<FlashcardProps> = ({
     e.stopPropagation();
     if (isPlaying) return;
     setIsPlaying(true);
-    await textToSpeechService.speak(text, 'zh-CN', () => {
+    try {
+      await textToSpeechService.speak(text, 'zh-CN', () => {
+        setIsPlaying(false);
+      });
+    } catch {
+      // Some browsers can reject speech synthesis before firing its error event.
+      // Keep the playback control usable even when audio cannot start.
+    } finally {
       setIsPlaying(false);
-    });
+    }
   };
 
   const handleFlip = () => {
