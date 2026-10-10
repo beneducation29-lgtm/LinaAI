@@ -35,7 +35,7 @@ withManifest(initialManifest, (cwd) => {
   const output = readFileSync(join(cwd, 'android/app/src/main/AndroidManifest.xml'), 'utf8');
   assert.equal(output.split(permission).length - 1, 1, 'permission should be inserted exactly once');
   assert.match(output, /<manifest[^>]*>\n    <uses-permission android:name="android\.permission\.RECORD_AUDIO" \/>\n/);
-  assert.doesNotMatch(output, /\\\\n\s*<uses-permission/, 'permission should use a real newline, not a literal \\n sequence');
+  assert.doesNotMatch(output, /\\n\s*<uses-permission/, 'permission should use a real newline, not a literal \\n sequence');
 
   const secondRun = runPrepare(cwd);
   assert.equal(secondRun.status, 0, secondRun.stderr || secondRun.stdout);
