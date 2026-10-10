@@ -809,7 +809,8 @@ export const TutorScreen: React.FC = () => {
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') {
+              // Chinese IMEs use Enter to confirm a candidate; don't send until composition ends.
+              if (e.key === 'Enter' && !e.nativeEvent.isComposing && e.keyCode !== 229) {
                 e.preventDefault();
                 handleSendMessage(inputText);
               }
