@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from 'node:fs';
 const manifestPath = 'android/app/src/main/AndroidManifest.xml';
 const gradlePath = 'android/app/build.gradle';
 const rootGradlePath = 'android/build.gradle';
+const variablesGradlePath = 'android/variables.gradle';
 const releaseAabPath = 'android/app/build/outputs/bundle/release/app-release.aab';
 const debugApkPath = 'android/app/build/outputs/apk/debug/app-debug.apk';
 const expectedAppId = 'com.linaai.chinese';
@@ -11,12 +12,14 @@ const requiredTargetSdk = 36;
 if (!existsSync(manifestPath)) throw new Error(`Android manifest not found: ${manifestPath}`);
 if (!existsSync(gradlePath)) throw new Error(`Android Gradle file not found: ${gradlePath}`);
 if (!existsSync(rootGradlePath)) throw new Error(`Root Android Gradle file not found: ${rootGradlePath}`);
+if (!existsSync(variablesGradlePath)) throw new Error(`Android variables Gradle file not found: ${variablesGradlePath}`);
 if (!existsSync(releaseAabPath)) throw new Error(`Release AAB not found: ${releaseAabPath}`);
 if (!existsSync(debugApkPath)) throw new Error(`Debug APK not found: ${debugApkPath}`);
 
 const manifest = readFileSync(manifestPath, 'utf8');
 const gradle = readFileSync(gradlePath, 'utf8');
 const rootGradle = readFileSync(rootGradlePath, 'utf8');
+const variablesGradle = readFileSync(variablesGradlePath, 'utf8');
 
 if (!manifest.includes('android.permission.RECORD_AUDIO')) {
   throw new Error('RECORD_AUDIO permission is missing from AndroidManifest.xml');
@@ -35,8 +38,12 @@ if (applicationIdMatch[1] !== expectedAppId) {
 
 const targetSdkMatch = gradle.match(/targetSdk(?:Version)?\s*[= ]\s*(\d+)/);
 const rootTargetSdkMatch = rootGradle.match(/targetSdkVersion\s*[= ]\s*(\d+)/);
-const targetSdk = targetSdkMatch?.[1] ? Number(targetSdkMatch[1]) : Number(rootTargetSdkMatch?.[1]);
-if (!Number.isFinite(targetSdk)) throw new Error('Android target SDK is missing from app/build.gradle and root build.gradle.');
+const variablesTargetSdkMatch = variablesGradle.match(/targetSdkVersion\s*[= ]\s*(\d+)/);
+const targetSdkText = targetSdkMatch?.[1] ?? rootTargetSdkMatch?.[1] ?? variablesTargetSdkMatch?.[1];
+const targetSdk = targetSdkText === undefined ? Number.NaN : Number(targetSdkText);
+if (!Number.isFinite(targetSdk)) {
+  throw new Error('Android target SDK is missing from app/build.gradle, root build.gradle, and variables.gradle.');
+}
 if (targetSdk < requiredTargetSdk) {
   throw new Error(`Android target SDK ${targetSdk} is below required API ${requiredTargetSdk}`);
 }
