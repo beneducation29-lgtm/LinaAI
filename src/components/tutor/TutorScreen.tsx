@@ -687,7 +687,7 @@ export const TutorScreen: React.FC = () => {
 
         {/* Live speech feedback while speaking */}
         {micState === 'LISTENING' && (
-          <div className="p-3.5 rounded-2xl bg-red-50/90 dark:bg-red-950/40 border border-red-200 dark:border-red-900/60 text-center animate-pulse space-y-1">
+          <div role="status" aria-live="polite" aria-atomic="true" className="p-3.5 rounded-2xl bg-red-50/90 dark:bg-red-950/40 border border-red-200 dark:border-red-900/60 text-center animate-pulse space-y-1">
             <p className="text-xs font-semibold text-red-700 dark:text-red-300">
               🎙 Đang nghe bạn nói... (Nói to câu tiếng Trung của bạn)
             </p>
