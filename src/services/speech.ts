@@ -5,7 +5,7 @@
 
 export type SpeechLanguage = 'zh-CN' | 'zh-TW' | 'en-US' | 'vi-VN';
 export type PlaybackSpeed = 0.75 | 1.0 | 1.25;
-export type MicrophoneState = 'IDLE' | 'LISTENING' | 'PROCESSING' | 'AI_SPEAKING' | 'ERROR';
+export type MicrophoneState = 'IDLE' | 'REQUESTING' | 'LISTENING' | 'PROCESSING' | 'AI_SPEAKING' | 'ERROR';
 
 export interface VoiceSettings {
   speechLanguage: SpeechLanguage;
@@ -146,6 +146,7 @@ class SpeechService {
     onResult: (res: { transcript: string; isFinal: boolean; confidence?: number }) => void;
     onError: (friendlyErrorMessage: string) => void;
     onEnd: () => void;
+    onStart?: () => void;
   }): void {
     if (!this.recognition) {
       this.startMediaRecorderFallback(options);
@@ -156,6 +157,11 @@ class SpeechService {
       this.usingMediaRecorderFallback = false;
       this.recognition.lang = options.lang || 'zh-CN';
       this.isListeningActive = true;
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      this.recognition.onstart = () => {
+        options.onStart?.();
+      };
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       this.recognition.onresult = (event: any) => {
@@ -212,6 +218,7 @@ class SpeechService {
     onResult: (res: { transcript: string; isFinal: boolean; confidence?: number }) => void;
     onError: (friendlyErrorMessage: string) => void;
     onEnd: () => void;
+    onStart?: () => void;
   }): Promise<void> {
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
       options.onError('Thiết bị chưa hỗ trợ thu âm trên ứng dụng này.');
@@ -270,6 +277,7 @@ class SpeechService {
       };
 
       this.mediaRecorder.start();
+      options.onStart?.();
     } catch (error) {
       this.usingMediaRecorderFallback = false;
       this.cleanupMediaRecorder();

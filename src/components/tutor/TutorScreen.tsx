@@ -345,7 +345,7 @@ export const TutorScreen: React.FC = () => {
    * Start microphone listening
    */
   const startRecording = () => {
-    if (micState === 'LISTENING') return;
+    if (micState === 'LISTENING' || micState === 'REQUESTING') return;
 
     setErrorMessage(null);
     realtimeConversationController.interrupt();
@@ -354,8 +354,8 @@ export const TutorScreen: React.FC = () => {
     spokenFinalRef.current = '';
     spokenInterimRef.current = '';
     spokenSendInFlightRef.current = false;
-    setMicState('LISTENING');
-    avatarService.setState('LISTENING');
+    setMicState('REQUESTING');
+    avatarService.setState('IDLE');
 
     if (!speechService.isSttSupported()) {
       // Never show a simulated transcript as if it came from the learner's microphone.
@@ -367,6 +367,10 @@ export const TutorScreen: React.FC = () => {
 
     speechService.startListening({
       lang: voiceSettings.speechLanguage,
+      onStart: () => {
+        setMicState('LISTENING');
+        avatarService.setState('LISTENING');
+      },
       onResult: (res) => {
         const chunk = res.transcript.trim();
         if (!chunk) return;
@@ -414,7 +418,7 @@ export const TutorScreen: React.FC = () => {
         setErrorMessage(friendlyMsg);
       },
       onEnd: () => {
-        setMicState((prev) => (prev === 'LISTENING' ? 'IDLE' : prev));
+        setMicState((prev) => (prev === 'LISTENING' || prev === 'REQUESTING' ? 'IDLE' : prev));
       }
     });
   };
@@ -519,6 +523,7 @@ export const TutorScreen: React.FC = () => {
   // State Visual Indicators
   const stateLabels: Record<MicrophoneState, { text: string; badgeColor: string }> = {
     IDLE: { text: 'Sẵn sàng luyện nói', badgeColor: 'bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300' },
+    REQUESTING: { text: 'Đang mở micro...', badgeColor: 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 animate-pulse' },
     LISTENING: { text: 'Đang nghe...', badgeColor: 'bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300 animate-pulse' },
     PROCESSING: { text: 'Đang hiểu...', badgeColor: 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 animate-bounce' },
     AI_SPEAKING: { text: 'Lina đang nói...', badgeColor: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300' },
@@ -826,9 +831,9 @@ export const TutorScreen: React.FC = () => {
 
         {/* Primary voice loop + real quick actions */}
         <div className="grid grid-cols-3 gap-2 pb-1 sm:flex sm:overflow-x-auto">
-          <button type="button" onClick={handleToggleMic} className={`flex min-w-0 flex-1 flex-col items-center justify-center rounded-2xl py-3 px-2 min-h-[64px] text-center shadow-md transition-all cursor-pointer select-none touch-manipulation active:scale-95 ${micState === 'LISTENING' ? 'bg-red-600 text-white animate-pulse shadow-red-500/30' : 'bg-amber-700 hover:bg-amber-800 text-white shadow-amber-700/25'}`} aria-label={micState === 'LISTENING' ? 'Dừng thu âm' : 'Bấm mic để nói tiếng Trung'}>
+          <button type="button" onClick={handleToggleMic} className={`flex min-w-0 flex-1 flex-col items-center justify-center rounded-2xl py-3 px-2 min-h-[64px] text-center shadow-md transition-all cursor-pointer select-none touch-manipulation active:scale-95 ${micState === 'LISTENING' ? 'bg-red-600 text-white animate-pulse shadow-red-500/30' : 'bg-amber-700 hover:bg-amber-800 text-white shadow-amber-700/25'}`} aria-label={micState === 'LISTENING' ? 'Dừng thu âm' : micState === 'REQUESTING' ? 'Đang yêu cầu quyền microphone' : 'Bấm mic để nói tiếng Trung'}>
             {micState === 'LISTENING' ? <MicOff className="w-5 h-5 mb-0.5" /> : <Mic className="w-5 h-5 mb-0.5 stroke-[2.4]" />}
-            <span className="text-xs font-bold">{micState === 'LISTENING' ? 'Đang nghe...' : '🎙 Nói'}</span>
+            <span className="text-xs font-bold">{micState === 'LISTENING' ? 'Đang nghe...' : micState === 'REQUESTING' ? 'Mở micro...' : '🎙 Nói'}</span>
           </button>
           <button type="button" onClick={handleOpenHints} className="flex min-w-0 flex-1 flex-col items-center justify-center rounded-2xl border border-stone-200 bg-white py-3 px-2 min-h-[64px] text-center text-stone-700 shadow-2xs transition-all hover:border-amber-400 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-200 touch-manipulation" aria-label="Mở gợi ý">
             <Lightbulb className="w-4 h-4 text-amber-600 mb-0.5" /><span className="text-xs font-semibold">💡 Gợi ý</span>
