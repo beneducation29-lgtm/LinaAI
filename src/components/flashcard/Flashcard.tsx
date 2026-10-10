@@ -55,12 +55,15 @@ export const Flashcard: React.FC<FlashcardProps> = ({
         role="button"
         tabIndex={0}
         onKeyDown={(e) => {
+          // The card contains audio buttons; their keyboard events must not flip it.
+          if (e.target !== e.currentTarget) return;
           if (e.key === ' ' || e.key === 'Enter') {
             e.preventDefault();
             handleFlip();
           }
         }}
-        aria-label="Thẻ ghi nhớ từ vựng tiếng Trung, nhấn để lật mặt sau"
+        aria-label={isFlipped ? 'Thẻ ghi nhớ tiếng Trung, đang hiển thị đáp án; nhấn để xem mặt trước' : 'Thẻ ghi nhớ tiếng Trung, đang hiển thị mặt trước; nhấn để xem đáp án'}
+        aria-pressed={isFlipped}
         className="w-full h-80 cursor-pointer [perspective:1000px] select-none focus:outline-hidden focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-4 rounded-3xl"
       >
         <div 
