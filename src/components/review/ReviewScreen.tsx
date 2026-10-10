@@ -6,7 +6,7 @@ import { LayerToggles } from '../common/LayerToggles';
 import { ReviewRating } from '../../types';
 import { MistakeRecord } from '../../types/learning';
 import { buildReviewQueue, isDue } from '../../services/learningEngine';
-import { Brain, RotateCcw, CheckCircle, Sparkles, BookMarked, Stethoscope, Check, RefreshCcw } from 'lucide-react';
+import { Brain, RotateCcw, CheckCircle, Sparkles, BookMarked, Stethoscope, Check, RefreshCcw, Search } from 'lucide-react';
 
 export const ReviewScreen: React.FC = () => {
   const { flashcards, allVocabularies, updateFlashcardRating, setCurrentTab, user, mistakes, resolveMistake, reopenMistake, reviewSchedules } = useApp();
@@ -15,6 +15,7 @@ export const ReviewScreen: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'flashcards' | 'saved' | 'clinic'>('flashcards');
   const [reviewedCount, setReviewedCount] = useState(0);
   const [correctCount, setCorrectCount] = useState(0);
+  const [savedQuery, setSavedQuery] = useState('');
 
   const reviewQueue = useMemo(() => {
     const now = new Date();
@@ -56,6 +57,11 @@ export const ReviewScreen: React.FC = () => {
   };
 
   const savedVocabularies = allVocabularies.filter(v => user.savedVocabularyIds.includes(v.id));
+  const filteredSavedVocabularies = savedVocabularies.filter(v => {
+    const query = savedQuery.trim().toLocaleLowerCase();
+    if (!query) return true;
+    return [v.hanzi, v.pinyin, v.vietnamese, v.hskLevel].some(value => String(value ?? '').toLocaleLowerCase().includes(query));
+  });
   const clinicMistakes = [...mistakes]
     .filter(m => !m.resolved)
     .sort((a, b) => {
@@ -254,11 +260,34 @@ export const ReviewScreen: React.FC = () => {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {savedVocabularies.map((v) => (
-                <VocabularyCard key={v.id} vocabulary={v} />
-              ))}
-            </div>
+            <>
+              <label className="relative block">
+                <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400" aria-hidden="true" />
+                <input
+                  type="search"
+                  value={savedQuery}
+                  onChange={event => setSavedQuery(event.target.value)}
+                  placeholder="Tìm chữ Hán, pinyin, nghĩa tiếng Việt hoặc cấp HSK…"
+                  aria-label="Tìm trong từ vựng đã lưu"
+                  className="w-full min-h-11 pl-10 pr-4 py-2.5 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 text-sm outline-none focus:ring-2 focus:ring-amber-500/60"
+                />
+              </label>
+              <div className="text-xs text-stone-500" aria-live="polite">
+                {savedQuery.trim() ? `Tìm thấy ${filteredSavedVocabularies.length} / ${savedVocabularies.length} từ đã lưu` : `${savedVocabularies.length} từ đã lưu`}
+              </div>
+              {filteredSavedVocabularies.length === 0 ? (
+                <div className="p-8 text-center bg-white dark:bg-stone-900 rounded-3xl border border-stone-200 dark:border-stone-800">
+                  <p className="text-sm text-stone-500">Không tìm thấy từ phù hợp. Thử chữ Hán, pinyin hoặc nghĩa tiếng Việt khác nhé.</p>
+                  <button type="button" onClick={() => setSavedQuery('')} className="mt-3 px-4 py-2 rounded-xl bg-amber-700 text-white text-xs font-semibold">Xóa tìm kiếm</button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {filteredSavedVocabularies.map((v) => (
+                    <VocabularyCard key={v.id} vocabulary={v} />
+                  ))}
+                </div>
+              )}
+            </>
           )}
         </div>
       )}
