@@ -146,6 +146,7 @@ class SpeechService {
     onResult: (res: { transcript: string; isFinal: boolean; confidence?: number }) => void;
     onError: (friendlyErrorMessage: string) => void;
     onEnd: () => void;
+    onStart?: () => void;
   }): void {
     if (!this.recognition) {
       this.startMediaRecorderFallback(options);
@@ -197,6 +198,7 @@ class SpeechService {
       };
 
       this.recognition.start();
+      options.onStart?.();
     } catch (err: any) {
       this.isListeningActive = false;
       const msg = err.name === 'NotAllowedError' 
@@ -212,6 +214,7 @@ class SpeechService {
     onResult: (res: { transcript: string; isFinal: boolean; confidence?: number }) => void;
     onError: (friendlyErrorMessage: string) => void;
     onEnd: () => void;
+    onStart?: () => void;
   }): Promise<void> {
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
       options.onError('Thiết bị chưa hỗ trợ thu âm trên ứng dụng này.');
@@ -270,6 +273,7 @@ class SpeechService {
       };
 
       this.mediaRecorder.start();
+      options.onStart?.();
     } catch (error) {
       this.usingMediaRecorderFallback = false;
       this.cleanupMediaRecorder();
