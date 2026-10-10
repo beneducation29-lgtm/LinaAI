@@ -22,7 +22,7 @@ const end = manifest.indexOf('>', index);
 if (end < 0) throw new Error('Invalid AndroidManifest.xml: manifest tag is not closed.');
 
 const updated = manifest.slice(0, end + 1)
-  + `\\n    <uses-permission android:name="${permission}" />`
+  + `\n    <uses-permission android:name="${permission}" />`
   + manifest.slice(end + 1);
 
 writeFileSync(manifestPath, updated);
