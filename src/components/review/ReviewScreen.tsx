@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Flashcard } from '../flashcard/Flashcard';
 import { VocabularyCard } from '../vocabulary/VocabularyCard';
@@ -17,6 +17,7 @@ export const ReviewScreen: React.FC = () => {
   const [correctCount, setCorrectCount] = useState(0);
   const [savedQuery, setSavedQuery] = useState('');
   const [reviewMode, setReviewMode] = useState<'smart' | 'due' | 'hard'>('smart');
+  const [sessionQueueIds, setSessionQueueIds] = useState<string[]>([]);
 
   const dueReviewCount = useMemo(() => {
     const now = new Date();
@@ -28,7 +29,7 @@ export const ReviewScreen: React.FC = () => {
     return card.lastRating === 'again' || card.lastRating === 'hard' || Boolean(schedule && (schedule.mastery < 35 || schedule.incorrectCount > schedule.correctCount));
   }).length, [flashcards, reviewSchedules]);
 
-  const reviewQueue = useMemo(() => {
+  const candidateReviewQueue = useMemo(() => {
     const now = new Date();
     const prioritized = buildReviewQueue(reviewSchedules, now);
     const priorityById = new Map(prioritized.map(item => [item.itemId, item.priorityScore]));
@@ -51,6 +52,18 @@ export const ReviewScreen: React.FC = () => {
     if (reviewMode === 'hard') return hardCards.slice(0, 20);
     return [...dueCards, ...freshCards].slice(0, 20);
   }, [flashcards, reviewSchedules, reviewMode]);
+
+  // Freeze the card IDs for the active session. Rating a due card updates its
+  // next-review date, but must not reshuffle the remaining cards mid-session.
+  useEffect(() => {
+    if (sessionQueueIds.length === 0 && candidateReviewQueue.length > 0) {
+      setSessionQueueIds(candidateReviewQueue.map(card => card.id));
+    }
+  }, [candidateReviewQueue, sessionQueueIds.length]);
+
+  const reviewQueue = sessionQueueIds.length > 0
+    ? sessionQueueIds.map(id => flashcards.find(card => card.id === id)).filter((card): card is typeof flashcards[number] => Boolean(card))
+    : candidateReviewQueue;
 
   const currentCard = reviewQueue[currentIndex];
 
@@ -151,13 +164,13 @@ export const ReviewScreen: React.FC = () => {
 
       {activeTab === 'flashcards' && (
         <div className="grid grid-cols-3 gap-2 p-1 rounded-2xl bg-stone-100 dark:bg-stone-800" role="group" aria-label="Chế độ ôn tập">
-          <button type="button" onClick={() => { setReviewMode('smart'); handleRestart(); }} aria-pressed={reviewMode === 'smart'} className={`min-h-10 rounded-xl px-2 py-2 text-xs font-semibold transition-colors ${reviewMode === 'smart' ? 'bg-white dark:bg-stone-900 text-stone-900 dark:text-stone-100 shadow-xs' : 'text-stone-500 hover:text-stone-900 dark:hover:text-stone-200'}`}>
+          <button type="button" onClick={() => { setReviewMode('smart'); setSessionQueueIds([]); handleRestart(); }} aria-pressed={reviewMode === 'smart'} className={`min-h-10 rounded-xl px-2 py-2 text-xs font-semibold transition-colors ${reviewMode === 'smart' ? 'bg-white dark:bg-stone-900 text-stone-900 dark:text-stone-100 shadow-xs' : 'text-stone-500 hover:text-stone-900 dark:hover:text-stone-200'}`}>
             Thông minh ({flashcards.length})
           </button>
-          <button type="button" onClick={() => { setReviewMode('due'); handleRestart(); }} aria-pressed={reviewMode === 'due'} className={`min-h-10 rounded-xl px-2 py-2 text-xs font-semibold transition-colors ${reviewMode === 'due' ? 'bg-white dark:bg-stone-900 text-stone-900 dark:text-stone-100 shadow-xs' : 'text-stone-500 hover:text-stone-900 dark:hover:text-stone-200'}`}>
+          <button type="button" onClick={() => { setReviewMode('due'); setSessionQueueIds([]); handleRestart(); }} aria-pressed={reviewMode === 'due'} className={`min-h-10 rounded-xl px-2 py-2 text-xs font-semibold transition-colors ${reviewMode === 'due' ? 'bg-white dark:bg-stone-900 text-stone-900 dark:text-stone-100 shadow-xs' : 'text-stone-500 hover:text-stone-900 dark:hover:text-stone-200'}`}>
             Đến hạn ({dueReviewCount})
           </button>
-          <button type="button" onClick={() => { setReviewMode('hard'); handleRestart(); }} aria-pressed={reviewMode === 'hard'} className={`min-h-10 rounded-xl px-2 py-2 text-xs font-semibold transition-colors ${reviewMode === 'hard' ? 'bg-white dark:bg-stone-900 text-stone-900 dark:text-stone-100 shadow-xs' : 'text-stone-500 hover:text-stone-900 dark:hover:text-stone-200'}`}>
+          <button type="button" onClick={() => { setReviewMode('hard'); setSessionQueueIds([]); handleRestart(); }} aria-pressed={reviewMode === 'hard'} className={`min-h-10 rounded-xl px-2 py-2 text-xs font-semibold transition-colors ${reviewMode === 'hard' ? 'bg-white dark:bg-stone-900 text-stone-900 dark:text-stone-100 shadow-xs' : 'text-stone-500 hover:text-stone-900 dark:hover:text-stone-200'}`}>
             Từ khó ({hardReviewCount})
           </button>
         </div>
@@ -170,7 +183,7 @@ export const ReviewScreen: React.FC = () => {
             <h2 className="text-xl font-bold text-stone-900 dark:text-stone-100">{reviewMode === 'due' ? 'Bạn đã ôn hết từ đến hạn!' : reviewMode === 'hard' ? 'Chưa có từ khó cần luyện riêng.' : 'Chưa có thẻ nhớ nào'}</h2>
             <p className="text-sm text-stone-500 dark:text-stone-400">{reviewMode === 'due' ? 'Tuyệt vời! Bạn có thể học trước từ mới hoặc quay lại khi đến lịch ôn tiếp theo.' : reviewMode === 'hard' ? 'Khi bạn đánh dấu “Khó” hoặc “Ôn lại”, Lina sẽ gom những từ đó vào đây.' : 'Hãy mở bài học và lưu từ vựng để bắt đầu tạo bộ thẻ ôn tập.'}</p>
             <div className="flex flex-wrap justify-center gap-2">
-              {reviewMode !== 'smart' && <button type="button" onClick={() => { setReviewMode('smart'); handleRestart(); }} className="px-4 py-2.5 rounded-xl bg-amber-700 text-white text-xs font-bold">Ôn thông minh</button>}
+              {reviewMode !== 'smart' && <button type="button" onClick={() => { setReviewMode('smart'); setSessionQueueIds([]); handleRestart(); }} className="px-4 py-2.5 rounded-xl bg-amber-700 text-white text-xs font-bold">Ôn thông minh</button>}
               <button type="button" onClick={() => setCurrentTab('learn')} className="px-4 py-2.5 rounded-xl border border-stone-200 dark:border-stone-700 text-xs font-bold">Khám phá bài học</button>
             </div>
           </div>
