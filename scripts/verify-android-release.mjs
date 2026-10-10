@@ -39,9 +39,9 @@ if (applicationIdMatch[1] !== expectedAppId) {
   throw new Error(`Unexpected applicationId: ${applicationIdMatch[1]} (expected ${expectedAppId})`);
 }
 
-const targetSdkMatch = gradle.match(/targetSdk(?:Version)?\\s*[= ]\\s*(\\d+)/);
-const rootTargetSdkMatch = rootGradle.match(/targetSdkVersion\\s*[= ]\\s*(\\d+)/);
-const variablesTargetSdkMatch = variablesGradle.match(/targetSdkVersion\\s*[= ]\\s*(\\d+)/);
+const targetSdkMatch = gradle.match(/targetSdk(?:Version)?\s*[= ]\s*(\d+)/);
+const rootTargetSdkMatch = rootGradle.match(/targetSdkVersion\s*[= ]\s*(\d+)/);
+const variablesTargetSdkMatch = variablesGradle.match(/targetSdkVersion\s*[= ]\s*(\d+)/);
 const targetSdkText = targetSdkMatch?.[1] ?? rootTargetSdkMatch?.[1] ?? variablesTargetSdkMatch?.[1];
 const targetSdk = targetSdkText === undefined ? Number.NaN : Number(targetSdkText);
 if (!Number.isFinite(targetSdk)) {
