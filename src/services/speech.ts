@@ -185,13 +185,20 @@ class SpeechService {
         this.isListeningActive = false;
         const errType = event.error;
 
-        let friendlyMsg = 'Đang gặp sự cố âm thanh. Bạn thử lại nhé.';
-        if (errType === 'not-allowed' || errType === 'permission-denied') {
-          friendlyMsg = 'Bạn chưa cấp quyền microphone.';
+        let friendlyMsg = 'Microphone gặp sự cố. Bạn thử tắt rồi mở lại micro nhé.';
+        if (errType === 'not-allowed' || errType === 'permission-denied' || errType === 'service-not-allowed') {
+          friendlyMsg = 'Lina chưa được cấp quyền microphone. Hãy cho phép micro trong cài đặt quyền của trình duyệt rồi thử lại.';
+        } else if (errType === 'audio-capture') {
+          friendlyMsg = 'Không tìm thấy micro hoặc micro đang được ứng dụng khác sử dụng. Hãy kiểm tra micro rồi thử lại.';
         } else if (errType === 'no-speech') {
-          friendlyMsg = 'Mình chưa nghe rõ. Bạn thử nói chậm hơn nhé.';
+          friendlyMsg = 'Mình chưa nghe thấy tiếng nói. Hãy kiểm tra micro và thử nói rõ hơn nhé.';
         } else if (errType === 'network') {
-          friendlyMsg = 'Đang gặp sự cố kết nối. Bạn thử lại nhé.';
+          friendlyMsg = 'Nhận diện giọng nói cần kết nối mạng ổn định. Hãy kiểm tra mạng rồi thử lại.';
+        } else if (errType === 'language-not-supported') {
+          friendlyMsg = 'Trình duyệt không hỗ trợ nhận diện ngôn ngữ đã chọn. Hãy thử chọn tiếng Trung giản thể hoặc dùng Chrome/Edge mới nhất.';
+        } else if (errType === 'aborted') {
+          // Stopping recognition intentionally can emit "aborted"; don't present it as a failure.
+          return;
         }
 
         options.onError(friendlyMsg);
