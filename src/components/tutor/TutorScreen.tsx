@@ -531,7 +531,7 @@ export const TutorScreen: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col md:flex-row h-[calc(100vh-4rem)] md:h-screen max-w-6xl mx-auto w-full px-2 sm:px-4 py-2 gap-3 md:gap-4 overflow-hidden">
+    <div className="flex flex-col md:flex-row h-[calc(100dvh-4rem)] md:h-screen max-w-6xl mx-auto w-full px-2 sm:px-4 py-2 gap-3 md:gap-4 overflow-hidden">
       {/* 1. DESKTOP DEDICATED AVATAR STUDIO (38-40% width, hidden on mobile) */}
       <div className="md:hidden h-[38vh] min-h-[270px] max-h-[410px] shrink-0 pb-1">
         <AvatarStage
@@ -806,6 +806,10 @@ export const TutorScreen: React.FC = () => {
         <div className="flex items-center gap-2 mb-2">
           <input
             type="text"
+            autoComplete="off"
+            autoCorrect="off"
+            spellCheck={false}
+            enterKeyHint="send"
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             onKeyDown={(e) => {
