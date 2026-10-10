@@ -3,7 +3,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 const manifestPath = 'android/app/src/main/AndroidManifest.xml';
 
 if (!existsSync(manifestPath)) {
-  throw new Error(\`Android manifest not found: \${manifestPath}\`);
+  throw new Error(`Android manifest not found: ${manifestPath}`);
 }
 
 const manifest = readFileSync(manifestPath, 'utf8');
@@ -22,8 +22,7 @@ const end = manifest.indexOf('>', index);
 if (end < 0) throw new Error('Invalid AndroidManifest.xml: manifest tag is not closed.');
 
 const updated = manifest.slice(0, end + 1)
-  + \`
-    <uses-permission android:name="\${permission}" />\`
+  + `\n    <uses-permission android:name="${permission}" />`
   + manifest.slice(end + 1);
 
 writeFileSync(manifestPath, updated);
