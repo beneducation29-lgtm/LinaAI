@@ -16,6 +16,17 @@ export const ReviewScreen: React.FC = () => {
   const [reviewedCount, setReviewedCount] = useState(0);
   const [correctCount, setCorrectCount] = useState(0);
   const [savedQuery, setSavedQuery] = useState('');
+  const [reviewMode, setReviewMode] = useState<'smart' | 'due' | 'hard'>('smart');
+
+  const dueReviewCount = useMemo(() => {
+    const now = new Date();
+    return flashcards.filter(card => isDue(card.nextReviewDate || now.toISOString(), now)).length;
+  }, [flashcards]);
+
+  const hardReviewCount = useMemo(() => flashcards.filter(card => {
+    const schedule = reviewSchedules[card.id];
+    return card.lastRating === 'again' || card.lastRating === 'hard' || Boolean(schedule && (schedule.mastery < 35 || schedule.incorrectCount > schedule.correctCount));
+  }).length, [flashcards, reviewSchedules]);
 
   const reviewQueue = useMemo(() => {
     const now = new Date();
@@ -24,14 +35,22 @@ export const ReviewScreen: React.FC = () => {
     const dueCards = [...flashcards]
       .filter(card => isDue(card.nextReviewDate || now.toISOString(), now))
       .sort((a, b) => (priorityById.get(b.id) ?? -1) - (priorityById.get(a.id) ?? -1));
+    const hardCards = [...flashcards]
+      .filter(card => {
+        const schedule = reviewSchedules[card.id];
+        return card.lastRating === 'again' || card.lastRating === 'hard' || Boolean(schedule && (schedule.mastery < 35 || schedule.incorrectCount > schedule.correctCount));
+      })
+      .sort((a, b) => (priorityById.get(b.id) ?? 0) - (priorityById.get(a.id) ?? 0));
     const freshCards = [...flashcards]
       .filter(card => !isDue(card.nextReviewDate || now.toISOString(), now))
       .sort((a, b) => {
         const urgency = (rating?: ReviewRating) => rating === 'again' ? 3 : rating === 'hard' ? 2 : rating === 'good' ? 1 : 0;
         return urgency(b.lastRating) - urgency(a.lastRating);
       });
+    if (reviewMode === 'due') return dueCards.slice(0, 20);
+    if (reviewMode === 'hard') return hardCards.slice(0, 20);
     return [...dueCards, ...freshCards].slice(0, 20);
-  }, [flashcards, reviewSchedules]);
+  }, [flashcards, reviewSchedules, reviewMode]);
 
   const currentCard = reviewQueue[currentIndex];
 
@@ -130,8 +149,32 @@ export const ReviewScreen: React.FC = () => {
 
       <LayerToggles compact />
 
+      {activeTab === 'flashcards' && (
+        <div className="grid grid-cols-3 gap-2 p-1 rounded-2xl bg-stone-100 dark:bg-stone-800" role="group" aria-label="Chế độ ôn tập">
+          <button type="button" onClick={() => { setReviewMode('smart'); handleRestart(); }} aria-pressed={reviewMode === 'smart'} className={`min-h-10 rounded-xl px-2 py-2 text-xs font-semibold transition-colors ${reviewMode === 'smart' ? 'bg-white dark:bg-stone-900 text-stone-900 dark:text-stone-100 shadow-xs' : 'text-stone-500 hover:text-stone-900 dark:hover:text-stone-200'}`}>
+            Thông minh ({flashcards.length})
+          </button>
+          <button type="button" onClick={() => { setReviewMode('due'); handleRestart(); }} aria-pressed={reviewMode === 'due'} className={`min-h-10 rounded-xl px-2 py-2 text-xs font-semibold transition-colors ${reviewMode === 'due' ? 'bg-white dark:bg-stone-900 text-stone-900 dark:text-stone-100 shadow-xs' : 'text-stone-500 hover:text-stone-900 dark:hover:text-stone-200'}`}>
+            Đến hạn ({dueReviewCount})
+          </button>
+          <button type="button" onClick={() => { setReviewMode('hard'); handleRestart(); }} aria-pressed={reviewMode === 'hard'} className={`min-h-10 rounded-xl px-2 py-2 text-xs font-semibold transition-colors ${reviewMode === 'hard' ? 'bg-white dark:bg-stone-900 text-stone-900 dark:text-stone-100 shadow-xs' : 'text-stone-500 hover:text-stone-900 dark:hover:text-stone-200'}`}>
+            Từ khó ({hardReviewCount})
+          </button>
+        </div>
+      )}
+
       {activeTab === 'flashcards' ? (
-        !isCompleted && currentCard ? (
+        !isCompleted && reviewQueue.length === 0 ? (
+          <div className="p-8 rounded-3xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 text-center space-y-4 shadow-xs">
+            <CheckCircle className="w-12 h-12 text-emerald-600 dark:text-emerald-400 mx-auto" />
+            <h2 className="text-xl font-bold text-stone-900 dark:text-stone-100">{reviewMode === 'due' ? 'Bạn đã ôn hết từ đến hạn!' : reviewMode === 'hard' ? 'Chưa có từ khó cần luyện riêng.' : 'Chưa có thẻ nhớ nào'}</h2>
+            <p className="text-sm text-stone-500 dark:text-stone-400">{reviewMode === 'due' ? 'Tuyệt vời! Bạn có thể học trước từ mới hoặc quay lại khi đến lịch ôn tiếp theo.' : reviewMode === 'hard' ? 'Khi bạn đánh dấu “Khó” hoặc “Ôn lại”, Lina sẽ gom những từ đó vào đây.' : 'Hãy mở bài học và lưu từ vựng để bắt đầu tạo bộ thẻ ôn tập.'}</p>
+            <div className="flex flex-wrap justify-center gap-2">
+              {reviewMode !== 'smart' && <button type="button" onClick={() => { setReviewMode('smart'); handleRestart(); }} className="px-4 py-2.5 rounded-xl bg-amber-700 text-white text-xs font-bold">Ôn thông minh</button>}
+              <button type="button" onClick={() => setCurrentTab('learn')} className="px-4 py-2.5 rounded-xl border border-stone-200 dark:border-stone-700 text-xs font-bold">Khám phá bài học</button>
+            </div>
+          </div>
+        ) : !isCompleted && currentCard ? (
           <div className="space-y-4">
             {/* Progress Header */}
             <div className="flex items-center justify-between text-xs text-stone-500 dark:text-stone-400 font-medium">
