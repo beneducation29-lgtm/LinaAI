@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from 'node:fs';
 const manifestPath = 'android/app/src/main/AndroidManifest.xml';
 const gradlePath = 'android/app/build.gradle';
 const rootGradlePath = 'android/build.gradle';
+const variablesGradlePath = 'android/variables.gradle';
 const releaseAabPath = 'android/app/build/outputs/bundle/release/app-release.aab';
 const debugApkPath = 'android/app/build/outputs/apk/debug/app-debug.apk';
 const expectedAppId = 'com.linaai.chinese';
@@ -11,12 +12,14 @@ const requiredTargetSdk = 36;
 if (!existsSync(manifestPath)) throw new Error(`Android manifest not found: ${manifestPath}`);
 if (!existsSync(gradlePath)) throw new Error(`Android Gradle file not found: ${gradlePath}`);
 if (!existsSync(rootGradlePath)) throw new Error(`Root Android Gradle file not found: ${rootGradlePath}`);
+if (!existsSync(variablesGradlePath)) throw new Error(`Android variables Gradle file not found: ${variablesGradlePath}`);
 if (!existsSync(releaseAabPath)) throw new Error(`Release AAB not found: ${releaseAabPath}`);
 if (!existsSync(debugApkPath)) throw new Error(`Debug APK not found: ${debugApkPath}`);
 
 const manifest = readFileSync(manifestPath, 'utf8');
 const gradle = readFileSync(gradlePath, 'utf8');
 const rootGradle = readFileSync(rootGradlePath, 'utf8');
+const variablesGradle = readFileSync(variablesGradlePath, 'utf8');
 
 if (!manifest.includes('android.permission.RECORD_AUDIO')) {
   throw new Error('RECORD_AUDIO permission is missing from AndroidManifest.xml');
