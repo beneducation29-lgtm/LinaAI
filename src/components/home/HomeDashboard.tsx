@@ -94,10 +94,17 @@ export const HomeDashboard: React.FC = () => {
 
       <div className="p-5 rounded-3xl bg-white dark:bg-stone-900 border border-stone-200/90 dark:border-stone-800">
         <div className="flex items-center justify-between"><div><div className="text-xs font-bold uppercase tracking-wider text-stone-500">Tiến bộ thật</div><div className="text-sm font-semibold mt-1">Dựa trên hoạt động đã ghi nhận.</div></div><div className="text-xs text-stone-500">{user.currentHsk}</div></div>
-        <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 mt-4">
-          {[['Vocabulary',user.vocabularyLearnedCount],['Grammar',Object.values(structuredProgress).filter(p=>p.grammar>0).length],['Speaking',Math.round(Math.max(0,...Object.values(structuredProgress).map(p=>p.speaking)))],['Listening',Math.round(Math.max(0,...Object.values(structuredProgress).map(p=>p.listening)))],['Reading',0],['Pronunciation',user.pronunciationAccuracy]].map(([label,value]) => <div key={String(label)} className="p-3 rounded-xl bg-stone-50 dark:bg-stone-800"><div className="text-base font-bold">{value}{label === 'Pronunciation' ? '%' : ''}</div><div className="text-[10px] text-stone-500 mt-0.5">{label}</div></div>)}
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-4">
+          {[
+            ['Từ đã học', user.vocabularyLearnedCount],
+            ['Bài có ngữ pháp', Object.values(structuredProgress).filter(p => p.grammar > 0).length],
+            ['Nói · điểm cao nhất', Math.round(Math.max(0, ...Object.values(structuredProgress).map(p => p.speaking))) + '%'],
+            ['Nghe · điểm cao nhất', Math.round(Math.max(0, ...Object.values(structuredProgress).map(p => p.listening))) + '%'],
+            ['Bài hoàn thành (7 ngày)', motivationSnapshot.weekly.lessonsCompleted],
+            ['Phát âm', user.pronunciationAccuracy + '%'],
+          ].map(([label, value]) => <div key={String(label)} className="p-3 rounded-xl bg-stone-50 dark:bg-stone-800"><div className="text-base font-bold">{value}</div><div className="text-[10px] text-stone-500 mt-0.5">{label}</div></div>)}
         </div>
-        <div className="mt-4 pt-4 border-t border-stone-100 dark:border-stone-800"><div className="text-xs font-bold">Tóm tắt 7 ngày</div><div className="grid sm:grid-cols-4 gap-2 mt-2 text-xs"><span>{motivationSnapshot.weekly.minutesStudied} phút học</span><span>{motivationSnapshot.weekly.lessonsCompleted} bài học</span><span>{motivationSnapshot.weekly.wordsReviewed} lượt từ</span><span>{motivationSnapshot.weekly.speakingSessions} lượt nói</span></div><div className="text-[11px] text-stone-500 mt-2">{motivationSnapshot.weekly.nextRecommendedPractice}</div></div>
+        <div className="mt-4 pt-4 border-t border-stone-100 dark:border-stone-800"><div className="text-xs font-bold">Hoạt động 7 ngày qua</div><div className="grid sm:grid-cols-4 gap-2 mt-2 text-xs"><span>{motivationSnapshot.weekly.minutesStudied} phút học</span><span>{motivationSnapshot.weekly.lessonsCompleted} bài hoàn thành</span><span>{motivationSnapshot.weekly.wordsReviewed} lượt ôn từ</span><span>{motivationSnapshot.weekly.speakingSessions} buổi luyện nói</span></div><div className="text-[11px] text-stone-500 mt-2">{motivationSnapshot.weekly.nextRecommendedPractice}</div></div>
       </div>
 
       {/* 2. MEMORY MAP */}
