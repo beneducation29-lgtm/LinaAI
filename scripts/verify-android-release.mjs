@@ -37,7 +37,6 @@ const targetSdkMatch = gradle.match(/targetSdk(?:Version)?\s*[= ]\s*(\d+)/);
 const rootTargetSdkMatch = rootGradle.match(/targetSdkVersion\s*[= ]\s*(\d+)/);
 const targetSdk = targetSdkMatch?.[1] ? Number(targetSdkMatch[1]) : Number(rootTargetSdkMatch?.[1]);
 if (!Number.isFinite(targetSdk)) throw new Error('Android target SDK is missing from app/build.gradle and root build.gradle.');
-if (!Number.isFinite(targetSdk)) throw new Error('Android target SDK is missing from app/build.gradle and root build.gradle.');
 if (targetSdk < requiredTargetSdk) {
   throw new Error(`Android target SDK ${targetSdk} is below required API ${requiredTargetSdk}`);
 }
