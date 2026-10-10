@@ -5,7 +5,7 @@
 
 export type SpeechLanguage = 'zh-CN' | 'zh-TW' | 'en-US' | 'vi-VN';
 export type PlaybackSpeed = 0.75 | 1.0 | 1.25;
-export type MicrophoneState = 'IDLE' | 'LISTENING' | 'PROCESSING' | 'AI_SPEAKING' | 'ERROR';
+export type MicrophoneState = 'IDLE' | 'REQUESTING' | 'LISTENING' | 'PROCESSING' | 'AI_SPEAKING' | 'ERROR';
 
 export interface VoiceSettings {
   speechLanguage: SpeechLanguage;
