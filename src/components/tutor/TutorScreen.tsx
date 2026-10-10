@@ -406,6 +406,9 @@ export const TutorScreen: React.FC = () => {
             const fullText = spokenFinalRef.current.trim() || spokenInterimRef.current.trim();
             if (!fullText) return;
             spokenSendInFlightRef.current = true;
+            // Close the microphone before sending so recognition cannot continue
+            // capturing speech while Lina is processing or speaking the reply.
+            speechService.stopListening();
             setMicState('IDLE');
             avatarService.setState('THINKING');
             void handleSendMessage(fullText, false, true);
