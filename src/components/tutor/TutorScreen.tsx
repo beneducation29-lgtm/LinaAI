@@ -806,6 +806,7 @@ export const TutorScreen: React.FC = () => {
         <div className="flex items-center gap-2 mb-2">
           <input
             type="text"
+            aria-label="Nhập câu tiếng Trung"
             autoComplete="off"
             autoCorrect="off"
             spellCheck={false}
@@ -836,7 +837,7 @@ export const TutorScreen: React.FC = () => {
 
         {/* Primary voice loop + real quick actions */}
         <div className="grid grid-cols-3 gap-2 pb-1 sm:flex sm:overflow-x-auto">
-          <button type="button" onClick={handleToggleMic} className={`flex min-w-0 flex-1 flex-col items-center justify-center rounded-2xl py-3 px-2 min-h-[64px] text-center shadow-md transition-all cursor-pointer select-none touch-manipulation active:scale-95 ${micState === 'LISTENING' ? 'bg-red-600 text-white animate-pulse shadow-red-500/30' : 'bg-amber-700 hover:bg-amber-800 text-white shadow-amber-700/25'}`} aria-label={micState === 'LISTENING' ? 'Dừng thu âm' : micState === 'REQUESTING' ? 'Đang yêu cầu quyền microphone' : 'Bấm mic để nói tiếng Trung'}>
+          <button type="button" onClick={handleToggleMic} className={`flex min-w-0 flex-1 flex-col items-center justify-center rounded-2xl py-3 px-2 min-h-[64px] text-center shadow-md transition-all cursor-pointer select-none touch-manipulation active:scale-95 ${micState === 'LISTENING' ? 'bg-red-600 text-white animate-pulse shadow-red-500/30' : 'bg-amber-700 hover:bg-amber-800 text-white shadow-amber-700/25'}`} aria-label={micState === 'LISTENING' ? 'Dừng thu âm' : micState === 'REQUESTING' ? 'Đang yêu cầu quyền microphone' : 'Bấm mic để nói tiếng Trung'} aria-pressed={micState === 'LISTENING'} aria-busy={micState === 'REQUESTING'}>
             {micState === 'LISTENING' ? <MicOff className="w-5 h-5 mb-0.5" /> : <Mic className="w-5 h-5 mb-0.5 stroke-[2.4]" />}
             <span className="text-xs font-bold">{micState === 'LISTENING' ? 'Đang nghe...' : micState === 'REQUESTING' ? 'Mở micro...' : '🎙 Nói'}</span>
           </button>
