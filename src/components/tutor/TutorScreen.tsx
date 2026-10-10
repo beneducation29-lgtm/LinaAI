@@ -722,6 +722,11 @@ export const TutorScreen: React.FC = () => {
               <div className="space-y-1">
                 <input
                   type="text"
+                  aria-label="Chỉnh sửa câu tiếng Trung đã nhận diện"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  enterKeyHint="done"
                   value={recognizedReview.hanzi}
                   onChange={(e) => {
                     const text = e.target.value;
