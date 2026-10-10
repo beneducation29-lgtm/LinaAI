@@ -805,7 +805,7 @@ export const TutorScreen: React.FC = () => {
       </div>
 
       {/* 4. BOTTOM INTERACTION CONTROLS (Push-to-talk primary loop) */}
-      <div className="shrink-0 pt-2 pb-1 border-t border-stone-200 dark:border-stone-800">
+      <div className="shrink-0 pt-2 pb-[calc(0.25rem+env(safe-area-inset-bottom))] border-t border-stone-200 dark:border-stone-800">
         <div className="flex items-center gap-2 mb-2">
           <input
             type="text"
@@ -833,12 +833,12 @@ export const TutorScreen: React.FC = () => {
         </div>
 
         {/* Primary voice loop + real quick actions */}
-        <div className="flex gap-2 overflow-x-auto pb-1">
-          <button type="button" onClick={handleToggleMic} className={`flex min-w-[104px] flex-1 flex-col items-center justify-center rounded-2xl py-2 px-2 min-h-[58px] text-center shadow-md transition-all cursor-pointer select-none active:scale-95 ${micState === 'LISTENING' ? 'bg-red-600 text-white animate-pulse shadow-red-500/30' : 'bg-amber-700 hover:bg-amber-800 text-white shadow-amber-700/25'}`} aria-label={micState === 'LISTENING' ? 'Dừng thu âm' : 'Bấm mic để nói tiếng Trung'}>
+        <div className="grid grid-cols-3 gap-2 pb-1 sm:flex sm:overflow-x-auto">
+          <button type="button" onClick={handleToggleMic} className={`flex min-w-0 flex-1 flex-col items-center justify-center rounded-2xl py-3 px-2 min-h-[64px] text-center shadow-md transition-all cursor-pointer select-none touch-manipulation active:scale-95 ${micState === 'LISTENING' ? 'bg-red-600 text-white animate-pulse shadow-red-500/30' : 'bg-amber-700 hover:bg-amber-800 text-white shadow-amber-700/25'}`} aria-label={micState === 'LISTENING' ? 'Dừng thu âm' : 'Bấm mic để nói tiếng Trung'}>
             {micState === 'LISTENING' ? <MicOff className="w-5 h-5 mb-0.5" /> : <Mic className="w-5 h-5 mb-0.5 stroke-[2.4]" />}
             <span className="text-xs font-bold">{micState === 'LISTENING' ? 'Đang nghe...' : '🎙 Nói'}</span>
           </button>
-          <button type="button" onClick={handleOpenHints} className="flex min-w-[88px] flex-1 flex-col items-center justify-center rounded-2xl border border-stone-200 bg-white py-2 px-2 min-h-[58px] text-center text-stone-700 shadow-2xs transition-all hover:border-amber-400 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-200" aria-label="Mở gợi ý">
+          <button type="button" onClick={handleOpenHints} className="flex min-w-0 flex-1 flex-col items-center justify-center rounded-2xl border border-stone-200 bg-white py-3 px-2 min-h-[64px] text-center text-stone-700 shadow-2xs transition-all hover:border-amber-400 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-200 touch-manipulation" aria-label="Mở gợi ý">
             <Lightbulb className="w-4 h-4 text-amber-600 mb-0.5" /><span className="text-xs font-semibold">💡 Gợi ý</span>
           </button>
           <button type="button" onClick={handleRepeatLastMessage} className="flex min-w-[88px] flex-1 flex-col items-center justify-center rounded-2xl border border-stone-200 bg-white py-2 px-2 min-h-[58px] text-center text-stone-700 shadow-2xs transition-all hover:border-amber-400 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-200" aria-label="Nghe lại câu vừa rồi">
@@ -847,7 +847,7 @@ export const TutorScreen: React.FC = () => {
           <button type="button" onClick={() => handleSpeakLastMessage(0.75)} className="flex min-w-[88px] flex-1 flex-col items-center justify-center rounded-2xl border border-stone-200 bg-white py-2 px-2 min-h-[58px] text-center text-stone-700 shadow-2xs transition-all hover:border-amber-400 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-200" aria-label="Nghe chậm câu vừa rồi">
             <span className="text-base leading-none mb-0.5">🐢</span><span className="text-xs font-semibold">Nói chậm</span>
           </button>
-          <button type="button" onClick={handleExplainLastMessage} disabled={isExplaining} className="flex min-w-[88px] flex-1 flex-col items-center justify-center rounded-2xl border border-stone-200 bg-white py-2 px-2 min-h-[58px] text-center text-stone-700 shadow-2xs transition-all hover:border-amber-400 disabled:opacity-50 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-200" aria-label="Giải thích câu vừa rồi">
+          <button type="button" onClick={handleExplainLastMessage} disabled={isExplaining} className="flex min-w-0 flex-1 flex-col items-center justify-center rounded-2xl border border-stone-200 bg-white py-3 px-2 min-h-[64px] text-center text-stone-700 shadow-2xs transition-all hover:border-amber-400 disabled:opacity-50 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-200 touch-manipulation" aria-label="Giải thích câu vừa rồi">
             <GraduationCap className="w-4 h-4 text-amber-600 mb-0.5" /><span className="text-xs font-semibold">{isExplaining ? 'Đang giải thích…' : '📖 Giải thích'}</span>
           </button>
         </div>
