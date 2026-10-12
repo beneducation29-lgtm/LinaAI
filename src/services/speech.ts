@@ -391,14 +391,15 @@ class SpeechService {
         body: JSON.stringify({ audioBase64, mimeType }),
       }, { timeoutMs: 30000, retries: 1 });
 
-      if (res.ok) {
-        const data = await res.json();
-        return data.transcript || '';
+      if (!res.ok) {
+        throw new Error(`Speech transcription request failed (${res.status})`);
       }
+      const data = await res.json();
+      return typeof data.transcript === 'string' ? data.transcript : '';
     } catch (err) {
-      console.warn('[Lina][STT_ERROR]', { offline:isOfflineError(err), name:(err as Error)?.name || 'Error' });
+      console.warn('[Lina][STT_ERROR]', { offline: isOfflineError(err), name: (err as Error)?.name || 'Error' });
+      throw err;
     }
-    return '';
   }
 
   // ===================== TEXT-TO-SPEECH (TTS) =====================
