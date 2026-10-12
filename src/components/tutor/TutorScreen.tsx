@@ -115,12 +115,14 @@ export const TutorScreen: React.FC = () => {
   const [isEditingRecognized, setIsEditingRecognized] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [sentenceExplanation, setSentenceExplanation] = useState<Awaited<ReturnType<typeof aiTutor.explainSentence>> | null>(null);
+  const [sentenceExplanationError, setSentenceExplanationError] = useState<string | null>(null);
   const [isExplaining, setIsExplaining] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const hintsDialogRef = useRef<HTMLDivElement>(null);
   const hintsTriggerRef = useRef<HTMLButtonElement>(null);
   const hintsRequestIdRef = useRef(0);
+  const explanationRequestIdRef = useRef(0);
   const holdTimeoutRef = useRef<any>(null);
   const autoSendTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const spokenFinalRef = useRef('');
@@ -235,6 +237,12 @@ export const TutorScreen: React.FC = () => {
    */
   const handleSendMessage = async (textToSend: string, forceRoleplay = false, isSpoken = false) => {
     if (!textToSend.trim()) return;
+
+    // Prevent an explanation for an older message from appearing after a new turn starts.
+    explanationRequestIdRef.current += 1;
+    setIsExplaining(false);
+    setSentenceExplanation(null);
+    setSentenceExplanationError(null);
 
     const speakingRetry = isSpoken ? speakingRetryRef.current : null;
     setErrorMessage(null);
@@ -560,13 +568,19 @@ export const TutorScreen: React.FC = () => {
 
   const handleExplainLastMessage = async () => {
     const lastAiMsg = [...conversation.messages].reverse().find(m => m.sender === 'ai');
-    if (!lastAiMsg) return;
+    if (!lastAiMsg || isExplaining) return;
+    const requestId = ++explanationRequestIdRef.current;
     setIsExplaining(true);
+    setSentenceExplanationError(null);
     try {
       const explanation = await aiTutor.explainSentence(lastAiMsg.hanzi, conversation.hskLevel);
+      if (requestId !== explanationRequestIdRef.current) return;
       setSentenceExplanation(explanation);
+    } catch {
+      if (requestId !== explanationRequestIdRef.current) return;
+      setSentenceExplanationError('Chưa thể giải thích câu này do kết nối hoặc dịch vụ AI đang bận. Bạn hãy thử lại nhé.');
     } finally {
-      setIsExplaining(false);
+      if (requestId === explanationRequestIdRef.current) setIsExplaining(false);
     }
   };
 
@@ -836,6 +850,13 @@ export const TutorScreen: React.FC = () => {
                 Nói lại
               </button>
             </div>
+          </div>
+        )}
+
+        {sentenceExplanationError && (
+          <div role="alert" aria-live="assertive" aria-atomic="true" className="mt-2 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
+            <p>{sentenceExplanationError}</p>
+            <button type="button" onClick={() => void handleExplainLastMessage()} disabled={isExplaining} className="mt-2 min-h-[40px] rounded-xl bg-amber-700 px-3 py-2 font-semibold text-white disabled:opacity-50">Thử giải thích lại</button>
           </div>
         )}
 
