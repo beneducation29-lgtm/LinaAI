@@ -244,16 +244,18 @@ class SpeechService {
       this.mediaStream = stream;
       const preferredMimeTypes = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'];
       const mimeType = preferredMimeTypes.find(type => MediaRecorder.isTypeSupported(type)) || '';
-      this.mediaRecorder = new MediaRecorder(this.mediaStream, mimeType ? { mimeType } : undefined);
-      this.mediaChunks = [];
+      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+      const chunks: Blob[] = [];
+      this.mediaRecorder = recorder;
+      this.mediaChunks = chunks;
       this.usingMediaRecorderFallback = true;
       this.isListeningActive = true;
 
-      this.mediaRecorder.ondataavailable = event => {
-        if (event.data.size > 0) this.mediaChunks.push(event.data);
+      recorder.ondataavailable = event => {
+        if (event.data.size > 0) chunks.push(event.data);
       };
 
-      this.mediaRecorder.onerror = () => {
+      recorder.onerror = () => {
         if (sessionId !== this.mediaRecorderSessionId) return;
         this.isListeningActive = false;
         this.cleanupMediaRecorder();
@@ -261,14 +263,14 @@ class SpeechService {
         options.onEnd();
       };
 
-      this.mediaRecorder.onstop = async () => {
-        const chunks = this.mediaChunks;
-        const stream = this.mediaStream;
+      recorder.onstop = async () => {
+        stream.getTracks().forEach(track => track.stop());
+        if (sessionId !== this.mediaRecorderSessionId) return;
+
         this.mediaRecorder = null;
         this.mediaChunks = [];
         this.mediaStream = null;
         this.isListeningActive = false;
-        stream?.getTracks().forEach(track => track.stop());
 
         if (!chunks.length) {
           this.usingMediaRecorderFallback = false;
@@ -279,6 +281,7 @@ class SpeechService {
 
         const blob = new Blob(chunks, { type: mimeType || 'audio/webm' });
         const transcript = await this.transcribeAudio(blob);
+        if (sessionId !== this.mediaRecorderSessionId) return;
         this.usingMediaRecorderFallback = false;
 
         if (!transcript) {
@@ -291,9 +294,10 @@ class SpeechService {
         options.onEnd();
       };
 
-      this.mediaRecorder.start();
+      recorder.start();
       options.onStart?.();
     } catch (error) {
+      if (sessionId !== this.mediaRecorderSessionId) return;
       this.usingMediaRecorderFallback = false;
       this.cleanupMediaRecorder();
       const name = error instanceof Error ? error.name : '';
