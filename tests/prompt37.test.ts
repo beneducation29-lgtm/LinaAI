@@ -11,6 +11,6 @@ const fallback = source.slice(fallbackStart, fallbackEnd);
 assert.match(source, /private mediaRecorderSessionId = 0/);
 assert.match(fallback, /const sessionId = \+\+this\.mediaRecorderSessionId/);
 assert.match(fallback, /const stream = await navigator\.mediaDevices\.getUserMedia\(\{ audio: true \}\);\s*if \(sessionId !== this\.mediaRecorderSessionId\)/);
-assert.match(fallback, /this\.mediaRecorder\.onerror = \(\) => \{\s*if \(sessionId !== this\.mediaRecorderSessionId\) return;/);
+assert.match(fallback, /recorder\.onerror = \(\) => \{\s*if \(sessionId !== this\.mediaRecorderSessionId\) return;/);
 
 console.log('Microphone session guard regression checks passed.');
