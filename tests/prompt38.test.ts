@@ -13,6 +13,6 @@ assert.match(fallback, /const chunks: Blob\[\] = \[\]/);
 assert.match(fallback, /recorder\.ondataavailable = event => \{\s*if \(event\.data\.size > 0\) chunks\.push\(event\.data\)/);
 assert.match(fallback, /recorder\.onstop = async \(\) => \{\s*stream\.getTracks\(\)\.forEach\(track => track\.stop\(\)\);\s*if \(sessionId !== this\.mediaRecorderSessionId\) return;/);
 assert.match(fallback, /const transcript = await this\.transcribeAudio\(blob\);\s*if \(sessionId !== this\.mediaRecorderSessionId\) return;/);
-assert.match(fallback, /\} catch \(error\) \{\s*if \(sessionId !== this\.mediaRecorderSessionId\) return;/);
+assert.match(fallback, /\} catch \(error\) \{\s*if \(sessionId !== this\.mediaRecorderSessionId\) \{\s*if \(this\.pendingMediaRecorderStart\?\.sessionId === sessionId\) this\.pendingMediaRecorderStart = null;\s*return;\s*\}/);
 
 console.log('Stale MediaRecorder callback regression checks passed.');
