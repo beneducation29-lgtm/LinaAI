@@ -284,7 +284,16 @@ class SpeechService {
         }
 
         const blob = new Blob(chunks, { type: mimeType || 'audio/webm' });
-        const transcript = await this.transcribeAudio(blob);
+        let transcript: string;
+        try {
+          transcript = await this.transcribeAudio(blob);
+        } catch {
+          if (sessionId !== this.mediaRecorderSessionId) return;
+          this.usingMediaRecorderFallback = false;
+          options.onError('Không thể chuyển giọng nói thành văn bản lúc này. Bạn kiểm tra kết nối rồi thử lại nhé.');
+          options.onEnd();
+          return;
+        }
         if (sessionId !== this.mediaRecorderSessionId) return;
         this.usingMediaRecorderFallback = false;
 
