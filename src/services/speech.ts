@@ -101,6 +101,7 @@ class SpeechService {
   private mediaStream: MediaStream | null = null;
   private mediaChunks: Blob[] = [];
   private usingMediaRecorderFallback = false;
+  private mediaRecorderSessionId = 0;
   private playbackListeners = new Set<PlaybackListener>();
   private isListeningActive = false;
   private synth: SpeechSynthesis | null = null;
