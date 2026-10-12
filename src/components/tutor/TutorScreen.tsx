@@ -149,6 +149,7 @@ export const TutorScreen: React.FC = () => {
   const handleOpenHints = async () => {
     setShowHintsModal(true);
     setCurrentHintStep(1);
+    setHintsError(null);
 
     const lastAiMsg = [...conversation.messages].reverse().find(m => m.sender === 'ai');
     const contextSentence = lastAiMsg ? lastAiMsg.hanzi : '你好！很高兴认识你。';
