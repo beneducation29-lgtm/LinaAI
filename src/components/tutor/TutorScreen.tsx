@@ -120,6 +120,7 @@ export const TutorScreen: React.FC = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const hintsDialogRef = useRef<HTMLDivElement>(null);
   const hintsTriggerRef = useRef<HTMLButtonElement>(null);
+  const hintsRequestIdRef = useRef(0);
   const holdTimeoutRef = useRef<any>(null);
   const autoSendTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const spokenFinalRef = useRef('');
@@ -196,6 +197,7 @@ export const TutorScreen: React.FC = () => {
 
   // Handle progressive hints loading
   const handleOpenHints = async () => {
+    const requestId = ++hintsRequestIdRef.current;
     setShowHintsModal(true);
     setCurrentHintStep(1);
     setHintsError(null);
@@ -205,6 +207,7 @@ export const TutorScreen: React.FC = () => {
 
     if (lastAiMsg?.progressiveHints) {
       setActiveHints(lastAiMsg.progressiveHints);
+      setIsLoadingHints(false);
       return;
     }
 
@@ -217,11 +220,13 @@ export const TutorScreen: React.FC = () => {
         conversation.topicTitleVi,
         conversation.hskLevel
       );
+      if (requestId !== hintsRequestIdRef.current) return;
       setActiveHints(hints);
     } catch {
+      if (requestId !== hintsRequestIdRef.current) return;
       setHintsError('Chưa thể tạo gợi ý do kết nối hoặc dịch vụ AI đang bận. Bạn hãy kiểm tra mạng rồi thử lại nhé.');
     } finally {
-      setIsLoadingHints(false);
+      if (requestId === hintsRequestIdRef.current) setIsLoadingHints(false);
     }
   };
 
