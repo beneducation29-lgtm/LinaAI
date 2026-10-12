@@ -140,6 +140,16 @@ export const TutorScreen: React.FC = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [conversation.messages, micState]);
 
+  // Let keyboard users dismiss the progressive hints dialog with Escape.
+  useEffect(() => {
+    if (!showHintsModal) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setShowHintsModal(false);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showHintsModal]);
+
   useEffect(() => () => {
     realtimeConversationController.interrupt();
     if (autoSendTimerRef.current) clearTimeout(autoSendTimerRef.current);
@@ -888,17 +898,23 @@ export const TutorScreen: React.FC = () => {
       {/* Progressive Hints Modal */}
       {showHintsModal && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4">
-          <div className="w-full max-w-lg bg-white dark:bg-stone-900 rounded-t-3xl sm:rounded-3xl p-5 border border-stone-200 dark:border-stone-800 shadow-2xl max-h-[85vh] overflow-y-auto">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="progressive-hints-title"
+            className="w-full max-w-lg bg-white dark:bg-stone-900 rounded-t-3xl sm:rounded-3xl p-5 border border-stone-200 dark:border-stone-800 shadow-2xl max-h-[85vh] overflow-y-auto"
+          >
             <div className="flex items-center justify-between pb-3 border-b border-stone-100 dark:border-stone-800 mb-3">
               <div className="flex items-center gap-2">
                 <Lightbulb className="w-4 h-4 text-amber-600" />
-                <h3 className="font-bold text-stone-900 dark:text-stone-100 text-sm">
+                <h3 id="progressive-hints-title" className="font-bold text-stone-900 dark:text-stone-100 text-sm">
                   Gợi ý tiến bộ (Progressive Hints)
                 </h3>
               </div>
               <button
                 type="button"
                 onClick={() => setShowHintsModal(false)}
+                aria-label="Đóng cửa sổ gợi ý"
                 className="text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 p-1.5 rounded-lg min-h-[36px] min-w-[36px] flex items-center justify-center cursor-pointer"
               >
                 <X className="w-4 h-4" />
