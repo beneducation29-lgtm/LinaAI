@@ -228,6 +228,7 @@ class SpeechService {
     onEnd: () => void;
     onStart?: () => void;
   }): Promise<void> {
+    const sessionId = ++this.mediaRecorderSessionId;
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
       options.onError('Thiết bị chưa hỗ trợ thu âm trên ứng dụng này.');
       options.onEnd();
