@@ -101,6 +101,7 @@ class SpeechService {
   private mediaStream: MediaStream | null = null;
   private mediaChunks: Blob[] = [];
   private usingMediaRecorderFallback = false;
+  private mediaRecorderSessionId = 0;
   private playbackListeners = new Set<PlaybackListener>();
   private isListeningActive = false;
   private synth: SpeechSynthesis | null = null;
@@ -227,6 +228,7 @@ class SpeechService {
     onEnd: () => void;
     onStart?: () => void;
   }): Promise<void> {
+    const sessionId = ++this.mediaRecorderSessionId;
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
       options.onError('Thiết bị chưa hỗ trợ thu âm trên ứng dụng này.');
       options.onEnd();
@@ -234,7 +236,12 @@ class SpeechService {
     }
 
     try {
-      this.mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      if (sessionId !== this.mediaRecorderSessionId) {
+        stream.getTracks().forEach(track => track.stop());
+        return;
+      }
+      this.mediaStream = stream;
       const preferredMimeTypes = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'];
       const mimeType = preferredMimeTypes.find(type => MediaRecorder.isTypeSupported(type)) || '';
       this.mediaRecorder = new MediaRecorder(this.mediaStream, mimeType ? { mimeType } : undefined);
@@ -247,6 +254,7 @@ class SpeechService {
       };
 
       this.mediaRecorder.onerror = () => {
+        if (sessionId !== this.mediaRecorderSessionId) return;
         this.isListeningActive = false;
         this.cleanupMediaRecorder();
         options.onError('Đang gặp sự cố khi thu âm. Bạn thử lại nhé.');
