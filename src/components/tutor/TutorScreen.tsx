@@ -96,6 +96,7 @@ export const TutorScreen: React.FC = () => {
   const [currentHintStep, setCurrentHintStep] = useState<number>(1);
   const [activeHints, setActiveHints] = useState<ProgressiveHints | null>(null);
   const [isLoadingHints, setIsLoadingHints] = useState<boolean>(false);
+  const [hintsError, setHintsError] = useState<string | null>(null);
 
   // Test Scenarios Modal
   const [showScenariosModal, setShowScenariosModal] = useState(false);
@@ -157,6 +158,8 @@ export const TutorScreen: React.FC = () => {
       return;
     }
 
+    setActiveHints(null);
+    setHintsError(null);
     setIsLoadingHints(true);
     try {
       const hints = await aiTutor.getProgressiveHints(
@@ -165,6 +168,8 @@ export const TutorScreen: React.FC = () => {
         conversation.hskLevel
       );
       setActiveHints(hints);
+    } catch {
+      setHintsError('Chưa thể tạo gợi ý do kết nối hoặc dịch vụ AI đang bận. Bạn hãy kiểm tra mạng rồi thử lại nhé.');
     } finally {
       setIsLoadingHints(false);
     }
@@ -930,6 +935,17 @@ export const TutorScreen: React.FC = () => {
             {isLoadingHints ? (
               <div className="p-8 text-center text-xs text-stone-400">
                 Đang tạo gợi ý cá nhân hóa...
+              </div>
+            ) : hintsError ? (
+              <div role="alert" aria-live="assertive" className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/40 text-center space-y-3">
+                <p className="text-sm text-amber-900 dark:text-amber-200">{hintsError}</p>
+                <button
+                  type="button"
+                  onClick={() => void handleOpenHints()}
+                  className="w-full py-2.5 bg-amber-700 hover:bg-amber-800 text-white rounded-xl text-xs font-semibold transition-colors min-h-[44px] cursor-pointer"
+                >
+                  Thử tạo gợi ý lại
+                </button>
               </div>
             ) : activeHints ? (
               <div className="p-4 rounded-2xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/40 space-y-2">
