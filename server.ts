@@ -581,7 +581,7 @@ app.post('/api/tutor/chat/stream', async (req:Request,res:Response)=>{
     if(typeof message!=='string'||!message.trim())return res.status(400).json({error:'Message string is required'});
     const access=await requireAIEntitlement(req,'ai');if('error' in access)return res.status(access.status).json({error:access.error,...(access.error==='LIMIT_REACHED'?{code:'LIMIT_REACHED'}:{})});
     res.setHeader('Content-Type','text/event-stream; charset=utf-8');res.setHeader('Cache-Control','no-cache, no-transform');res.setHeader('Connection','keep-alive');res.flushHeaders?.();
-    const send=(payload:Record<string,unknown>)=>{if(!res.writableEnded)res.write('data: '+JSON.stringify(payload)+'\\n\\n');};
+    const send=(payload:Record<string,unknown>)=>{if(!res.writableEnded)res.write('data: '+JSON.stringify(payload)+'\n\n');};
     const result=await orchestrate({task:mode==='teacher'?'correction':'conversation',userId:access.user.id,learnerLevel:userLevel,hskLevel,input:message,context:'Topic: '+topicTitle+'; mode: '+mode+'; learner facts: '+(Array.isArray(memoryFacts)?memoryFacts.slice(-4).join('; '):''),history,schema:TUTOR_RESPONSE_SCHEMA,fallback:generateFallbackResponse(message,mode,userName),temperature:0.5,maxOutputTokens:1400});
     await recordAIUsage(access.user.id,result.model,'tutor_chat_stream',result.raw||{});send({type:'response',response:result.value,traceId:result.traceId,promptVersion:result.promptVersion});send({type:'done'});res.end();
   }catch(err:any){if(!res.headersSent)return res.status(err?.code==='AI_RATE_LIMITED'?429:503).json({error:err?.code==='AI_RATE_LIMITED'?'RATE_LIMITED':'Streaming tutor unavailable',...(err?.traceId?{traceId:err.traceId}:{})});try{res.end();}catch{}}
