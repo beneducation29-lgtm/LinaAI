@@ -102,6 +102,7 @@ class SpeechService {
   private mediaChunks: Blob[] = [];
   private usingMediaRecorderFallback = false;
   private mediaRecorderSessionId = 0;
+  private pendingMediaRecorderStart: { sessionId: number; onEnd: () => void } | null = null;
   private playbackListeners = new Set<PlaybackListener>();
   private isListeningActive = false;
   private synth: SpeechSynthesis | null = null;
@@ -235,12 +236,15 @@ class SpeechService {
       return;
     }
 
+    this.pendingMediaRecorderStart = { sessionId, onEnd: options.onEnd };
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       if (sessionId !== this.mediaRecorderSessionId) {
         stream.getTracks().forEach(track => track.stop());
+        if (this.pendingMediaRecorderStart?.sessionId === sessionId) this.pendingMediaRecorderStart = null;
         return;
       }
+      if (this.pendingMediaRecorderStart?.sessionId === sessionId) this.pendingMediaRecorderStart = null;
       this.mediaStream = stream;
       const preferredMimeTypes = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'];
       const mimeType = preferredMimeTypes.find(type => MediaRecorder.isTypeSupported(type)) || '';
@@ -297,7 +301,11 @@ class SpeechService {
       recorder.start();
       options.onStart?.();
     } catch (error) {
-      if (sessionId !== this.mediaRecorderSessionId) return;
+      if (sessionId !== this.mediaRecorderSessionId) {
+        if (this.pendingMediaRecorderStart?.sessionId === sessionId) this.pendingMediaRecorderStart = null;
+        return;
+      }
+      if (this.pendingMediaRecorderStart?.sessionId === sessionId) this.pendingMediaRecorderStart = null;
       this.usingMediaRecorderFallback = false;
       this.cleanupMediaRecorder();
       const name = error instanceof Error ? error.name : '';
@@ -317,6 +325,15 @@ class SpeechService {
   }
 
   stopListening(): void {
+    if (!this.recognition && !this.mediaRecorder && !this.usingMediaRecorderFallback) {
+      this.mediaRecorderSessionId += 1;
+      const pendingStart = this.pendingMediaRecorderStart;
+      this.pendingMediaRecorderStart = null;
+      this.isListeningActive = false;
+      pendingStart?.onEnd();
+      return;
+    }
+
     if (this.usingMediaRecorderFallback && this.mediaRecorder) {
       try {
         this.mediaRecorder.stop();
