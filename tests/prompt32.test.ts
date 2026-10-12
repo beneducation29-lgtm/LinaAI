@@ -9,7 +9,7 @@ assert.match(source, /aria-modal="true"/);
 assert.match(source, /aria-labelledby="progressive-hints-title"/);
 assert.match(source, /id="progressive-hints-title"/);
 assert.match(source, /aria-label="Đóng cửa sổ gợi ý"/);
-assert.match(source, /if \\(event\\.key === 'Escape'\\) \\{\\s*setShowHintsModal\\(false\\);/);
+assert.match(source, /if \(event\.key === 'Escape'\) \{\s*setShowHintsModal\(false\);/);
 assert.match(source, /window\.removeEventListener\('keydown', handleKeyDown\)/);
 
 console.log('Prompt 32 progressive hints dialog accessibility checks passed.');
