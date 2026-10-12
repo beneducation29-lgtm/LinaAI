@@ -254,6 +254,7 @@ class SpeechService {
       };
 
       this.mediaRecorder.onerror = () => {
+        if (sessionId !== this.mediaRecorderSessionId) return;
         this.isListeningActive = false;
         this.cleanupMediaRecorder();
         options.onError('Đang gặp sự cố khi thu âm. Bạn thử lại nhé.');
