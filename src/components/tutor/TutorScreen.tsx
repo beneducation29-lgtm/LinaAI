@@ -118,6 +118,8 @@ export const TutorScreen: React.FC = () => {
   const [isExplaining, setIsExplaining] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const hintsDialogRef = useRef<HTMLDivElement>(null);
+  const hintsTriggerRef = useRef<HTMLButtonElement>(null);
   const holdTimeoutRef = useRef<any>(null);
   const autoSendTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const spokenFinalRef = useRef('');
@@ -140,14 +142,48 @@ export const TutorScreen: React.FC = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [conversation.messages, micState]);
 
-  // Let keyboard users dismiss the progressive hints dialog with Escape.
+  // Keep keyboard focus inside the progressive hints dialog and restore it on close.
   useEffect(() => {
     if (!showHintsModal) return;
+    const dialog = hintsDialogRef.current;
+    const previouslyFocused = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : hintsTriggerRef.current;
+    const getFocusableElements = () => Array.from(
+      dialog?.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), a[href], input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      ) ?? []
+    ).filter(element => element.getAttribute('aria-hidden') !== 'true');
+    getFocusableElements()[0]?.focus();
+
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setShowHintsModal(false);
+      if (event.key === 'Escape') {
+        setShowHintsModal(false);
+        return;
+      }
+      if (event.key !== 'Tab') return;
+      const focusable = getFocusableElements();
+      if (!focusable.length) {
+        event.preventDefault();
+        dialog?.focus();
+        return;
+      }
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && (document.activeElement === first || !dialog?.contains(document.activeElement))) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && (document.activeElement === last || !dialog?.contains(document.activeElement))) {
+        event.preventDefault();
+        first.focus();
+      }
     };
+
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      if (previouslyFocused?.isConnected) previouslyFocused.focus();
+    };
   }, [showHintsModal]);
 
   useEffect(() => () => {
@@ -865,7 +901,7 @@ export const TutorScreen: React.FC = () => {
             {micState === 'LISTENING' ? <MicOff className="w-5 h-5 mb-0.5" /> : <Mic className="w-5 h-5 mb-0.5 stroke-[2.4]" />}
             <span className="text-xs font-bold">{micState === 'LISTENING' ? 'Đang nghe...' : micState === 'REQUESTING' ? 'Mở micro...' : '🎙 Nói'}</span>
           </button>
-          <button type="button" onClick={handleOpenHints} className="flex min-w-0 flex-1 flex-col items-center justify-center rounded-2xl border border-stone-200 bg-white py-3 px-2 min-h-[64px] text-center text-stone-700 shadow-2xs transition-all hover:border-amber-400 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-200 touch-manipulation" aria-label="Mở gợi ý">
+          <button ref={hintsTriggerRef} type="button" onClick={handleOpenHints} className="flex min-w-0 flex-1 flex-col items-center justify-center rounded-2xl border border-stone-200 bg-white py-3 px-2 min-h-[64px] text-center text-stone-700 shadow-2xs transition-all hover:border-amber-400 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-200 touch-manipulation" aria-label="Mở gợi ý">
             <Lightbulb className="w-4 h-4 text-amber-600 mb-0.5" /><span className="text-xs font-semibold">💡 Gợi ý</span>
           </button>
           <button type="button" onClick={handleRepeatLastMessage} className="flex min-w-[88px] flex-1 flex-col items-center justify-center rounded-2xl border border-stone-200 bg-white py-2 px-2 min-h-[58px] text-center text-stone-700 shadow-2xs transition-all hover:border-amber-400 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-200" aria-label="Nghe lại câu vừa rồi">
@@ -899,6 +935,7 @@ export const TutorScreen: React.FC = () => {
       {showHintsModal && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4">
           <div
+            ref={hintsDialogRef}
             role="dialog"
             aria-modal="true"
             aria-labelledby="progressive-hints-title"
