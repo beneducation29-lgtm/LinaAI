@@ -149,6 +149,8 @@ export const TutorScreen: React.FC = () => {
     const previouslyFocused = document.activeElement instanceof HTMLElement
       ? document.activeElement
       : hintsTriggerRef.current;
+    const previousBodyOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
     const getFocusableElements = () => Array.from(
       dialog?.querySelectorAll<HTMLElement>(
         'button:not([disabled]), a[href], input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
@@ -182,6 +184,7 @@ export const TutorScreen: React.FC = () => {
     window.addEventListener('keydown', handleKeyDown);
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = previousBodyOverflow;
       if (previouslyFocused?.isConnected) previouslyFocused.focus();
     };
   }, [showHintsModal]);
