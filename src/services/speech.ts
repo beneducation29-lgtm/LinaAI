@@ -236,7 +236,12 @@ class SpeechService {
     }
 
     try {
-      this.mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      if (sessionId !== this.mediaRecorderSessionId) {
+        stream.getTracks().forEach(track => track.stop());
+        return;
+      }
+      this.mediaStream = stream;
       const preferredMimeTypes = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'];
       const mimeType = preferredMimeTypes.find(type => MediaRecorder.isTypeSupported(type)) || '';
       this.mediaRecorder = new MediaRecorder(this.mediaStream, mimeType ? { mimeType } : undefined);
