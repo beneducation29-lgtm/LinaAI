@@ -7,11 +7,14 @@ const flashcard = fs.readFileSync('src/components/flashcard/Flashcard.tsx', 'utf
 const entries = [...glossarySource.matchAll(/'([^']+)'\s*:\s*'([^']*)'/g)];
 const meanings = new Map(entries.map(([, hanzi, meaning]) => [hanzi, meaning]));
 const classicVocabularySource = fs.readFileSync('src/data/hskClassicVocabulary.ts', 'utf8');
-const hsk3Entries = [...classicVocabularySource.matchAll(/^\s*\{[^}\n]*hanzi:\s*"([^"]+)"[^}\n]*hskLevel:\s*'HSK 3'/gm)];
-assert.equal(hsk3Entries.length, 298, 'classic HSK 3 corpus should contain 298 entries');
-for (const [, hanzi] of hsk3Entries) {
-  const meaning = meanings.get(hanzi);
-  assert.ok(meaning && meaning.trim().length > 0, `HSK 3 word ${hanzi} should have a Vietnamese meaning`);
+const classicVocabularySource = fs.readFileSync('src/data/hskClassicVocabulary.ts', 'utf8');
+for (const [level, expectedCount] of [['HSK 1', 150], ['HSK 2', 150], ['HSK 3', 298]]) {
+  const levelEntries = [...classicVocabularySource.matchAll(new RegExp('^\\\\s*\\\\{[^}\\\\n]*hanzi:\\\\s*"([^"]+)"[^}\\\\n]*hskLevel:\\\\s*\\\'' + level + '\\'/gm))];
+  assert.equal(levelEntries.length, expectedCount, `classic ${level} corpus should contain ${expectedCount} entries`);
+  for (const [, hanzi] of levelEntries) {
+    const meaning = meanings.get(hanzi);
+    assert.ok(meaning && meaning.trim().length > 0, `${level} word ${hanzi} should have a Vietnamese meaning`);
+  }
 }
 
 assert.ok(entries.length >= 661, 'Vietnamese glossary should retain and expand its HSK coverage');
