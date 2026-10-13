@@ -29,7 +29,7 @@ for (const hanzi of ['唉', '爱护', '爱惜', '爱心', '安慰', '安装', '�
   const meaning = meanings.get(hanzi);
   assert.ok(meaning && meaning.trim().length > 0, hanzi + ' should have a Vietnamese meaning');
 }
-assert.ok(meanings.size >= 1465, 'glossary should retain the first 200 HSK 5 meanings');
+assert.ok(meanings.size >= 1515, 'glossary should retain the first 250 HSK 5 meanings');
 for (const hanzi of ['脖子', '不必', '不断', '不见得', '不耐烦', '不要紧', '补充', '布', '不安', '不得了', '不好意思', '不免', '不然', '不如', '不足', '部门', '步骤', '财产', '踩', '采访', '采取', '彩虹', '参考', '参与', '餐厅', '残疾', '惭愧', '操场', '操心', '册', '厕所', '测验', '曾经', '插', '差别', '叉子', '拆', '产品', '产生', '长途', '常识', '抄', '朝', '朝代', '炒', '吵架', '车库', '车厢', '彻底', '沉默']) {
   const meaning = meanings.get(hanzi);
   assert.ok(meaning && meaning.trim().length > 0, hanzi + ' should have a Vietnamese meaning');
@@ -40,6 +40,11 @@ for (const hanzi of ['趁', '称', '称呼', '称赞', '乘', '承担', '承认'
 }
 
 for (const hanzi of ["辞职", "此外", "次要", "刺激", "匆忙", "从此", "从而", "从前", "从事", "醋", "促进", "促使", "催", "存", "存在", "错误", "措施", "答应", "达到", "打工", "打交道", "打喷嚏", "打听", "打招呼", "大方", "大象", "大型", "呆", "贷款", "待遇", "单纯", "单调", "单独", "单位", "单元", "担任", "耽误", "胆小鬼", "淡", "当代", "挡", "岛", "倒霉", "导演", "导致", "倒", "到达", "道德", "道理", "登机牌"]) {
+  const meaning = meanings.get(hanzi);
+  assert.ok(meaning && meaning.trim().length > 0, hanzi + ' should have a Vietnamese meaning');
+}
+
+for (const hanzi of ["登记", "等待", "等候", "等于", "滴", "的确", "敌人", "递", "地道", "地理", "地区", "地毯", "地位", "地震", "点头", "点心", "电池", "电台", "钓", "丁", "顶", "冻", "洞", "动画片", "逗", "豆腐", "独立", "独特", "度过", "短信", "堆", "对比", "对待", "对方", "对手", "对象", "对于", "吨", "蹲", "多亏", "多余", "躲藏", "恶劣", "发表", "发愁", "发达", "发抖", "发挥", "发明", "发票"]) {
   const meaning = meanings.get(hanzi);
   assert.ok(meaning && meaning.trim().length > 0, hanzi + ' should have a Vietnamese meaning');
 }
