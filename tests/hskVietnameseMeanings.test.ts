@@ -7,7 +7,7 @@ const flashcard = fs.readFileSync('src/components/flashcard/Flashcard.tsx', 'utf
 const entries = [...glossarySource.matchAll(/'([^']+)'\s*:\s*'([^']*)'/g)];
 const meanings = new Map(entries.map(([, hanzi, meaning]) => [hanzi, meaning]));
 const classicVocabularySource = fs.readFileSync('src/data/hskClassicVocabulary.ts', 'utf8');
-const hsk3Entries = [...classicVocabularySource.matchAll(/^\\s*\\{[^}\\n]*hanzi:\\s*\"([^\"]+)\"[^}\\n]*hskLevel:\\s*'HSK 3'/gm)];
+const hsk3Entries = [...classicVocabularySource.matchAll(/^\s*\{[^}\n]*hanzi:\s*"([^"]+)"[^}\n]*hskLevel:\s*'HSK 3'/gm)];
 assert.equal(hsk3Entries.length, 298, 'classic HSK 3 corpus should contain 298 entries');
 for (const [, hanzi] of hsk3Entries) {
   const meaning = meanings.get(hanzi);
