@@ -16,10 +16,10 @@ for (const [level, expectedCount] of [['HSK 1', 150], ['HSK 2', 150], ['HSK 3', 
     assert.ok(meaning && meaning.trim().length > 0, `${level} word ${hanzi} should have a Vietnamese meaning`);
   }
 }
-assert.ok(entries.length >= 794, 'Vietnamese glossary should retain and expand its HSK coverage');
+assert.ok(entries.length >= 844, 'Vietnamese glossary should retain and expand its HSK coverage');
 const hsk4Entries = [...classicVocabularySource.matchAll(/^\s*\{[^}\n]*hanzi:\s*"([^"]+)"[^}\n]*hskLevel:\s*'HSK 4'/gm)];
 assert.equal(hsk4Entries.length, 601, 'classic HSK 4 corpus should contain 601 entries');
-for (const hanzi of ["爱情","暗","按时","按照","包括","保证","抱","抱歉","报名","倍","本来","笨","毕业","遍","标准","表达","表格","表扬","饼干","并且","博士","不得不","不管","不仅","部分","擦","猜","材料","参观","尝","长城","长江","场","超过","吵","成熟","成为","诚实","乘坐","吃惊","重新","抽烟","出差","出发","出生","传真","窗户","从来","粗心","答案"]) {
+for (const hanzi of ["爱情","暗","按时","按照","包括","保证","抱","抱歉","报名","倍","本来","笨","毕业","遍","标准","表达","表格","表扬","饼干","并且","博士","不得不","不管","不仅","部分","擦","猜","材料","参观","尝","长城","长江","场","超过","吵","成熟","成为","诚实","乘坐","吃惊","重新","抽烟","出差","出发","出生","传真","窗户","从来","粗心","答案","打扮","打扰","打印","打折","打针","大使馆","大约","戴","代表","代替","大夫","当","当地","当时","刀","导游","到处","到底","道歉","得意","等（动）","等（助）","底","地球","掉","丢","动作","堵车","肚子","断","对（形）","对（介）","对话","对面","顿","朵","而","儿童","发","发生","法律","翻译","烦恼","反对","反映","范围","方面","访问","放弃","放暑假"]) {
   const meaning = meanings.get(hanzi);
   assert.ok(meaning && meaning.trim().length > 0, `HSK 4 word ${hanzi} should have a Vietnamese meaning`);
 }
