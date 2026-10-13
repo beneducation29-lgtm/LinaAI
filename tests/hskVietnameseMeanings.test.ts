@@ -29,7 +29,7 @@ for (const hanzi of ['唉', '爱护', '爱惜', '爱心', '安慰', '安装', '�
   const meaning = meanings.get(hanzi);
   assert.ok(meaning && meaning.trim().length > 0, hanzi + ' should have a Vietnamese meaning');
 }
-assert.ok(meanings.size >= 1615, 'glossary should retain the 250 newly added HSK 5 meanings');
+assert.ok(meanings.size >= 1665, 'glossary should retain the 300 newly added HSK 5 meanings');
 for (const hanzi of ['脖子', '不必', '不断', '不见得', '不耐烦', '不要紧', '补充', '布', '不安', '不得了', '不好意思', '不免', '不然', '不如', '不足', '部门', '步骤', '财产', '踩', '采访', '采取', '彩虹', '参考', '参与', '餐厅', '残疾', '惭愧', '操场', '操心', '册', '厕所', '测验', '曾经', '插', '差别', '叉子', '拆', '产品', '产生', '长途', '常识', '抄', '朝', '朝代', '炒', '吵架', '车库', '车厢', '彻底', '沉默']) {
   const meaning = meanings.get(hanzi);
   assert.ok(meaning && meaning.trim().length > 0, hanzi + ' should have a Vietnamese meaning');
@@ -55,6 +55,12 @@ for (const hanzi of ["发言", "罚款", "法院", "翻", "繁荣", "凡是", "�
 }
 
 for (const hanzi of ["感激","感受","感想","赶紧","赶快","干活儿","钢铁","高档","高速公路","搞","告别","胳膊","鸽子","隔壁","革命","格外","个别","个人","个性","各自","根","根本","更加","公布","公开","公平","公寓","公元","公主","工厂","工程师","工人","工业","功夫","功能","贡献","沟通","构成","姑姑","姑娘","古代","古典","古老","鼓舞","股票","骨头","固定","固体","雇佣","挂号"]) {
+  const meaning = meanings.get(hanzi);
+  assert.ok(meaning && meaning.trim().length > 0, hanzi + ' should have a Vietnamese meaning');
+}
+
+
+for (const hanzi of ["乖","拐弯","怪不得","官","关闭","关怀","观察","观念","管子","冠军","罐头","光滑","光临","光明","光盘","光荣","广场","广大","广泛","规矩","规律","规模","规则","柜台","滚","锅","国籍","国庆节","果实","过分","过敏","过期","哈","海关","海鲜","喊","行业","豪华","好奇","和平","何必","何况","合法","合理","合同","合影","合作","核心","恨","横"]) {
   const meaning = meanings.get(hanzi);
   assert.ok(meaning && meaning.trim().length > 0, hanzi + ' should have a Vietnamese meaning');
 }
