@@ -25,6 +25,11 @@ for (const hanzi of ["爱情","暗","按时","按照","包括","保证","抱","�
 }
 
 assert.equal(meanings.size, entries.length, 'glossary keys must be unique to avoid silent overrides');
+for (const hanzi of ['唉', '爱护', '爱惜', '爱心', '安慰', '安装', '岸', '把握', '摆', '班主任', '办理', '棒', '傍晚', '包裹', '包含', '包子', '薄', '宝贝', '宝贵', '保存', '保留', '保险', '报告', '悲观', '背', '背景', '被子', '本科', '本领', '本质', '比例', '彼此', '毕竟', '避免', '必然', '必需', '必要', '编辑', '鞭炮', '便', '辩论', '标点', '标志', '表面', '表明', '表情', '表现', '丙', '病毒', '玻璃', '博物馆']) {
+  const meaning = meanings.get(hanzi);
+  assert.ok(meaning && meaning.trim().length > 0, hanzi + ' should have a Vietnamese meaning');
+}
+assert.ok(meanings.size >= 1314, 'glossary should retain the first 50 HSK 5 meanings');
 const chineseCharacter = /[\u3400-\u4DBF\u4E00-\u9FFF]/;
 for (const [hanzi, meaning] of meanings) {
   // 把 is intentionally retained in its grammar explanation as the Chinese construction name.
