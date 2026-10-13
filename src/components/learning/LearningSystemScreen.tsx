@@ -12,7 +12,7 @@ import { analytics } from '../../services/analytics';
 type Section = 'learn' | 'vocabulary' | 'listen' | 'speak' | 'roleplay' | 'review';
 type VocabularyFilter = 'all' | 'examples' | 'saved';
 
-const normalizeSearchText = (value: string) => value.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase().trim();
+const normalizeSearchText = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
 
 export const LearningSystemScreen: React.FC = () => {
   const { user, setCurrentTab, recordLearningResult, addMistake, getDueReviewCount, structuredProgress, learnerProfileMemory, recordMotivationActivity, allVocabularies, toggleSaveVocabulary, isVocabularySaved, motivation, mistakes } = useApp();
@@ -190,17 +190,28 @@ export const LearningSystemScreen: React.FC = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 xl:px-8 py-6 pb-24 md:pb-12 space-y-5">
-      <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300"><Sparkles className="w-4 h-4"/>HSK Learning System</div>
-          <h1 className="text-2xl sm:text-3xl font-bold mt-1">Lộ trình tiếng Trung có cấu trúc</h1>
-          <p className="text-sm text-stone-500 dark:text-stone-400 mt-1">HSK 1 có 10 bài nền tảng; HSK 2–6 đã mở thêm các module theo chủ đề, ngữ pháp, nghe, nói, roleplay và review.</p>
+    <div className="max-w-[1500px] mx-auto px-4 sm:px-6 xl:px-8 py-5 md:py-7 pb-24 md:pb-12 space-y-6">
+      <header className="relative overflow-hidden rounded-[2rem] border border-amber-200/70 dark:border-amber-900/50 bg-gradient-to-br from-amber-50 via-white to-orange-50 dark:from-stone-900 dark:via-stone-900 dark:to-amber-950/40 p-5 sm:p-7 xl:p-8 shadow-sm">
+        <div className="pointer-events-none absolute -right-10 -top-16 h-56 w-56 rounded-full bg-amber-300/20 blur-3xl"/>
+        <div className="pointer-events-none absolute right-24 bottom-0 h-28 w-28 rounded-full bg-orange-300/20 blur-2xl"/>
+        <div className="relative flex flex-col xl:flex-row xl:items-end xl:justify-between gap-6">
+          <div className="max-w-3xl">
+            <div className="inline-flex items-center gap-2 rounded-full border border-amber-200 bg-white/80 px-3 py-1.5 text-[11px] font-extrabold uppercase tracking-[0.16em] text-amber-800 dark:border-amber-900/70 dark:bg-stone-950/50 dark:text-amber-300"><Sparkles className="h-3.5 w-3.5"/> LinaAI · Learning Studio</div>
+            <h1 className="mt-4 text-3xl font-black tracking-tight text-stone-950 dark:text-white sm:text-4xl xl:text-5xl">Học tiếng Trung <span className="text-amber-700 dark:text-amber-400">từng bước một.</span></h1>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-stone-600 dark:text-stone-300 sm:text-base">Một không gian học tập cho từ vựng, ngữ pháp, nghe nói và ôn tập — theo sát lộ trình HSK của bạn.</p>
+            <div className="mt-5 flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-2 rounded-xl bg-stone-950 px-3.5 py-2 text-xs font-bold text-white dark:bg-amber-300 dark:text-stone-950"><BookOpen className="h-4 w-4"/>{user.currentHsk} hiện tại</span>
+              <span className="inline-flex items-center gap-2 rounded-xl border border-stone-200 bg-white/80 px-3.5 py-2 text-xs font-bold text-stone-700 dark:border-stone-700 dark:bg-stone-900/80 dark:text-stone-200"><RotateCcw className="h-4 w-4 text-amber-600"/>{getDueReviewCount()} mục cần ôn</span>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3 xl:w-[350px]">
+            <div className="rounded-2xl border border-white/80 bg-white/85 p-4 shadow-sm dark:border-stone-700 dark:bg-stone-950/70"><div className="text-[11px] font-bold uppercase tracking-wider text-stone-500">Thời gian hôm nay</div><div className="mt-2 text-2xl font-black text-stone-900 dark:text-white">{user.todayMinutesSpent}<span className="ml-1 text-sm font-semibold text-stone-500">phút</span></div><div className="mt-2 h-1.5 overflow-hidden rounded-full bg-stone-100 dark:bg-stone-800"><div className="h-full rounded-full bg-amber-500" style={{width: Math.min(100, Math.round((user.todayMinutesSpent / Math.max(1, user.dailyGoalMinutes)) * 100)) + '%'}}/></div><div className="mt-1 text-[10px] text-stone-500">Mục tiêu {user.dailyGoalMinutes} phút</div></div>
+            <div className="rounded-2xl border border-white/80 bg-white/85 p-4 shadow-sm dark:border-stone-700 dark:bg-stone-950/70"><div className="text-[11px] font-bold uppercase tracking-wider text-stone-500">Từ đã học</div><div className="mt-2 text-2xl font-black text-stone-900 dark:text-white">{user.vocabularyLearnedCount.toLocaleString('vi-VN')}</div><div className="mt-2 text-[10px] text-amber-700 dark:text-amber-300">Tích lũy mỗi ngày ✦</div></div>
+          </div>
         </div>
-        <div className="flex gap-2"><span className="px-3 py-1.5 rounded-xl bg-stone-100 dark:bg-stone-800 text-xs font-bold">{user.currentHsk}</span><span className="px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/30 text-xs font-bold text-amber-800 dark:text-amber-300">{getDueReviewCount()} cần ôn</span></div>
-      </div>
+      </header>
 
-      <div className="grid grid-cols-2 sm:grid-cols-6 gap-2">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
         {(['HSK 1','HSK 2','HSK 3','HSK 4','HSK 5','HSK 6'] as const).map(level => {
           const count = allLessons.filter(l => l.hskLevel === level).length;
           const active = selectedHsk === level;
@@ -208,19 +219,21 @@ export const LearningSystemScreen: React.FC = () => {
             setSelectedHsk(level);
             const first = allLessons.find(l => l.hskLevel === level);
             if(first){ setLessonId(first.id); setSection('learn'); setReviewIndex(0); setReviewDone(false); }
-          }} className={'rounded-xl border p-3 text-left transition-all ' + (active ? 'bg-stone-900 text-white border-stone-900' : 'bg-white/60 dark:bg-stone-900/40 text-stone-700 dark:text-stone-300 border-stone-200 dark:border-stone-800 hover:border-amber-300')}>
-            <div className="text-xs font-bold">{level}</div><div className="text-[10px] mt-1">{count ? count + ' bài' : 'Đang cập nhật'} · {classicVocabulary.filter(v => Number(String(v.hskLevel).replace(/[^0-9]/g, '')) <= Number(level.replace(/[^0-9]/g, ''))).length.toLocaleString('vi-VN')} từ</div>
+          }} className={'group relative overflow-hidden rounded-2xl border p-4 text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ' + (active ? 'border-stone-900 bg-stone-950 text-white shadow-lg shadow-stone-900/10 dark:border-amber-300 dark:bg-amber-300 dark:text-stone-950' : 'border-stone-200 bg-white text-stone-700 hover:border-amber-300 dark:border-stone-800 dark:bg-stone-900/80 dark:text-stone-200')}>
+            <div className="flex items-center justify-between gap-2"><div className="text-sm font-black tracking-tight">{level}</div><span className={'rounded-lg px-2 py-1 text-[10px] font-bold ' + (active ? 'bg-white/15 dark:bg-stone-950/10' : 'bg-amber-50 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300')}>{count ? count + ' bài' : 'Sắp có'}</span></div>
+            <div className={'mt-3 text-[11px] ' + (active ? 'text-white/70 dark:text-stone-800' : 'text-stone-500')}>{classicVocabulary.filter(v => Number(String(v.hskLevel).replace(/[^0-9]/g, '')) <= Number(level.replace(/[^0-9]/g, ''))).length.toLocaleString('vi-VN')} từ tích lũy</div>
+            <div className={'mt-3 h-1 overflow-hidden rounded-full ' + (active ? 'bg-white/20 dark:bg-stone-950/10' : 'bg-stone-100 dark:bg-stone-800')}><div className={'h-full rounded-full ' + (active ? 'bg-amber-300 dark:bg-stone-950' : 'bg-amber-500')} style={{width: (Number(level.replace(/[^0-9]/g, '')) / 6 * 100) + '%'}}/></div>
           </button>;
         })}
       </div>
 
-      <div className="grid lg:grid-cols-[280px_minmax(0,1fr)] xl:gap-6 gap-4">
+      <div className="grid items-start gap-5 lg:grid-cols-[290px_minmax(0,1fr)] xl:gap-6">
         <aside className="space-y-3 lg:sticky lg:top-6 lg:self-start lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto lg:pr-1">
-          <div className="p-4 rounded-2xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800">
-            <div className="text-xs font-bold uppercase tracking-wider text-stone-500 mb-2">{lessonsForLevel.length} bài {selectedHsk}</div>
-            <div className="space-y-1.5">{lessonsForLevel.map(l => <button key={l.id} type="button" onClick={() => {setLessonId(l.id);setSection('learn');setReviewIndex(0);setReviewDone(false); analytics.track('lesson_start', { lessonId: l.id, hskLevel: l.hskLevel, source: 'lesson_selector' });}} className={'w-full text-left p-2.5 rounded-xl text-xs ' + (lesson.id === l.id ? 'bg-amber-100 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 font-bold' : 'hover:bg-stone-100 dark:hover:bg-stone-800')}><span className="font-bold mr-1">{l.lessonNumber}.</span>{l.titleVi}</button>)}</div>
+          <div className="overflow-hidden rounded-3xl border border-stone-200 bg-white shadow-sm dark:border-stone-800 dark:bg-stone-900">
+            <div className="border-b border-stone-100 bg-stone-50/80 px-4 py-4 dark:border-stone-800 dark:bg-stone-950/50"><div className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-amber-700 dark:text-amber-300">Lộ trình của bạn</div><div className="mt-1 flex items-center justify-between gap-2"><div className="text-sm font-black text-stone-900 dark:text-white">{lessonsForLevel.length} bài · {selectedHsk}</div><span className="rounded-lg bg-white px-2 py-1 text-[10px] font-bold text-stone-500 shadow-sm dark:bg-stone-900">{lesson.lessonNumber}/{lessonsForLevel.length}</span></div></div>
+            <div className="max-h-[480px] space-y-1 overflow-y-auto p-2">{lessonsForLevel.map(l => <button key={l.id} type="button" onClick={() => {setLessonId(l.id);setSection('learn');setReviewIndex(0);setReviewDone(false); analytics.track('lesson_start', { lessonId: l.id, hskLevel: l.hskLevel, source: 'lesson_selector' });}} className={'w-full rounded-xl border px-3 py-3 text-left text-xs transition-all ' + (lesson.id === l.id ? 'border-amber-200 bg-amber-50 text-amber-950 shadow-sm dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-100 font-bold' : 'border-transparent text-stone-600 hover:border-stone-200 hover:bg-stone-50 dark:text-stone-300 dark:hover:border-stone-700 dark:hover:bg-stone-800/70')}><span className="font-bold mr-1">{l.lessonNumber}.</span>{l.titleVi}</button>)}</div>
           </div>
-          <div className="p-4 rounded-2xl bg-stone-900 text-white">
+          <div className="relative overflow-hidden rounded-3xl bg-stone-950 p-5 text-white shadow-lg shadow-stone-900/10 dark:bg-gradient-to-br dark:from-stone-900 dark:to-amber-950/70">
             <div className="text-xs text-amber-300 font-bold">TODAY · {user.dailyGoalMinutes} phút</div>
             <div className="mt-2 text-sm">{user.todayMinutesSpent} phút hôm nay · {user.vocabularyLearnedCount.toLocaleString('vi-VN')} từ đã học · {getDueReviewCount()} mục cần ôn</div>
             <div className="mt-1 text-[11px] text-stone-400">{mistakes.length} lỗi đã ghi nhận · {motivation.activities.filter(a => a.type === 'speaking').length} lượt nói</div>
@@ -228,24 +241,24 @@ export const LearningSystemScreen: React.FC = () => {
           </div>
         </aside>
 
-        <section className="space-y-4">
-          <div className="p-5 rounded-3xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800">
+        <section className="min-w-0 space-y-5">
+          <div className="rounded-3xl border border-stone-200 bg-white p-5 shadow-sm dark:border-stone-800 dark:bg-stone-900 sm:p-6">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div><div className="text-xs text-amber-700 dark:text-amber-300 font-bold">{lesson.hskLevel} · Bài {lesson.lessonNumber}</div><h2 className="text-2xl font-bold mt-1">{lesson.titleVi}</h2><div className="font-cjk text-lg text-stone-500">{lesson.titleZh} · {lesson.pinyin}</div><p className="text-sm text-stone-600 dark:text-stone-400 mt-2">{lesson.objective}</p></div>
               <LayerToggles compact/>
             </div>
-            <div className="mt-4 flex flex-wrap gap-2">{(['learn','vocabulary','listen','speak','roleplay','review'] as Section[]).map(x => <button key={x} type="button" onClick={() => setSection(x)} className={'px-3 py-2 rounded-xl text-xs font-bold ' + (section === x ? 'bg-stone-900 text-white' : 'bg-stone-100 dark:bg-stone-800')}>{x === 'learn' ? 'Học' : x === 'vocabulary' ? 'Từ vựng' : x === 'listen' ? 'Nghe' : x === 'speak' ? 'Nói' : x === 'roleplay' ? 'Roleplay' : 'Review'}</button>)}</div>
+            <nav aria-label="Chế độ học" className="mt-5 flex gap-1.5 overflow-x-auto rounded-2xl bg-stone-100 p-1.5 dark:bg-stone-950/70">{(['learn','vocabulary','listen','speak','roleplay','review'] as Section[]).map(x => <button key={x} type="button" onClick={() => setSection(x)} aria-pressed={section === x} className={'shrink-0 rounded-xl px-4 py-2.5 text-xs font-extrabold transition-all ' + (section === x ? 'bg-white text-stone-950 shadow-sm ring-1 ring-stone-200 dark:bg-amber-300 dark:text-stone-950 dark:ring-amber-200' : 'text-stone-500 hover:bg-white/70 hover:text-stone-900 dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-white')}>{x === 'learn' ? 'Học bài' : x === 'vocabulary' ? 'Từ vựng' : x === 'listen' ? 'Luyện nghe' : x === 'speak' ? 'Luyện nói' : x === 'roleplay' ? 'Hội thoại AI' : 'Ôn tập'}</button>)}</nav>
           </div>
 
           {section === 'vocabulary' && <div className="space-y-4">
-            <div className="p-5 rounded-2xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40">
-              <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+            <div className="rounded-3xl border border-amber-200 bg-gradient-to-br from-amber-50 via-orange-50/70 to-white p-5 shadow-sm dark:border-amber-900/50 dark:from-amber-950/40 dark:via-stone-900 dark:to-stone-900 sm:p-6">
+              <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
                 <div><div className="text-xs font-bold uppercase tracking-wider text-amber-800 dark:text-amber-300">Kho từ vựng HSK · học để giao tiếp</div><h3 className="text-xl font-bold mt-1">{selectedHsk} · {speakingVocabulary.length.toLocaleString('vi-VN')} từ tích lũy</h3><p className="text-sm text-stone-600 dark:text-stone-400 mt-1">Tìm nhanh theo chữ Hán, pinyin có dấu, nghĩa tiếng Việt, từ loại hoặc câu mẫu. Ưu tiên học từ trong ngữ cảnh để dùng được khi nói.</p><div className="mt-3 flex flex-wrap gap-1.5">{([1,2,3,4,5,6] as const).map(level => <span key={level} className="px-2 py-1 rounded-lg bg-white/70 dark:bg-stone-900/70 border border-amber-200 dark:border-amber-900/50 text-[10px] font-bold">HSK {level}: {cumulativeCountFor(level).toLocaleString('vi-VN')}</span>)}</div></div>
                 <div className="w-full xl:w-[23rem] space-y-2"><div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400"/><input value={vocabularyQuery} onChange={e=>setVocabularyQuery(e.target.value)} aria-label="Tìm từ vựng HSK" placeholder="Tìm chữ Hán, pinyin, nghĩa, câu mẫu..." className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 text-sm outline-none focus:ring-2 focus:ring-amber-300"/></div><div className="flex flex-wrap gap-1.5" aria-label="Lọc từ vựng">{([{value:"all",label:"Tất cả"},{value:"examples",label:"Có câu mẫu"},{value:"saved",label:"Đã lưu"}] as const).map(filter=><button key={filter.value} type="button" onClick={()=>setVocabularyFilter(filter.value)} aria-pressed={vocabularyFilter===filter.value} className={"px-2.5 py-1.5 rounded-lg border text-[11px] font-bold transition-colors "+(vocabularyFilter===filter.value?"bg-stone-900 text-white border-stone-900 dark:bg-stone-100 dark:text-stone-900 dark:border-stone-100":"bg-white/70 dark:bg-stone-900/70 border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-300 hover:border-amber-300")}>{filter.label}</button>)}</div></div>
               </div>
             </div>
-            <div className="grid sm:grid-cols-2 gap-3">
-              {visibleVocabulary.map(item => <div key={item.id} className="p-4 rounded-2xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800">
+            <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-3">
+              {visibleVocabulary.map(item => <div key={item.id} className="group rounded-3xl border border-stone-200 bg-white p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-amber-300 hover:shadow-lg hover:shadow-amber-900/5 dark:border-stone-800 dark:bg-stone-900">
                 <div className="flex items-start justify-between gap-2">
                   <div><div className="font-cjk text-2xl font-bold">{item.hanzi}</div><div className="text-sm text-amber-700 dark:text-amber-300 font-semibold mt-1">{item.pinyin}</div><div className="text-sm mt-1">{item.vietnamese || 'Chưa có nghĩa Việt trong nguồn HSK cổ điển'}</div></div>
                   <button type="button" onClick={()=>toggleSaveVocabulary(item.id)} className="p-2 rounded-xl hover:bg-stone-100 dark:hover:bg-stone-800" aria-label={isVocabularySaved(item.id) ? 'Bỏ lưu từ' : 'Lưu từ'}><Bookmark className={'w-4 h-4 ' + (isVocabularySaved(item.id) ? 'fill-current text-amber-600' : 'text-stone-400')}/></button>
@@ -308,8 +321,8 @@ export const LearningSystemScreen: React.FC = () => {
         </section>
       </div>
 
-      <div className="p-5 rounded-2xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800">
-        <div className="text-xs font-bold uppercase tracking-wider text-stone-500">Phản hồi tiến bộ</div>
+      <div className="rounded-3xl border border-stone-200 bg-white p-5 shadow-sm dark:border-stone-800 dark:bg-stone-900 sm:p-6">
+        <div className="flex flex-wrap items-end justify-between gap-3"><div><div className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-amber-700 dark:text-amber-300">Tổng quan cá nhân</div><h3 className="mt-1 text-xl font-black tracking-tight">Tiến bộ của bạn</h3></div><div className="text-xs text-stone-500">Tiếp tục từng ngày để tạo thói quen</div></div>
         <div className="grid grid-cols-2 sm:grid-cols-6 gap-3 mt-3">
           <Metric label="Bài học" value={user.lessonsCompletedCount}/><Metric label="Từ vựng" value={user.vocabularyLearnedCount}/><Metric label="Nói" value={structuredProgress[lesson.id]?.speaking || 0}/><Metric label="Nghe" value={structuredProgress[lesson.id]?.listening || 0}/><Metric label="Ngữ pháp" value={structuredProgress[lesson.id]?.grammar || 0}/><Metric label="Thanh điệu" value={user.pronunciationAccuracy}/>
         </div>
@@ -318,4 +331,4 @@ export const LearningSystemScreen: React.FC = () => {
   );
 };
 
-const Metric:React.FC<{label:string;value:number}> = ({label,value}) => <div className="p-3 rounded-xl bg-stone-50 dark:bg-stone-800/60"><div className="text-lg font-bold">{value}{label === 'Thanh điệu' ? '%' : ''}</div><div className="text-[11px] text-stone-500">{label}</div></div>;
+const Metric:React.FC<{label:string;value:number}> = ({label,value}) => <div className="rounded-2xl border border-stone-100 bg-stone-50 p-4 transition-colors hover:border-amber-200 dark:border-stone-800 dark:bg-stone-950/60"><div className="text-lg font-bold">{value}{label === 'Thanh điệu' ? '%' : ''}</div><div className="text-[11px] text-stone-500">{label}</div></div>;
