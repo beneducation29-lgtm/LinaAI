@@ -262,7 +262,7 @@ export const LearningSystemScreen: React.FC = () => {
             <div className="p-5 rounded-2xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
-                  <div className="text-xs font-bold uppercase tracking-wider text-amber-800 dark:text-amber-300">Kho HSK cổ điển</div>
+                  <div className="text-xs font-bold uppercase tracking-wider text-amber-800 dark:text-amber-300">Kho HSK cổ điển · dữ liệu thật</div>
                   <div className="text-xl font-bold mt-1">{selectedHsk} · ${classicVocabulary.filter(v => Number(String(v.hskLevel).replace(/[^0-9]/g, '')) <= selectedHskNumber).length.toLocaleString('vi-VN')} từ tích lũy</div>
                   <p className="text-xs text-stone-600 dark:text-stone-400 mt-1">5.000 từ HSK cổ điển đã được gắn trực tiếp vào cấp HSK; chọn “Từ vựng” để học toàn bộ kho.</p>
                 </div>
