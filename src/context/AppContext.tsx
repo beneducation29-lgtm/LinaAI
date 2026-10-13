@@ -169,10 +169,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [allVocabularies] = useState<Vocabulary[]>(() => {
     const byKey = new Map<string, Vocabulary>();
     for (const vocab of [...INITIAL_VOCABULARIES, ...HSK_CLASSIC_VOCABULARY]) {
-      byKey.set(`${vocab.hanzi}|${vocab.pinyin.replace(/\\s+/g, '')}`, vocab);
+      byKey.set(`${vocab.hanzi}|${vocab.pinyin.replace(/\s+/g, '')}`, vocab);
     }
     for (const vocab of HSK_SPEAKING_VOCABULARY) {
-      const key = `${vocab.hanzi}|${vocab.pinyin.replace(/\\s+/g, '')}`;
+      const key = `${vocab.hanzi}|${vocab.pinyin.replace(/\s+/g, '')}`;
       const existing = byKey.get(key);
       byKey.set(key, existing ? {
         ...existing,
