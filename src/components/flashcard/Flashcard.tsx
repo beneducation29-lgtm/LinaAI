@@ -18,6 +18,7 @@ export const Flashcard: React.FC<FlashcardProps> = ({
 }) => {
   const [isFlipped, setIsFlipped] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [sentenceDraft, setSentenceDraft] = useState('');
 
   const { vocabulary } = card;
 
@@ -64,7 +65,7 @@ export const Flashcard: React.FC<FlashcardProps> = ({
         }}
         aria-label={isFlipped ? 'Thẻ ghi nhớ tiếng Trung, đang hiển thị đáp án; nhấn để xem mặt trước' : 'Thẻ ghi nhớ tiếng Trung, đang hiển thị mặt trước; nhấn để xem đáp án'}
         aria-pressed={isFlipped}
-        className="w-full h-80 cursor-pointer [perspective:1000px] select-none focus:outline-hidden focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-4 rounded-3xl"
+        className="w-full h-[390px] sm:h-[420px] cursor-pointer [perspective:1000px] select-none focus:outline-hidden focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-4 rounded-3xl"
       >
         <div 
           className={`relative w-full h-full transition-transform duration-500 [transform-style:preserve-3d] rounded-3xl ${
@@ -131,17 +132,35 @@ export const Flashcard: React.FC<FlashcardProps> = ({
                 {vocabulary.vietnamese}
               </div>
 
-              {vocabulary.exampleSentence && (
-                <div className="mt-3 p-2.5 bg-stone-50 dark:bg-stone-800/60 rounded-xl text-left text-xs">
-                  <div className="font-cjk font-medium text-stone-800 dark:text-stone-200">
+              {vocabulary.exampleSentence ? (
+                <div className="mt-3 rounded-xl bg-stone-50 p-3 text-left text-xs dark:bg-stone-800/60">
+                  <div className="mb-1 text-[10px] font-extrabold uppercase tracking-wider text-amber-700 dark:text-amber-300">Câu ghép từ · Ví dụ</div>
+                  <div className="font-cjk font-semibold text-stone-800 dark:text-stone-100">
                     {vocabulary.exampleSentence.hanzi}
                   </div>
-                  <div className="text-amber-700 dark:text-amber-400 font-medium">
+                  <div className="mt-1 font-medium text-amber-700 dark:text-amber-400">
                     {vocabulary.exampleSentence.pinyin}
                   </div>
-                  <div className="text-stone-500 dark:text-stone-400 italic">
-                    {vocabulary.exampleSentence.vietnamese}
+                  <div className="mt-1 italic text-stone-600 dark:text-stone-300">
+                    {vocabulary.exampleSentence.vietnamese || 'Bản dịch câu ví dụ đang được bổ sung.'}
                   </div>
+                </div>
+              ) : (
+                <div className="mt-3 rounded-xl border border-dashed border-amber-300 bg-amber-50/70 p-3 text-left text-xs dark:border-amber-900 dark:bg-amber-950/20">
+                  <div className="mb-1 text-[10px] font-extrabold uppercase tracking-wider text-amber-800 dark:text-amber-300">Thử ghép câu</div>
+                  <div className="font-cjk font-semibold text-stone-800 dark:text-stone-100">我会用「{vocabulary.hanzi}」造句。</div>
+                  <div className="mt-1 text-stone-600 dark:text-stone-300">Tôi sẽ dùng từ này để đặt câu.</div>
+                  <label className="mt-2 block text-[10px] font-semibold text-stone-500 dark:text-stone-400">Đến lượt bạn: tự viết một câu có từ này</label>
+                  <textarea
+                    value={sentenceDraft}
+                    onChange={e => setSentenceDraft(e.target.value)}
+                    onClick={e => e.stopPropagation()}
+                    onKeyDown={e => e.stopPropagation()}
+                    rows={2}
+                    placeholder="Nhập câu tiếng Trung của bạn…"
+                    className="mt-1 w-full resize-none rounded-lg border border-stone-200 bg-white p-2 text-xs text-stone-800 outline-none focus:border-amber-400 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100"
+                  />
+                  {sentenceDraft.trim() && <div className="mt-1 text-[10px] text-stone-500">Mẹo: hãy thử dùng từ <span className="font-bold">{vocabulary.hanzi}</span> trong một câu hoàn chỉnh.</div>}
                 </div>
               )}
             </div>
