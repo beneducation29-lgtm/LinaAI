@@ -28,6 +28,7 @@ import { MotivationState, MotivationActivityType } from '../types/motivation';
 import { DailyGoalMinutes, getTodayStats, getMotivationSnapshot, loadMotivationState, recordMotivationActivity as applyMotivationActivity, saveMotivationState } from '../services/motivationEngine';
 import { HSK_SPEAKING_VOCABULARY } from '../data/hskSpeakingVocabulary';
 import { HSK_CLASSIC_VOCABULARY } from '../data/hskClassicVocabulary';
+import { HSK_VI_MEANINGS } from '../data/hskVietnameseMeanings';
 import { 
   INITIAL_USER_PROFILE, 
   LESSON_HSK1_1, 
@@ -168,10 +169,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [allVocabularies] = useState<Vocabulary[]>(() => {
     const byKey = new Map<string, Vocabulary>();
     for (const vocab of [...INITIAL_VOCABULARIES, ...HSK_CLASSIC_VOCABULARY]) {
-      byKey.set(`${vocab.hanzi}|${vocab.pinyin.replace(/\\s+/g, '')}`, vocab);
+      byKey.set(`${vocab.hanzi}|${vocab.pinyin.replace(/\s+/g, '')}`, vocab);
     }
     for (const vocab of HSK_SPEAKING_VOCABULARY) {
-      const key = `${vocab.hanzi}|${vocab.pinyin.replace(/\\s+/g, '')}`;
+      const key = `${vocab.hanzi}|${vocab.pinyin.replace(/\s+/g, '')}`;
       const existing = byKey.get(key);
       byKey.set(key, existing ? {
         ...existing,
@@ -179,7 +180,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         tags: [...new Set([...(existing.tags || []), ...(vocab.tags || [])])]
       } : vocab);
     }
-    return Array.from(byKey.values());
+    return Array.from(byKey.values()).map(vocab => ({
+      ...vocab,
+      vietnamese: vocab.vietnamese?.trim() || HSK_VI_MEANINGS[vocab.hanzi] || 'Nghĩa tiếng Việt đang được bổ sung'
+    }));
   });
   const memoryRepoRef = React.useRef<MemoryRepository | null>(null);
   if (!memoryRepoRef.current) memoryRepoRef.current = createLocalMemoryRepository();
@@ -201,6 +205,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return INITIAL_CONVERSATION;
   });
 
+  const enrichFlashcard = (card: Flashcard): Flashcard => {
+    const vocabulary = card.vocabulary;
+    const curated = HSK_SPEAKING_VOCABULARY.find(item =>
+      item.hanzi === vocabulary.hanzi &&
+      item.pinyin.replace(/\s+/g, '') === vocabulary.pinyin.replace(/\s+/g, '')
+    );
+    return {
+      ...card,
+      vocabulary: {
+        ...vocabulary,
+        vietnamese: vocabulary.vietnamese?.trim() || curated?.vietnamese || HSK_VI_MEANINGS[vocabulary.hanzi] || 'Nghĩa tiếng Việt đang được bổ sung',
+        exampleSentence: vocabulary.exampleSentence || curated?.exampleSentence
+      }
+    };
+  };
   const [flashcards, setFlashcards] = useState<Flashcard[]>(() => {
     try {
       const saved = storage.getItem(STORAGE_KEYS.FLASHCARDS);
@@ -209,13 +228,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (Array.isArray(parsed)) {
           const existingIds = new Set(parsed.map(card => card.id));
           const starterExpansion = INITIAL_FLASHCARDS.filter(card => !existingIds.has(card.id));
-          return parsed.length < INITIAL_FLASHCARDS.length ? [...parsed, ...starterExpansion] : parsed;
+          return (parsed.length < INITIAL_FLASHCARDS.length ? [...parsed, ...starterExpansion] : parsed).map(enrichFlashcard);
         }
       }
     } catch {
       // fallback
     }
-    return INITIAL_FLASHCARDS;
+    return INITIAL_FLASHCARDS.map(enrichFlashcard);
   });
 
   useEffect(() => {
