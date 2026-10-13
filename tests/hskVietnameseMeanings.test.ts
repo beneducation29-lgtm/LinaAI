@@ -29,7 +29,11 @@ for (const hanzi of ['唉', '爱护', '爱惜', '爱心', '安慰', '安装', '�
   const meaning = meanings.get(hanzi);
   assert.ok(meaning && meaning.trim().length > 0, hanzi + ' should have a Vietnamese meaning');
 }
-assert.ok(meanings.size >= 1314, 'glossary should retain the first 50 HSK 5 meanings');
+assert.ok(meanings.size >= 1365, 'glossary should retain the first 100 HSK 5 meanings');
+for (const hanzi of ['脖子', '不必', '不断', '不见得', '不耐烦', '不要紧', '补充', '布', '不安', '不得了', '不好意思', '不免', '不然', '不如', '不足', '部门', '步骤', '财产', '踩', '采访', '采取', '彩虹', '参考', '参与', '餐厅', '残疾', '惭愧', '操场', '操心', '册', '厕所', '测验', '曾经', '插', '差别', '叉子', '拆', '产品', '产生', '长途', '常识', '抄', '朝', '朝代', '炒', '吵架', '车库', '车厢', '彻底', '沉默']) {
+  const meaning = meanings.get(hanzi);
+  assert.ok(meaning && meaning.trim().length > 0, hanzi + ' should have a Vietnamese meaning');
+}
 const chineseCharacter = /[\u3400-\u4DBF\u4E00-\u9FFF]/;
 for (const [hanzi, meaning] of meanings) {
   // 把 is intentionally retained in its grammar explanation as the Chinese construction name.
