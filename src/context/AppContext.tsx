@@ -28,6 +28,7 @@ import { MotivationState, MotivationActivityType } from '../types/motivation';
 import { DailyGoalMinutes, getTodayStats, getMotivationSnapshot, loadMotivationState, recordMotivationActivity as applyMotivationActivity, saveMotivationState } from '../services/motivationEngine';
 import { HSK_SPEAKING_VOCABULARY } from '../data/hskSpeakingVocabulary';
 import { HSK_CLASSIC_VOCABULARY } from '../data/hskClassicVocabulary';
+import { HSK_VI_MEANINGS } from '../data/hskVietnameseMeanings';
 import { 
   INITIAL_USER_PROFILE, 
   LESSON_HSK1_1, 
@@ -179,7 +180,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         tags: [...new Set([...(existing.tags || []), ...(vocab.tags || [])])]
       } : vocab);
     }
-    return Array.from(byKey.values());
+    return Array.from(byKey.values()).map(vocab => ({
+      ...vocab,
+      vietnamese: vocab.vietnamese?.trim() || HSK_VI_MEANINGS[vocab.hanzi] || 'Nghĩa tiếng Việt đang được bổ sung'
+    }));
   });
   const memoryRepoRef = React.useRef<MemoryRepository | null>(null);
   if (!memoryRepoRef.current) memoryRepoRef.current = createLocalMemoryRepository();
