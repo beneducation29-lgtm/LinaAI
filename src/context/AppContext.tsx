@@ -205,6 +205,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return INITIAL_CONVERSATION;
   });
 
+  const enrichFlashcard = (card: Flashcard): Flashcard => {
+    const vocabulary = card.vocabulary;
+    const curated = HSK_SPEAKING_VOCABULARY.find(item =>
+      item.hanzi === vocabulary.hanzi &&
+      item.pinyin.replace(/\s+/g, '') === vocabulary.pinyin.replace(/\s+/g, '')
+    );
+    return {
+      ...card,
+      vocabulary: {
+        ...vocabulary,
+        vietnamese: vocabulary.vietnamese?.trim() || curated?.vietnamese || HSK_VI_MEANINGS[vocabulary.hanzi] || 'Nghĩa tiếng Việt đang được bổ sung',
+        exampleSentence: vocabulary.exampleSentence || curated?.exampleSentence
+      }
+    };
+  };
   const [flashcards, setFlashcards] = useState<Flashcard[]>(() => {
     try {
       const saved = storage.getItem(STORAGE_KEYS.FLASHCARDS);
@@ -213,13 +228,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (Array.isArray(parsed)) {
           const existingIds = new Set(parsed.map(card => card.id));
           const starterExpansion = INITIAL_FLASHCARDS.filter(card => !existingIds.has(card.id));
-          return parsed.length < INITIAL_FLASHCARDS.length ? [...parsed, ...starterExpansion] : parsed;
+          return (parsed.length < INITIAL_FLASHCARDS.length ? [...parsed, ...starterExpansion] : parsed).map(enrichFlashcard);
         }
       }
     } catch {
       // fallback
     }
-    return INITIAL_FLASHCARDS;
+    return INITIAL_FLASHCARDS.map(enrichFlashcard);
   });
 
   useEffect(() => {
