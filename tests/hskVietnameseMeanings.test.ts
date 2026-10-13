@@ -29,8 +29,12 @@ for (const hanzi of ['唉', '爱护', '爱惜', '爱心', '安慰', '安装', '�
   const meaning = meanings.get(hanzi);
   assert.ok(meaning && meaning.trim().length > 0, hanzi + ' should have a Vietnamese meaning');
 }
-assert.ok(meanings.size >= 1365, 'glossary should retain the first 100 HSK 5 meanings');
+assert.ok(meanings.size >= 1415, 'glossary should retain the first 150 HSK 5 meanings');
 for (const hanzi of ['脖子', '不必', '不断', '不见得', '不耐烦', '不要紧', '补充', '布', '不安', '不得了', '不好意思', '不免', '不然', '不如', '不足', '部门', '步骤', '财产', '踩', '采访', '采取', '彩虹', '参考', '参与', '餐厅', '残疾', '惭愧', '操场', '操心', '册', '厕所', '测验', '曾经', '插', '差别', '叉子', '拆', '产品', '产生', '长途', '常识', '抄', '朝', '朝代', '炒', '吵架', '车库', '车厢', '彻底', '沉默']) {
+  const meaning = meanings.get(hanzi);
+  assert.ok(meaning && meaning.trim().length > 0, hanzi + ' should have a Vietnamese meaning');
+}
+for (const hanzi of ['趁', '称', '称呼', '称赞', '乘', '承担', '承认', '承受', '程度', '程序', '成分', '成果', '成就', '成立', '成语', '成长', '诚恳', '吃亏', '持续', '池子', '尺子', '翅膀', '冲', '充电器', '充分', '充满', '重复', '宠物', '抽屉', '抽象', '丑', '臭', '出版', '出色', '出席', '初级', '除', '除非', '除夕', '处理', '传播', '传递', '传染', '传说', '传统', '窗帘', '闯', '创造', '吹', '磁带']) {
   const meaning = meanings.get(hanzi);
   assert.ok(meaning && meaning.trim().length > 0, hanzi + ' should have a Vietnamese meaning');
 }
