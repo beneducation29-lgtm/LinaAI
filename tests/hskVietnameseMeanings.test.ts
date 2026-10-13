@@ -25,7 +25,7 @@ for (const hanzi of ["爱情","暗","按时","按照","包括","保证","抱","�
 }
 
 assert.equal(meanings.size, entries.length, 'glossary keys must be unique to avoid silent overrides');
-const chineseCharacter = /[\\u3400-\\u4DBF\\u4E00-\\u9FFF]/;
+const chineseCharacter = /[\u3400-\u4DBF\u4E00-\u9FFF]/;
 for (const [hanzi, meaning] of meanings) {
   // 把 is intentionally retained in its grammar explanation as the Chinese construction name.
   if (hanzi === '把') continue;
