@@ -114,32 +114,57 @@ export const AppShell: React.FC = () => {
 
   if (!authUser && !window.location.pathname.startsWith('/admin')) {
     return (
-      <div className="min-h-screen bg-[#FAF8F5] dark:bg-stone-950 text-stone-900 dark:text-stone-100 grid place-items-center px-4 py-10">
-        <div className="w-full max-w-md">
-          <div className="text-center mb-8">
-            <div className="mx-auto w-16 h-16 rounded-2xl overflow-hidden shadow-lg mb-4"><img src={linaAvatarImg} alt="Lina" className="w-full h-full object-cover" /></div>
-            <div className="text-xs font-bold uppercase tracking-[0.2em] text-amber-700 dark:text-amber-300">Lina AI · Chinese Learning</div>
-            <h1 className="text-3xl font-black mt-2">{forgotMode ? 'Khôi phục tài khoản' : 'Kho học tập riêng của bạn'}</h1>
-            <p className="text-sm text-stone-500 dark:text-stone-400 mt-2 leading-6">{forgotMode ? 'Nhập email để Lina gửi liên kết đặt lại mật khẩu.' : 'Đăng nhập để mở dữ liệu HSK, tiến trình, từ vựng đã lưu và bộ nhớ học tập cá nhân.'}</p>
-          </div>
-          <div className="rounded-3xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 shadow-xl p-6">
-            <div className="flex items-center gap-2 text-sm font-bold mb-5"><LockKeyhole className="w-4 h-4 text-amber-600" /> {forgotMode ? 'Quên mật khẩu' : accountMode === 'login' ? 'Đăng nhập tài khoản' : 'Tạo tài khoản riêng'}</div>
-            {accountError && <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 dark:border-rose-900/60 dark:bg-rose-950/30 px-3 py-2 text-xs text-rose-700 dark:text-rose-300">{accountError}</div>}
-            {forgotSent ? <div className="rounded-2xl bg-emerald-50 border border-emerald-200 px-4 py-4 text-sm text-emerald-800">Nếu email tồn tại, Lina đã gửi hướng dẫn đặt lại mật khẩu. Hãy kiểm tra cả thư mục Spam.</div> : (
-              <form onSubmit={forgotMode ? submitForgot : submitAccount} className="space-y-3">
-                {!forgotMode && accountMode === 'signup' && <input required value={name} onChange={e=>setName(e.target.value)} placeholder="Tên hiển thị" className="w-full px-3.5 py-3 rounded-xl border border-stone-200 dark:border-stone-700 bg-transparent text-sm outline-none focus:ring-2 focus:ring-amber-300" />}
-                <div className="relative"><Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" /><input required type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="Email" className="w-full pl-9 pr-3.5 py-3 rounded-xl border border-stone-200 dark:border-stone-700 bg-transparent text-sm outline-none focus:ring-2 focus:ring-amber-300" /></div>
-                {!forgotMode && <div className="relative"><input required minLength={8} type={showPassword ? 'text' : 'password'} value={password} onChange={e=>setPassword(e.target.value)} placeholder="Mật khẩu (tối thiểu 8 ký tự)" className="w-full pl-3.5 pr-10 py-3 rounded-xl border border-stone-200 dark:border-stone-700 bg-transparent text-sm outline-none focus:ring-2 focus:ring-amber-300" /><button type="button" onClick={()=>setShowPassword(v=>!v)} className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-stone-400" aria-label="Hiện hoặc ẩn mật khẩu">{showPassword ? <EyeOff className="w-4 h-4"/> : <Eye className="w-4 h-4"/>}</button></div>}
-                <button disabled={accountBusy} type="submit" className="w-full py-3 rounded-xl bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900 text-sm font-bold disabled:opacity-50">{accountBusy ? 'Đang xử lý…' : forgotMode ? 'Gửi email đặt lại mật khẩu' : accountMode === 'login' ? 'Đăng nhập' : 'Tạo tài khoản'}</button>
-              </form>
-            )}
-            {!forgotMode && <button type="button" onClick={()=>{setAccountMode(v=>v==='login'?'signup':'login');setAccountError('');}} className="w-full mt-4 text-xs font-semibold text-amber-700 dark:text-amber-300 hover:underline">{accountMode === 'login' ? 'Chưa có tài khoản? Đăng ký ngay' : 'Đã có tài khoản? Đăng nhập'}</button>}
-            {accountMode === 'login' && !forgotMode && <><button type="button" onClick={()=>{setForgotMode(true);setForgotSent(false);setAccountError('');}} className="w-full mt-2 text-xs text-stone-500 hover:text-amber-700 hover:underline">Quên mật khẩu?</button><button type="button" onClick={()=>{setAccountError(''); void startGoogleLogin();}} className="w-full mt-4 py-3 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 text-sm font-bold flex items-center justify-center gap-2"><span className="text-base font-black">G</span> Tiếp tục với Google</button></>}
-            {forgotMode && <button type="button" onClick={()=>{setForgotMode(false);setForgotSent(false);setAccountError('');}} className="w-full mt-4 text-xs font-semibold text-amber-700 dark:text-amber-300 hover:underline">← Quay lại đăng nhập</button>}
-            <div className="mt-5 pt-4 border-t border-stone-100 dark:border-stone-800 text-[11px] text-stone-400 flex items-start gap-2"><LockKeyhole className="w-3.5 h-3.5 mt-0.5 shrink-0" /> Dữ liệu cá nhân chỉ mở sau khi xác thực tài khoản.</div>
-          </div>
+      <main className="zen-auth min-h-screen overflow-hidden bg-[#FAF8F5] text-stone-900 dark:bg-stone-950 dark:text-stone-100">
+        <div className="zen-auth-shell mx-auto grid min-h-screen w-full max-w-6xl items-center gap-8 px-4 py-6 sm:px-6 sm:py-10 lg:grid-cols-[1.05fr_0.95fr] lg:gap-14 lg:px-10">
+          <section className="zen-auth-intro relative hidden min-h-[540px] flex-col justify-between overflow-hidden rounded-[2rem] border border-[#dce6dc] bg-[#edf2e9] p-8 dark:border-stone-800 dark:bg-stone-900/80 lg:flex xl:p-10">
+            <div className="absolute -right-16 -top-16 h-64 w-64 rounded-full border border-[#cbd8c8] dark:border-stone-700" />
+            <div className="absolute -right-3 top-14 h-44 w-44 rounded-full border border-[#cbd8c8] dark:border-stone-700" />
+            <div className="absolute bottom-20 right-10 h-40 w-40 rounded-full bg-[#d9e5d4]/70 blur-2xl dark:bg-emerald-950/40" />
+            <div className="relative z-10 flex items-center gap-3">
+              <div className="h-12 w-12 overflow-hidden rounded-2xl shadow-sm ring-1 ring-white/70"><img src={linaAvatarImg} alt="Lina AI" className="h-full w-full object-cover" /></div>
+              <div><div className="text-lg font-extrabold tracking-tight">Lina AI</div><div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-emerald-900/60 dark:text-emerald-200/70">Chinese learning companion</div></div>
+            </div>
+            <div className="relative z-10 py-12">
+              <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#cddacb] bg-white/65 px-3 py-1.5 text-xs font-semibold text-emerald-900 dark:border-stone-700 dark:bg-stone-800/70 dark:text-emerald-200"><span className="h-1.5 w-1.5 rounded-full bg-emerald-600" /> 文 · 静心学习 · 每日进步</div>
+              <h1 className="max-w-lg text-4xl font-semibold leading-[1.16] tracking-tight xl:text-5xl">Mỗi ngày một chút,<br /><span className="font-cjk font-medium text-emerald-800 dark:text-emerald-300">中文</span> gần bạn hơn.</h1>
+              <p className="mt-5 max-w-md text-sm leading-7 text-stone-600 dark:text-stone-300">Không gian học tiếng Trung nhẹ nhàng, được cá nhân hóa theo nhịp độ và mục tiêu của bạn.</p>
+            </div>
+            <div className="relative z-10 flex items-end justify-between gap-4">
+              <div className="max-w-xs text-xs leading-5 text-stone-500 dark:text-stone-400">Lộ trình HSK · Từ vựng · Luyện nói cùng AI</div>
+              <div aria-hidden="true" className="font-cjk select-none text-6xl leading-none text-emerald-800/70 dark:text-emerald-300/70">静</div>
+            </div>
+          </section>
+
+          <section className="mx-auto w-full max-w-md">
+            <div className="mb-7 flex items-center gap-3 lg:hidden">
+              <div className="h-12 w-12 overflow-hidden rounded-2xl shadow-sm ring-1 ring-stone-200 dark:ring-stone-700"><img src={linaAvatarImg} alt="Lina AI" className="h-full w-full object-cover" /></div>
+              <div><div className="text-lg font-extrabold tracking-tight">Lina AI</div><div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-700 dark:text-amber-300">Chinese learning</div></div>
+            </div>
+            <div className="mb-6 text-center lg:text-left">
+              <div className="mb-3 hidden text-xs font-semibold uppercase tracking-[0.2em] text-emerald-800/70 dark:text-emerald-300/80 lg:block">Chào mừng bạn trở lại</div>
+              <h1 className="text-3xl font-semibold tracking-tight sm:text-[2.1rem]">{forgotMode ? 'Khôi phục tài khoản' : 'Kho học tập riêng của bạn'}</h1>
+              <p className="mx-auto mt-3 max-w-sm text-sm leading-6 text-stone-500 dark:text-stone-400 lg:mx-0">{forgotMode ? 'Nhập email để Lina gửi liên kết đặt lại mật khẩu.' : 'Đăng nhập để tiếp tục hành trình học tiếng Trung và đồng bộ tiến trình của bạn.'}</p>
+            </div>
+            <div className="zen-auth-card rounded-[1.75rem] border border-stone-200/90 bg-white/95 p-5 shadow-[0_18px_60px_-30px_rgba(40,70,48,0.28)] dark:border-stone-800 dark:bg-stone-900/95 sm:p-7">
+              <div className="mb-5 flex items-center gap-2.5 text-sm font-semibold"><span className="grid h-9 w-9 place-items-center rounded-xl bg-[#edf2e9] text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300"><LockKeyhole className="h-4 w-4" /></span><span>{forgotMode ? 'Quên mật khẩu' : accountMode === 'login' ? 'Đăng nhập tài khoản' : 'Tạo tài khoản riêng'}</span></div>
+              {accountError && <div role="alert" className="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-3 text-xs leading-5 text-rose-700 dark:border-rose-900/60 dark:bg-rose-950/30 dark:text-rose-300">{accountError}</div>}
+              {forgotSent ? <div role="status" className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm leading-6 text-emerald-800 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-200">Nếu email tồn tại, Lina đã gửi hướng dẫn đặt lại mật khẩu. Hãy kiểm tra cả thư mục Spam.</div> : (
+                <form onSubmit={forgotMode ? submitForgot : submitAccount} className="space-y-3.5">
+                  {!forgotMode && accountMode === 'signup' && <input required autoComplete="name" value={name} onChange={e=>setName(e.target.value)} placeholder="Tên hiển thị" className="zen-auth-input w-full rounded-xl border border-stone-200 bg-[#fcfbf8] px-4 py-3.5 text-sm outline-none transition focus:border-emerald-700 focus:ring-4 focus:ring-emerald-700/10 dark:border-stone-700 dark:bg-stone-950" />}
+                  <div className="relative"><Mail aria-hidden="true" className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400" /><input required autoComplete="email" type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="Email" className="zen-auth-input min-h-12 w-full rounded-xl border border-stone-200 bg-[#fcfbf8] py-3.5 pl-10 pr-4 text-sm outline-none transition focus:border-emerald-700 focus:ring-4 focus:ring-emerald-700/10 dark:border-stone-700 dark:bg-stone-950" /></div>
+                  {!forgotMode && <div className="relative"><input required minLength={8} autoComplete={accountMode === 'login' ? 'current-password' : 'new-password'} type={showPassword ? 'text' : 'password'} value={password} onChange={e=>setPassword(e.target.value)} placeholder="Mật khẩu (tối thiểu 8 ký tự)" className="zen-auth-input min-h-12 w-full rounded-xl border border-stone-200 bg-[#fcfbf8] py-3.5 pl-4 pr-12 text-sm outline-none transition focus:border-emerald-700 focus:ring-4 focus:ring-emerald-700/10 dark:border-stone-700 dark:bg-stone-950" /><button type="button" onClick={()=>setShowPassword(v=>!v)} className="absolute right-1.5 top-1/2 min-h-10 min-w-10 -translate-y-1/2 rounded-lg p-2 text-stone-400 transition hover:bg-stone-100 hover:text-stone-700 dark:hover:bg-stone-800 dark:hover:text-stone-100" aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}>{showPassword ? <EyeOff className="h-4 w-4"/> : <Eye className="h-4 w-4"/>}</button></div>}
+                  <button disabled={accountBusy} type="submit" className="zen-auth-primary min-h-12 w-full rounded-xl bg-[#254d3b] px-4 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#1d4030] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-700/20 disabled:cursor-wait disabled:opacity-60 dark:bg-emerald-700 dark:hover:bg-emerald-600">{accountBusy ? 'Đang xử lý…' : forgotMode ? 'Gửi email đặt lại mật khẩu' : accountMode === 'login' ? 'Đăng nhập' : 'Tạo tài khoản'}</button>
+                </form>
+              )}
+              {!forgotMode && <button type="button" onClick={()=>{setAccountMode(v=>v==='login'?'signup':'login');setAccountError('');}} className="mt-5 w-full rounded-lg py-2 text-xs font-semibold text-emerald-800 transition hover:text-emerald-950 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700/30 dark:text-emerald-300 dark:hover:text-emerald-200">{accountMode === 'login' ? 'Chưa có tài khoản? Đăng ký ngay' : 'Đã có tài khoản? Đăng nhập'}</button>}
+              {accountMode === 'login' && !forgotMode && <><button type="button" onClick={()=>{setForgotMode(true);setForgotSent(false);setAccountError('');}} className="mt-2 min-h-10 w-full rounded-lg text-xs text-stone-500 transition hover:text-emerald-800 hover:underline dark:hover:text-emerald-300">Quên mật khẩu?</button><div className="my-4 flex items-center gap-3"><div className="h-px flex-1 bg-stone-200 dark:bg-stone-800" /><span className="text-[10px] font-medium uppercase tracking-[0.16em] text-stone-400">hoặc</span><div className="h-px flex-1 bg-stone-200 dark:bg-stone-800" /></div><button type="button" onClick={()=>{setAccountError(''); void startGoogleLogin();}} className="flex min-h-12 w-full items-center justify-center gap-2.5 rounded-xl border border-stone-200 bg-white px-4 py-3 text-sm font-semibold transition hover:border-stone-300 hover:bg-stone-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-700/10 dark:border-stone-700 dark:bg-stone-900 dark:hover:bg-stone-800"><span aria-hidden="true" className="font-black text-base">G</span> Tiếp tục với Google</button></>}
+              {forgotMode && <button type="button" onClick={()=>{setForgotMode(false);setForgotSent(false);setAccountError('');}} className="mt-4 min-h-10 w-full rounded-lg text-xs font-semibold text-emerald-800 hover:underline dark:text-emerald-300">← Quay lại đăng nhập</button>}
+              <div className="mt-6 flex items-start gap-2.5 border-t border-stone-100 pt-4 text-[11px] leading-5 text-stone-400 dark:border-stone-800"><LockKeyhole className="mt-0.5 h-3.5 w-3.5 shrink-0" /> Dữ liệu cá nhân chỉ mở sau khi xác thực tài khoản.</div>
+            </div>
+            <p className="mt-5 text-center text-[11px] text-stone-400">Học chậm mà chắc · 学而时习之</p>
+          </section>
         </div>
-      </div>
+      </main>
     );
   }
 
