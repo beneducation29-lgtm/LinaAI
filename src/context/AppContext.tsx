@@ -37,7 +37,7 @@ import {
   INITIAL_VOCABULARIES 
 } from '../data/mockData';
 
-export type TabType = 'home' | 'learn' | 'speak' | 'review' | 'profile';
+export type TabType = 'home' | 'learn' | 'speak' | 'listening' | 'review' | 'profile';
 
 interface AppContextType {
   user: UserProfile;
