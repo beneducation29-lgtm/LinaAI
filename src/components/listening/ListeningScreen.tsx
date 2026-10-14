@@ -45,6 +45,9 @@ const lessons: ListeningItem[] = [
 
 ];
 
+type ListeningProgress = { attempts: number; correct: number; streak: number; lastReviewedAt: string | null; dueAt: string | null };
+const LISTENING_PROGRESS_KEY = 'linaai-listening-progress-v1';
+
 const topics = ['Tất cả chủ đề','Giao tiếp','Đời sống','Ăn uống','Mua sắm','Đi lại','Du lịch','Sức khỏe','Công việc','Học tập','Xã hội','Văn hóa'];
 const levelLabels: Record<number,string> = {1:'Cơ bản',2:'Sơ cấp',3:'Sơ-trung cấp',4:'Trung cấp',5:'Trung-cao cấp',6:'Nâng cao'};
 
@@ -64,15 +67,77 @@ export const ListeningScreen: React.FC = () => {
   const [dictationChecked, setDictationChecked] = useState<Record<string, boolean>>({});
   const [dictationFeedback, setDictationFeedback] = useState<Record<string, boolean>>({});
   const [shadowed, setShadowed] = useState<Record<string, boolean>>({});
+  const [reviewProgress, setReviewProgress] = useState<Record<string, ListeningProgress>>({});
+  const [showTranscript, setShowTranscript] = useState<Record<string, boolean>>({});
+  const [reviewOnly, setReviewOnly] = useState(false);
+  const [progressHydrated, setProgressHydrated] = useState(false);
+
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(LISTENING_PROGRESS_KEY);
+      if (raw) {
+        const saved = JSON.parse(raw) as { reviewProgress?: Record<string, ListeningProgress>; shadowed?: Record<string, boolean>; dictation?: Record<string, string> };
+        if (saved.reviewProgress && typeof saved.reviewProgress === 'object') setReviewProgress(saved.reviewProgress);
+        if (saved.shadowed && typeof saved.shadowed === 'object') setShadowed(saved.shadowed);
+        if (saved.dictation && typeof saved.dictation === 'object') setDictation(saved.dictation);
+      }
+    } catch {
+      // Keep the learning screen usable if browser storage is unavailable.
+    } finally {
+      setProgressHydrated(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!progressHydrated) return;
+    try {
+      window.localStorage.setItem(LISTENING_PROGRESS_KEY, JSON.stringify({ reviewProgress, shadowed, dictation }));
+    } catch {
+      // Storage restrictions must not block practice.
+    }
+  }, [progressHydrated, reviewProgress, shadowed, dictation]);
+
+  const isDue = (id: string) => {
+    const dueAt = reviewProgress[id]?.dueAt;
+    return Boolean(dueAt && new Date(dueAt).getTime() <= Date.now());
+  };
+  const dueCount = lessons.filter(item => isDue(item.id)).length;
+  const attemptedCount = lessons.filter(item => (reviewProgress[item.id]?.attempts || 0) > 0).length;
+  const totalAttempts = Object.values(reviewProgress).reduce((sum, item) => sum + item.attempts, 0);
+  const totalCorrect = Object.values(reviewProgress).reduce((sum, item) => sum + item.correct, 0);
+  const overallAccuracy = totalAttempts ? Math.round((totalCorrect / totalAttempts) * 100) : 0;
+
   const visibleLessons = useMemo(() => lessons.filter(item =>
     (level === 'all' || item.hsk === Number(level)) &&
     (topic === 'Tất cả chủ đề' || item.topic === topic) &&
-    (!query.trim() || (item.title + ' ' + item.situation + ' ' + item.hanzi + ' ' + item.meaning).toLowerCase().includes(query.trim().toLowerCase()))
-  ), [level, topic, query]);
+    (!query.trim() || (item.title + ' ' + item.situation + ' ' + item.hanzi + ' ' + item.meaning).toLowerCase().includes(query.trim().toLowerCase())) &&
+    (!reviewOnly || isDue(item.id))
+  ), [level, topic, query, reviewOnly, reviewProgress]);
   const score = visibleLessons.filter(item => revealed[item.id] && selected[item.id] === item.answer).length;
   const answered = visibleLessons.filter(item => revealed[item.id]).length;
 
   useEffect(() => () => { if ('speechSynthesis' in window) window.speechSynthesis.cancel(); }, []);
+
+  const checkAnswer = (item: ListeningItem) => {
+    const choice = selected[item.id];
+    if (choice === undefined || revealed[item.id]) return;
+    const correct = choice === item.answer;
+    const now = new Date();
+    setRevealed(previous => ({ ...previous, [item.id]: true }));
+    setReviewProgress(previous => {
+      const old = previous[item.id] || { attempts: 0, correct: 0, streak: 0, lastReviewedAt: null, dueAt: null };
+      const streak = correct ? old.streak + 1 : 0;
+      const intervalHours = correct ? (streak === 1 ? 24 : streak === 2 ? 72 : streak === 3 ? 168 : 336) : 0.25;
+      const dueAt = new Date(now.getTime() + intervalHours * 60 * 60 * 1000).toISOString();
+      return { ...previous, [item.id]: {
+        attempts: old.attempts + 1,
+        correct: old.correct + (correct ? 1 : 0),
+        streak,
+        lastReviewedAt: now.toISOString(),
+        dueAt,
+      }};
+    });
+  };
 
   const speak = (item: ListeningItem) => {
     if (typeof window.speechSynthesis === 'undefined') {
@@ -124,6 +189,13 @@ export const ListeningScreen: React.FC = () => {
         {practiceMode==='shadowing'&&<p className="mt-3 rounded-xl bg-emerald-50 px-3 py-2 text-xs leading-5 text-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200">Cách tập: nghe trọn đoạn, dừng một nhịp, đọc nhại thành tiếng rồi phát lại để tự so sánh. Trang web không thu âm hoặc chấm điểm phát âm tự động.</p>}
       </section>
 
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="rounded-2xl border border-stone-200 bg-white p-4 dark:border-stone-800 dark:bg-stone-900"><p className="text-xs text-stone-500">Bài đã luyện</p><p className="mt-1 text-2xl font-black">{attemptedCount}<span className="ml-1 text-sm font-semibold text-stone-400">/ {lessons.length}</span></p><p className="mt-1 text-xs text-stone-500">Đã có ít nhất một lần kiểm tra</p></div>
+        <div className="rounded-2xl border border-stone-200 bg-white p-4 dark:border-stone-800 dark:bg-stone-900"><p className="text-xs text-stone-500">Độ chính xác tích lũy</p><p className="mt-1 text-2xl font-black">{overallAccuracy}%</p><p className="mt-1 text-xs text-stone-500">{totalCorrect}/{totalAttempts} lượt trả lời đúng</p></div>
+        <div className="rounded-2xl border border-stone-200 bg-white p-4 dark:border-stone-800 dark:bg-stone-900"><p className="text-xs text-stone-500">Bài đến hạn ôn</p><p className="mt-1 text-2xl font-black">{dueCount}</p><p className="mt-1 text-xs text-stone-500">Sai: nhắc lại sau 10 phút; đúng liên tiếp: giãn dần 1–14 ngày</p></div>
+        <div className="flex flex-col justify-between gap-2 rounded-2xl border border-stone-200 bg-white p-4 dark:border-stone-800 dark:bg-stone-900"><div><p className="text-sm font-bold">Ôn tập ngắt quãng</p><p className="mt-1 text-xs leading-5 text-stone-500">Tiến độ được lưu trong trình duyệt hiện tại, chưa đồng bộ giữa thiết bị.</p></div><button type="button" onClick={()=>setReviewOnly(v=>!v)} aria-pressed={reviewOnly} className={reviewOnly ? 'min-h-10 rounded-xl border border-amber-400 bg-amber-50 px-3 text-xs font-bold text-amber-900 dark:bg-amber-950/30 dark:text-amber-200' : 'min-h-10 rounded-xl border border-stone-200 px-3 text-xs font-bold text-stone-700 dark:border-stone-700 dark:text-stone-300'}>{reviewOnly?'Đang xem bài đến hạn · Tắt lọc':'Ôn bài đến hạn'} ({dueCount})</button></div>
+      </section>
+
       <div className="grid gap-6 xl:grid-cols-[280px_minmax(0,1fr)]">
         <aside className="h-fit space-y-5 rounded-3xl border border-stone-200 bg-white p-4 dark:border-stone-800 dark:bg-stone-900 xl:sticky xl:top-5">
           <div className="flex items-center gap-2 text-sm font-bold"><Settings2 className="h-4 w-4 text-amber-600" /> Bộ lọc luyện nghe</div>
@@ -136,11 +208,11 @@ export const ListeningScreen: React.FC = () => {
           <div><div className="mb-2 text-xs font-semibold text-stone-600 dark:text-stone-300">Chủ đề</div><div className="flex flex-wrap gap-2 xl:flex-col">{topics.map(t=><button key={t} type="button" onClick={()=>setTopic(t)} className={`min-h-9 rounded-xl border px-3 text-left text-xs font-semibold transition ${topic===t?'border-amber-400 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200':'border-stone-200 text-stone-600 hover:border-stone-300 dark:border-stone-700 dark:text-stone-300'}`}>{t}</button>)}</div></div>
           <div className="border-t border-stone-100 pt-4 dark:border-stone-800"><div className="mb-3 text-xs font-semibold text-stone-600 dark:text-stone-300">Tốc độ TTS <span className="text-amber-700 dark:text-amber-300">{speed.toFixed(2)}×</span></div><input aria-label="Tốc độ giọng đọc" type="range" min="0.65" max="1.15" step="0.05" value={speed} onChange={e=>setSpeed(Number(e.target.value))} className="w-full accent-amber-600" /><div className="mt-1 flex justify-between text-[10px] text-stone-400"><span>Chậm</span><span>Tự nhiên</span></div></div>
           <div className="flex flex-wrap gap-2"><button type="button" onClick={()=>setShowPinyin(v=>!v)} aria-pressed={showPinyin} className={`min-h-9 rounded-lg border px-3 text-xs font-semibold ${showPinyin?'border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300':'border-stone-200 text-stone-500 dark:border-stone-700'}`}>Pinyin {showPinyin?'bật':'tắt'}</button><button type="button" onClick={()=>setShowMeaning(v=>!v)} aria-pressed={showMeaning} className={`min-h-9 rounded-lg border px-3 text-xs font-semibold ${showMeaning?'border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300':'border-stone-200 text-stone-500 dark:border-stone-700'}`}>Nghĩa Việt {showMeaning?'bật':'tắt'}</button></div>
-          <button type="button" onClick={()=>{setLevel('all');setTopic('Tất cả chủ đề');setQuery('');setShowPinyin(true);setShowMeaning(true);}} className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-xl border border-stone-200 px-3 text-xs font-semibold text-stone-600 hover:bg-stone-50 dark:border-stone-700 dark:text-stone-300 dark:hover:bg-stone-800"><RotateCcw className="h-3.5 w-3.5" /> Xóa bộ lọc</button>
+          <button type="button" onClick={()=>{setLevel('all');setTopic('Tất cả chủ đề');setQuery('');setShowPinyin(true);setShowMeaning(true);setReviewOnly(false);}} className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-xl border border-stone-200 px-3 text-xs font-semibold text-stone-600 hover:bg-stone-50 dark:border-stone-700 dark:text-stone-300 dark:hover:bg-stone-800"><RotateCcw className="h-3.5 w-3.5" /> Xóa bộ lọc</button>
         </aside>
 
         <main className="min-w-0 space-y-4">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"><div><h2 className="text-lg font-bold text-stone-900 dark:text-stone-100">{topic==='Tất cả chủ đề'?'Thư viện bài nghe':topic}</h2><p className="text-xs text-stone-500">Hiển thị {visibleLessons.length} / {lessons.length} bài · chọn đáp án để kiểm tra</p></div><button type="button" onClick={()=>{setSelected({});setRevealed({});stopAudio();}} className="inline-flex min-h-10 items-center justify-center gap-2 self-start rounded-xl border border-stone-200 px-3 text-xs font-semibold text-stone-600 dark:border-stone-700 dark:text-stone-300"><RotateCcw className="h-3.5 w-3.5" /> Làm lại kết quả</button></div>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"><div><h2 className="text-lg font-bold text-stone-900 dark:text-stone-100">{topic==='Tất cả chủ đề'?'Thư viện bài nghe':topic}</h2><p className="text-xs text-stone-500">Hiển thị {visibleLessons.length} / {lessons.length} bài · chọn đáp án để kiểm tra</p></div><button type="button" onClick={()=>{setSelected({});setRevealed({});setShowTranscript({});stopAudio();}} className="inline-flex min-h-10 items-center justify-center gap-2 self-start rounded-xl border border-stone-200 px-3 text-xs font-semibold text-stone-600 dark:border-stone-700 dark:text-stone-300"><RotateCcw className="h-3.5 w-3.5" /> Làm lại kết quả phiên này</button></div>
           {visibleLessons.length===0 ? <div className="rounded-3xl border border-dashed border-stone-300 p-10 text-center dark:border-stone-700"><BookOpen className="mx-auto h-8 w-8 text-stone-400" /><p className="mt-3 font-semibold">Không tìm thấy bài phù hợp</p><p className="mt-1 text-sm text-stone-500">Thử từ khóa hoặc chủ đề khác nhé.</p></div> :
           <div className="grid gap-4 2xl:grid-cols-2">
             {visibleLessons.map((item,index)=>{
@@ -149,21 +221,21 @@ export const ListeningScreen: React.FC = () => {
                 <div className="border-b border-stone-100 p-4 dark:border-stone-800"><div className="flex flex-wrap items-center gap-2"><span className="rounded-lg bg-amber-50 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-amber-800 dark:bg-amber-950/40 dark:text-amber-300">HSK {item.hsk} · {levelLabels[item.hsk]}</span><span className="rounded-lg bg-stone-100 px-2 py-1 text-[10px] font-semibold text-stone-600 dark:bg-stone-800 dark:text-stone-300">{item.topic}</span>{isRevealed&&<span className="ml-auto inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 dark:text-emerald-300"><CheckCircle2 className="h-3.5 w-3.5"/> Đã làm</span>}</div><h3 className="mt-2 text-lg font-bold text-stone-900 dark:text-stone-100">{item.title}</h3><p className="mt-1 text-xs text-stone-500 dark:text-stone-400">{item.situation}</p></div>
                 <div className="flex flex-1 flex-col p-4">
                   <div className="rounded-2xl bg-[#faf8f5] p-3 dark:bg-stone-950/70">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div className="flex items-center gap-3"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-600 text-white"><AudioLines className="h-5 w-5"/></div><div><div className="text-sm font-bold">Nghe đoạn hội thoại</div><div className="text-[11px] text-stone-500">TTS · {speed.toFixed(2)}×</div></div></div><div className="flex gap-2"><button type="button" onClick={()=>playingId===item.id?stopAudio():speak(item)} className="inline-flex min-h-10 flex-1 items-center justify-center gap-2 rounded-xl bg-stone-900 px-3 text-xs font-bold text-white hover:bg-amber-700 dark:bg-stone-100 dark:text-stone-900">{playingId===item.id?<Pause className="h-4 w-4"/>:<Play className="h-4 w-4"/>}{playingId===item.id?'Dừng':'Phát'}</button><button type="button" onClick={()=>{setRevealed(p=>({...p,[item.id]:true}));}} className="min-h-10 rounded-xl border border-stone-200 px-3 text-xs font-semibold text-stone-700 dark:border-stone-700 dark:text-stone-300">Xem lời thoại</button></div></div>
-                    {isRevealed&&<div className="mt-3 space-y-2 border-t border-stone-200 pt-3 dark:border-stone-800"><p className="whitespace-pre-line text-base font-semibold leading-relaxed text-stone-900 dark:text-stone-100">{item.hanzi}</p>{showPinyin&&<p className="whitespace-pre-line text-xs leading-6 text-amber-800 dark:text-amber-300">{item.pinyin}</p>}{showMeaning&&<p className="whitespace-pre-line text-xs leading-6 text-stone-600 dark:text-stone-300">{item.meaning}</p>}</div>}
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div className="flex items-center gap-3"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-600 text-white"><AudioLines className="h-5 w-5"/></div><div><div className="text-sm font-bold">Nghe đoạn hội thoại</div><div className="text-[11px] text-stone-500">TTS · {speed.toFixed(2)}×</div></div></div><div className="flex gap-2"><button type="button" onClick={()=>playingId===item.id?stopAudio():speak(item)} className="inline-flex min-h-10 flex-1 items-center justify-center gap-2 rounded-xl bg-stone-900 px-3 text-xs font-bold text-white hover:bg-amber-700 dark:bg-stone-100 dark:text-stone-900">{playingId===item.id?<Pause className="h-4 w-4"/>:<Play className="h-4 w-4"/>}{playingId===item.id?'Dừng':'Phát'}</button><button type="button" onClick={()=>setShowTranscript(p=>({...p,[item.id]:true}))} className="min-h-10 rounded-xl border border-stone-200 px-3 text-xs font-semibold text-stone-700 dark:border-stone-700 dark:text-stone-300">Xem lời thoại</button></div></div>
+                    {(isRevealed||showTranscript[item.id])&&<div className="mt-3 space-y-2 border-t border-stone-200 pt-3 dark:border-stone-800"><p className="whitespace-pre-line text-base font-semibold leading-relaxed text-stone-900 dark:text-stone-100">{item.hanzi}</p>{showPinyin&&<p className="whitespace-pre-line text-xs leading-6 text-amber-800 dark:text-amber-300">{item.pinyin}</p>}{showMeaning&&<p className="whitespace-pre-line text-xs leading-6 text-stone-600 dark:text-stone-300">{item.meaning}</p>}</div>}
                   </div>
                   {practiceMode==='dictation'&&<div className="mt-3 space-y-2">
                     <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300">Gõ lại đoạn tiếng Trung bạn nghe
                       <textarea value={dictation[item.id]||''} onChange={e=>{setDictation(p=>({...p,[item.id]:e.target.value}));setDictationChecked(p=>({...p,[item.id]:false}));}} rows={3} placeholder="Nhập chữ Hán tại đây…" className="mt-2 w-full rounded-xl border border-stone-200 bg-white p-3 text-sm leading-6 dark:border-stone-700 dark:bg-stone-950" />
                     </label>
-                    <button type="button" disabled={!(dictation[item.id]||'').trim()} onClick={()=>{const normalize=(v:string)=>v.replace(/[，。！？、；：,.!?;:\s]/g,'');setDictationFeedback(p=>({...p,[item.id]:normalize(dictation[item.id]||'')===normalize(item.hanzi)}));setDictationChecked(p=>({...p,[item.id]:true}));setRevealed(p=>({...p,[item.id]:true}));}} className="min-h-10 rounded-xl bg-amber-700 px-4 text-xs font-bold text-white disabled:opacity-40">Kiểm tra bản chép</button>
+                    <button type="button" disabled={!(dictation[item.id]||'').trim()} onClick={()=>{const normalize=(v:string)=>v.replace(/[，。！？、；：,.!?;:\s]/g,'');setDictationFeedback(p=>({...p,[item.id]:normalize(dictation[item.id]||'')===normalize(item.hanzi)}));setDictationChecked(p=>({...p,[item.id]:true}));}} className="min-h-10 rounded-xl bg-amber-700 px-4 text-xs font-bold text-white disabled:opacity-40">Kiểm tra bản chép</button>
                     {dictationChecked[item.id]&&<p role="status" className={`rounded-xl p-3 text-xs leading-5 ${dictationFeedback[item.id]?'bg-emerald-50 text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-200':'bg-amber-50 text-amber-900 dark:bg-amber-950/30 dark:text-amber-200'}`}>{dictationFeedback[item.id]?'Khớp với lời thoại mẫu sau khi chuẩn hóa dấu câu.':'Chưa khớp hoàn toàn. Xem lời thoại mẫu để đối chiếu từng cụm từ.'} Đây chỉ là so khớp văn bản, không đo phát âm.</p>}
                   </div>}
                   {practiceMode==='shadowing'&&<div className="mt-3 rounded-xl border border-emerald-200 p-3 dark:border-emerald-900/50"><p className="text-xs font-semibold">Tự luyện shadowing</p><p className="mt-1 text-xs leading-5 text-stone-500">1. Phát đoạn nghe. 2. Nhại lại ngay sau câu. 3. Đánh dấu đã tự luyện sau khi hoàn thành.</p><button type="button" onClick={()=>setShadowed(p=>({...p,[item.id]:!p[item.id]}))} className={`mt-2 min-h-9 rounded-lg border px-3 text-xs font-semibold ${shadowed[item.id]?'border-emerald-400 bg-emerald-50 text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-200':'border-stone-200 text-stone-600 dark:border-stone-700 dark:text-stone-300'}`}>{shadowed[item.id]?'Đã tự luyện ✓':'Đánh dấu đã tự luyện'}</button></div>}
                   {playbackError&&<p role="status" className="mt-2 text-xs leading-5 text-rose-700 dark:text-rose-300">{playbackError}</p>}
                   <div className="mt-4 flex items-start gap-2 text-sm font-bold"><CircleHelp className="mt-0.5 h-4 w-4 shrink-0 text-amber-600"/><span>{item.question}</span></div>
                   <div className="mt-3 grid gap-2">{item.options.map((option,i)=><button key={option} type="button" disabled={isRevealed} onClick={()=>setSelected(p=>({...p,[item.id]:i}))} className={`flex min-h-10 items-center gap-2 rounded-xl border px-3 py-2 text-left text-xs transition ${choice===i?'border-amber-400 bg-amber-50 text-amber-950 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-100':'border-stone-200 hover:border-stone-300 dark:border-stone-700 dark:hover:border-stone-600'} ${isRevealed&&i===item.answer?'!border-emerald-400 !bg-emerald-50 dark:!bg-emerald-950/30':''}`}><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-stone-100 text-[10px] font-bold dark:bg-stone-800">{String.fromCharCode(65+i)}</span><span className="flex-1">{option}</span>{isRevealed&&i===item.answer&&<CheckCircle2 className="h-4 w-4 text-emerald-600"/>}</button>)}</div>
-                  {isRevealed?<div className={`mt-3 rounded-xl p-3 text-xs leading-5 ${choice===undefined?'bg-blue-50 text-blue-900 dark:bg-blue-950/30 dark:text-blue-200':isCorrect?'bg-emerald-50 text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-200':'bg-amber-50 text-amber-900 dark:bg-amber-950/30 dark:text-amber-200'}`}><div className="font-bold">{choice===undefined?'Đã mở lời thoại':isCorrect?'Chính xác!':'Hãy nghe lại và ghi nhớ nhé.'}</div><p className="mt-1">{item.note}</p></div>:<button type="button" disabled={choice===undefined} onClick={()=>setRevealed(p=>({...p,[item.id]:true}))} className="mt-3 min-h-10 w-full rounded-xl bg-amber-700 px-4 text-xs font-bold text-white transition hover:bg-amber-800 disabled:cursor-not-allowed disabled:opacity-40">Kiểm tra đáp án</button>}
+                  {isRevealed?<div className={`mt-3 rounded-xl p-3 text-xs leading-5 ${choice===undefined?'bg-blue-50 text-blue-900 dark:bg-blue-950/30 dark:text-blue-200':isCorrect?'bg-emerald-50 text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-200':'bg-amber-50 text-amber-900 dark:bg-amber-950/30 dark:text-amber-200'}`}><div className="font-bold">{choice===undefined?'Đã mở lời thoại':isCorrect?'Chính xác!':'Hãy nghe lại và ghi nhớ nhé.'}</div><p className="mt-1">{item.note}</p></div>:<button type="button" disabled={choice===undefined} onClick={()=>checkAnswer(item)} className="mt-3 min-h-10 w-full rounded-xl bg-amber-700 px-4 text-xs font-bold text-white transition hover:bg-amber-800 disabled:cursor-not-allowed disabled:opacity-40">Kiểm tra đáp án</button>}
                 </div>
               </article>;
             })}
