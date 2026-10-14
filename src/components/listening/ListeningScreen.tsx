@@ -20,6 +20,7 @@ export const ListeningScreen: React.FC = () => {
   const [selected, setSelected] = useState<Record<string, number>>({});
   const [revealed, setRevealed] = useState<Record<string, boolean>>({});
   const [playingId, setPlayingId] = useState<string | null>(null);
+  const [playbackError, setPlaybackError] = useState('');
   const [completed, setCompleted] = useState<string[]>([]);
   const visibleLessons = useMemo(() => lessons.filter(item => level === 'all' || item.hsk === Number(level)), [level]);
   const score = visibleLessons.filter(item => revealed[item.id] && selected[item.id] === item.answer).length;
@@ -28,11 +29,12 @@ export const ListeningScreen: React.FC = () => {
   useEffect(() => () => { if ('speechSynthesis' in window) window.speechSynthesis.cancel(); }, []);
 
   const speak = (item: ListeningItem) => {
-    if (!('speechSynthesis' in window) || !('SpeechSynthesisUtterance' in window)) {
+    if (typeof window.speechSynthesis === 'undefined') {
       setPlayingId(null);
-      window.alert('Trình duyệt này chưa hỗ trợ phát giọng nói. Bạn hãy thử Chrome hoặc Edge bản mới.');
+      setPlaybackError('Trình duyệt này chưa hỗ trợ phát giọng nói. Bạn hãy thử Chrome hoặc Edge bản mới.');
       return;
     }
+    setPlaybackError('');
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(item.transcript);
     utterance.lang = 'zh-CN';
@@ -82,7 +84,7 @@ export const ListeningScreen: React.FC = () => {
             <div className="flex items-start justify-between gap-3 border-b border-stone-100 p-4 sm:p-5 dark:border-stone-800"><div><div className="text-[11px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300">HSK {item.hsk} · Bài {index+1}</div><h2 className="mt-1 text-lg font-bold text-stone-900 dark:text-stone-100">{item.title}</h2></div><span className="rounded-lg bg-stone-100 px-2.5 py-1 text-[11px] font-semibold text-stone-500 dark:bg-stone-800">约 1 分钟</span></div>
             <div className="p-4 sm:p-5">
               <div className="rounded-2xl bg-[#faf8f5] p-4 dark:bg-stone-950/70">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div className="flex items-center gap-3"><div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-amber-600 text-white"><AudioLines className="h-5 w-5"/></div><div><div className="text-sm font-bold">Nghe đoạn hội thoại</div><div className="text-xs text-stone-500">Giọng tiếng Trung nếu thiết bị có hỗ trợ</div></div></div><button type="button" onClick={()=>speak(item)} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-stone-900 px-4 text-sm font-semibold text-white transition hover:bg-amber-700 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-amber-400"><Play className="h-4 w-4"/>{playingId===item.id?'Phát lại':'Phát audio'}</button></div>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div className="flex items-center gap-3"><div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-amber-600 text-white"><AudioLines className="h-5 w-5"/></div><div><div className="text-sm font-bold">Nghe đoạn hội thoại</div><div className="text-xs text-stone-500">Giọng tiếng Trung nếu thiết bị có hỗ trợ</div></div></div><button type="button" onClick={()=>speak(item)} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-stone-900 px-4 text-sm font-semibold text-white transition hover:bg-amber-700 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-amber-400"><Play className="h-4 w-4"/>{playingId===item.id?'Phát lại':'Phát audio'}</button></div>{playbackError && <p role="status" className="mt-3 text-xs leading-5 text-rose-700 dark:text-rose-300">{playbackError}</p>}
                 {isRevealed && <div className="mt-4 space-y-2 border-t border-stone-200 pt-4 dark:border-stone-800"><p className="text-xl font-semibold leading-relaxed text-stone-900 dark:text-stone-100">{item.hanzi}</p>{showPinyin && <p className="text-sm leading-relaxed text-amber-800 dark:text-amber-300">{item.pinyin}</p>}{showMeaning && <p className="text-sm leading-relaxed text-stone-600 dark:text-stone-300">{item.meaning}</p>}</div>}
               </div>
               <div className="mt-4 flex items-center gap-2 text-sm font-bold"><CircleHelp className="h-4 w-4 text-amber-600"/>{item.question}</div>
