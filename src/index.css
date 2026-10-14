@@ -40,3 +40,20 @@
 @media (min-width: 768px) {
   .mobile-content-safe { padding-bottom: 0; }
 }
+
+
+/* Chinese Zen × Clean Minimal authentication surface */
+.zen-auth { isolation: isolate; }
+.zen-auth-shell { padding-top: max(1.5rem, env(safe-area-inset-top)); padding-bottom: max(1.5rem, env(safe-area-inset-bottom)); }
+.zen-auth-input { min-width: 0; }
+.zen-auth-input::placeholder { color: #a8a29e; }
+.zen-auth-input:focus-visible { outline: none; }
+.zen-auth button:focus-visible { outline: 2px solid #2f6b4f; outline-offset: 3px; }
+.zen-auth-primary { letter-spacing: .01em; }
+@media (max-width: 640px) {
+  .zen-auth-shell { align-items: start; }
+  .zen-auth-card { box-shadow: 0 18px 50px -34px rgba(40, 70, 48, .34); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .zen-auth *, .zen-auth *::before, .zen-auth *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
+}
