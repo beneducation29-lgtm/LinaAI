@@ -29,7 +29,7 @@ for (const hanzi of ['唉', '爱护', '爱惜', '爱心', '安慰', '安装', '�
   const meaning = meanings.get(hanzi);
   assert.ok(meaning && meaning.trim().length > 0, hanzi + ' should have a Vietnamese meaning');
 }
-assert.ok(meanings.size >= 1665, 'glossary should retain the 300 newly added HSK 5 meanings');
+assert.ok(meanings.size >= 1715, 'glossary should retain the 350 newly added HSK 5 meanings');
 for (const hanzi of ['脖子', '不必', '不断', '不见得', '不耐烦', '不要紧', '补充', '布', '不安', '不得了', '不好意思', '不免', '不然', '不如', '不足', '部门', '步骤', '财产', '踩', '采访', '采取', '彩虹', '参考', '参与', '餐厅', '残疾', '惭愧', '操场', '操心', '册', '厕所', '测验', '曾经', '插', '差别', '叉子', '拆', '产品', '产生', '长途', '常识', '抄', '朝', '朝代', '炒', '吵架', '车库', '车厢', '彻底', '沉默']) {
   const meaning = meanings.get(hanzi);
   assert.ok(meaning && meaning.trim().length > 0, hanzi + ' should have a Vietnamese meaning');
