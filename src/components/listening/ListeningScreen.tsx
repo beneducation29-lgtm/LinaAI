@@ -79,6 +79,14 @@ export const ListeningScreen: React.FC = () => {
     skipUiPersistRef.current = true;
     setDictation({});
     setShadowed({});
+    setSelected({});
+    setRevealed({});
+    setShowTranscript({});
+    setDictationChecked({});
+    setDictationFeedback({});
+    setReviewFilter('all');
+    setPlayingId(null);
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) window.speechSynthesis.cancel();
     try {
       const raw = window.localStorage.getItem(listeningUiStorageKey);
       if (raw) {
