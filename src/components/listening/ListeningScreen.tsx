@@ -1,4 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useApp } from '../../context/AppContext';
+import { countDueListeningReviews } from '../../services/listeningProgress';
 import { AudioLines, BookOpen, CheckCircle2, CircleHelp, Headphones, Pause, Play, RotateCcw, Search, Settings2, Volume2 } from 'lucide-react';
 
 type ListeningItem = {
@@ -45,13 +47,16 @@ const lessons: ListeningItem[] = [
 
 ];
 
-type ListeningProgress = { attempts: number; correct: number; streak: number; lastReviewedAt: string | null; dueAt: string | null };
-const LISTENING_PROGRESS_KEY = 'linaai-listening-progress-v1';
+const LISTENING_UI_KEY_PREFIX = 'linaai-listening-ui-v1:';
 
 const topics = ['Tất cả chủ đề','Giao tiếp','Đời sống','Ăn uống','Mua sắm','Đi lại','Du lịch','Sức khỏe','Công việc','Học tập','Xã hội','Văn hóa'];
 const levelLabels: Record<number,string> = {1:'Cơ bản',2:'Sơ cấp',3:'Sơ-trung cấp',4:'Trung cấp',5:'Trung-cao cấp',6:'Nâng cao'};
 
 export const ListeningScreen: React.FC = () => {
+  const { authUser, listeningProgress: reviewProgress, recordListeningQuizResult } = useApp();
+  const listeningUiStorageKey = `${LISTENING_UI_KEY_PREFIX}${authUser?.id || 'guest'}`;
+  const skipUiPersistRef = useRef(false);
+  const [uiHydratedKey, setUiHydratedKey] = useState('');
   const [level, setLevel] = useState('all');
   const [topic, setTopic] = useState('Tất cả chủ đề');
   const [query, setQuery] = useState('');
@@ -67,41 +72,44 @@ export const ListeningScreen: React.FC = () => {
   const [dictationChecked, setDictationChecked] = useState<Record<string, boolean>>({});
   const [dictationFeedback, setDictationFeedback] = useState<Record<string, boolean>>({});
   const [shadowed, setShadowed] = useState<Record<string, boolean>>({});
-  const [reviewProgress, setReviewProgress] = useState<Record<string, ListeningProgress>>({});
   const [showTranscript, setShowTranscript] = useState<Record<string, boolean>>({});
   const [reviewOnly, setReviewOnly] = useState(false);
-  const [progressHydrated, setProgressHydrated] = useState(false);
 
   useEffect(() => {
+    skipUiPersistRef.current = true;
+    setDictation({});
+    setShadowed({});
     try {
-      const raw = window.localStorage.getItem(LISTENING_PROGRESS_KEY);
+      const raw = window.localStorage.getItem(listeningUiStorageKey);
       if (raw) {
-        const saved = JSON.parse(raw) as { reviewProgress?: Record<string, ListeningProgress>; shadowed?: Record<string, boolean>; dictation?: Record<string, string> };
-        if (saved.reviewProgress && typeof saved.reviewProgress === 'object') setReviewProgress(saved.reviewProgress);
+        const saved = JSON.parse(raw) as { shadowed?: Record<string, boolean>; dictation?: Record<string, string> };
         if (saved.shadowed && typeof saved.shadowed === 'object') setShadowed(saved.shadowed);
         if (saved.dictation && typeof saved.dictation === 'object') setDictation(saved.dictation);
       }
     } catch {
       // Keep the learning screen usable if browser storage is unavailable.
-    } finally {
-      setProgressHydrated(true);
     }
-  }, []);
+    setUiHydratedKey(listeningUiStorageKey);
+  }, [listeningUiStorageKey]);
 
   useEffect(() => {
-    if (!progressHydrated) return;
+    if (uiHydratedKey !== listeningUiStorageKey) return;
+    if (skipUiPersistRef.current) {
+      skipUiPersistRef.current = false;
+      return;
+    }
     try {
-      window.localStorage.setItem(LISTENING_PROGRESS_KEY, JSON.stringify({ reviewProgress, shadowed, dictation }));
+      window.localStorage.setItem(listeningUiStorageKey, JSON.stringify({ shadowed, dictation }));
     } catch {
       // Storage restrictions must not block practice.
     }
-  }, [progressHydrated, reviewProgress, shadowed, dictation]);
+  }, [listeningUiStorageKey, uiHydratedKey, shadowed, dictation]);
 
   const isDue = (id: string) => {
     const dueAt = reviewProgress[id]?.dueAt;
-    return Boolean(dueAt && new Date(dueAt).getTime() <= Date.now());
+    return Boolean(dueAt && Number.isFinite(Date.parse(dueAt)) && Date.parse(dueAt) <= Date.now());
   };
-  const dueCount = lessons.filter(item => isDue(item.id)).length;
+  const dueCount = countDueListeningReviews(reviewProgress);
   const attemptedCount = lessons.filter(item => (reviewProgress[item.id]?.attempts || 0) > 0).length;
   const totalAttempts = Object.values(reviewProgress).reduce((sum, item) => sum + item.attempts, 0);
   const totalCorrect = Object.values(reviewProgress).reduce((sum, item) => sum + item.correct, 0);
@@ -122,21 +130,8 @@ export const ListeningScreen: React.FC = () => {
     const choice = selected[item.id];
     if (choice === undefined || revealed[item.id]) return;
     const correct = choice === item.answer;
-    const now = new Date();
     setRevealed(previous => ({ ...previous, [item.id]: true }));
-    setReviewProgress(previous => {
-      const old = previous[item.id] || { attempts: 0, correct: 0, streak: 0, lastReviewedAt: null, dueAt: null };
-      const streak = correct ? old.streak + 1 : 0;
-      const intervalHours = correct ? (streak === 1 ? 24 : streak === 2 ? 72 : streak === 3 ? 168 : 336) : 0.25;
-      const dueAt = new Date(now.getTime() + intervalHours * 60 * 60 * 1000).toISOString();
-      return { ...previous, [item.id]: {
-        attempts: old.attempts + 1,
-        correct: old.correct + (correct ? 1 : 0),
-        streak,
-        lastReviewedAt: now.toISOString(),
-        dueAt,
-      }};
-    });
+    recordListeningQuizResult(item.id, correct);
   };
 
   const speak = (item: ListeningItem) => {
