@@ -32,6 +32,5 @@ const sanitized = sanitizeListeningProgress({
 assert.deepEqual(Object.keys(sanitized), ['valid']);
 assert.deepEqual(sanitizeListeningProgress([]), {});
 assert.deepEqual(sanitizeListeningProgress(null), {});
-assert.notEqual(progress, {});
 
 console.log('Listening progress scheduling and validation tests passed.');
