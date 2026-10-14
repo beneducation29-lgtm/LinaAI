@@ -36,7 +36,29 @@ export class SyncEngine{
      else if(local && remoteRecord.updatedAt>=local.updatedAt){localQueue.delete(key);this.applyRemote(remoteRecord,userId);}
    }
    for(const r of localQueue.values())toPush.push(r);
-   if(toPush.length){const push=await fetch('/api/sync/push',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({records:toPush} as SyncEnvelope)});if(!push.ok)throw new Error('Không thể ghi dữ liệu đồng bộ.');const pushResult=await push.json();if(Array.isArray(pushResult.conflicts)&&pushResult.conflicts.length){const pullAgain=await fetch('/api/sync/pull',{credentials:'include'});if(pullAgain.ok){const latest:SyncPullResponse=await pullAgain.json();for(const key of pushResult.conflicts){const remote=latest.records.find(x=>x.key===key);if(remote)this.applyRemote(remote,userId);}}}}
+   if (toPush.length) {
+     const push = await fetch('/api/sync/push', {
+       method: 'POST',
+       credentials: 'include',
+       headers: { 'Content-Type': 'application/json' },
+       body: JSON.stringify({ records: toPush } as SyncEnvelope),
+     });
+     if (this.state.userId !== userId) return;
+     if (!push.ok) throw new Error('Không thể ghi dữ liệu đồng bộ.');
+     const pushResult = await push.json();
+     if (this.state.userId !== userId) return;
+     if (Array.isArray(pushResult.conflicts) && pushResult.conflicts.length) {
+       const pullAgain = await fetch('/api/sync/pull', { credentials: 'include' });
+       if (this.state.userId !== userId) return;
+       if (pullAgain.ok) {
+         const latest: SyncPullResponse = await pullAgain.json();
+         for (const key of pushResult.conflicts) {
+           const remote = latest.records.find(x => x.key === key);
+           if (remote) this.applyRemote(remote, userId);
+         }
+       }
+     }
+   }
    if(this.state.userId!==userId)return;
    const remaining=retainUnchangedUnsentRecords(this.loadQueue(userId),queue);this.saveQueue(remaining,userId);const syncedAt=remote.serverTime||now();meta.lastSyncedAt=syncedAt;this.saveMeta(meta,userId);this.state={...this.state,status:'synced',lastSyncedAt:syncedAt,pendingCount:remaining.length,error:null};this.emit();if(remaining.length)this.schedule();
  }catch(e){if(this.state.userId===userId){this.state={...this.state,status:'failed',error:e instanceof Error?e.message:'Sync failed'};this.emit();}}finally{this.syncing=false;if(this.state.userId&&this.loadQueue(this.state.userId).length)this.schedule();}}
