@@ -42,6 +42,105 @@
 }
 
 
+/* Chinese Zen dashboard: calm paper surfaces, fine ink borders and restrained jade accents. */
+.zen-dashboard {
+  color: #292f29;
+  isolation: isolate;
+}
+.zen-dashboard-kicker {
+  display: flex;
+  align-items: center;
+  gap: .65rem;
+  color: #647567;
+  font-size: .68rem;
+  font-weight: 700;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  padding: .1rem .15rem;
+}
+.zen-kicker-mark {
+  display: grid;
+  place-items: center;
+  width: 1.8rem;
+  height: 1.8rem;
+  border: 1px solid #d9c9a7;
+  border-radius: 999px;
+  color: #9b6a27;
+  font-family: 'Noto Sans SC', sans-serif;
+  font-size: .95rem;
+  letter-spacing: 0;
+  background: #fbf4e5;
+}
+.zen-kicker-line {
+  height: 1px;
+  flex: 1;
+  max-width: 6rem;
+  background: linear-gradient(90deg, #d8c9a8, transparent);
+}
+.zen-dashboard [class*="rounded-3xl"][class*="border"]:not(.zen-hero) {
+  border-color: #e8e1d4 !important;
+  box-shadow: 0 5px 20px rgba(71, 62, 42, .035);
+}
+.zen-dashboard [class*="rounded-3xl"][class*="border"]:not(.zen-hero):hover {
+  border-color: #d9cfba !important;
+}
+.zen-dashboard .zen-hero {
+  background: linear-gradient(125deg, #263b32 0%, #34483a 55%, #4a5844 100%) !important;
+  border-color: #3f5347 !important;
+  box-shadow: 0 14px 34px rgba(39, 57, 46, .14);
+}
+.zen-dashboard .zen-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: #c69a50;
+  opacity: .95;
+}
+.zen-dashboard .zen-hero button:first-of-type {
+  background: #b98232;
+  color: #fffdf8;
+}
+.zen-dashboard .zen-hero button:first-of-type:hover {
+  background: #a7732a;
+}
+.zen-dashboard .zen-hero button:nth-of-type(2) {
+  background: rgba(255,255,255,.08);
+  border-color: rgba(255,255,255,.18);
+}
+.zen-dashboard [class*="bg-amber-50"][class*="border"] {
+  border-color: #e6d7b8 !important;
+}
+.zen-dashboard button {
+  transition: box-shadow .18s ease, transform .18s ease, border-color .18s ease;
+}
+.zen-dashboard button:focus-visible {
+  outline: 3px solid rgba(181, 132, 57, .45);
+  outline-offset: 3px;
+}
+@media (max-width: 639px) {
+  .zen-dashboard-kicker { font-size: .62rem; letter-spacing: .1em; }
+  .zen-dashboard [class*="rounded-3xl"][class*="border"] { border-radius: 1.15rem; }
+  .zen-dashboard .zen-hero { padding: 1.25rem; }
+}
+.dark .zen-dashboard { color: #e7e3d8; }
+.dark .zen-dashboard-kicker { color: #aab8a8; }
+.dark .zen-kicker-mark { background: #342f24; color: #e0bb79; border-color: #66563a; }
+.dark .zen-kicker-line { background: linear-gradient(90deg, #66563a, transparent); }
+.dark .zen-dashboard [class*="rounded-3xl"][class*="border"]:not(.zen-hero) {
+  box-shadow: 0 5px 20px rgba(0, 0, 0, .12);
+}
+.dark .zen-dashboard .zen-hero {
+  background: linear-gradient(125deg, #1c2d25 0%, #263a2f 55%, #334536 100%) !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .zen-dashboard button { transition: none; }
+}
+
+.zen-sidebar { background: #fffdf8; border-color: #e8e1d4; }
+.zen-bottom-nav { background: rgba(255,253,248,.94); border-color: #e8e1d4; }
+.dark .zen-sidebar, .dark .zen-bottom-nav { background: rgba(30,35,30,.96); border-color: #353d35; }
+
 /* Chinese Zen × Clean Minimal authentication surface */
 .zen-auth { isolation: isolate; }
 .zen-auth-shell { padding-top: max(1.5rem, env(safe-area-inset-top)); padding-bottom: max(1.5rem, env(safe-area-inset-bottom)); }
