@@ -21,7 +21,7 @@ export class SyncEngine{
  private saveMeta(meta:SyncMeta,userId=this.state.userId){storage.setItem(scopedSyncStorageKey(META_KEY,userId),JSON.stringify(meta));}
  private loadQueue(userId=this.state.userId):SyncRecord[]{try{return JSON.parse(storage.getItem(scopedSyncStorageKey(QUEUE_KEY,userId))||'[]')||[];}catch{return[];}}
  private saveQueue(q:SyncRecord[],userId=this.state.userId){storage.setItem(scopedSyncStorageKey(QUEUE_KEY,userId),JSON.stringify(q));if(this.state.userId===userId){this.state={...this.state,pendingCount:q.length};this.emit();}}
- setUser(userId:string|null){this.state={...this.state,userId,status:userId?'syncing':'offline'};this.emit();}
+ setUser(userId:string|null){this.state={...this.state,userId,status:userId?'syncing':'offline',pendingCount:userId?this.loadQueue(userId).length:0};this.emit();}
  enqueue(key:SyncRecordKey,data:unknown){const userId=this.state.userId;if(!userId)return;const meta=this.loadMeta(userId);const previous=meta.versions[key];const record:SyncRecord={key,data,deviceId:getDeviceId(),version:(previous?.version||0)+1,updatedAt:now()};meta.versions[key]={version:record.version,updatedAt:record.updatedAt};this.saveMeta(meta,userId);const q=this.loadQueue(userId).filter(x=>x.key!==key);q.push(record);this.saveQueue(q,userId);this.schedule();}
  private schedule(){if(this.timer)window.clearTimeout(this.timer);this.timer=window.setTimeout(()=>void this.sync(),900);}
  async sync(){const userId=this.state.userId;if(!userId||!navigator.onLine||this.syncing)return;this.syncing=true;this.state={...this.state,status:'syncing',error:null};this.emit();const queue=this.loadQueue(userId);try{
