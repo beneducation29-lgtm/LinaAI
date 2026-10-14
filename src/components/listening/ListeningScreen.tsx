@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { countDueListeningReviews } from '../../services/listeningProgress';
+import { getDueListeningItemIds, getWeakListeningItemIds } from '../../services/listeningProgress';
 import { AudioLines, BookOpen, CheckCircle2, CircleHelp, Headphones, Pause, Play, RotateCcw, Search, Settings2, Volume2 } from 'lucide-react';
 
 type ListeningItem = {
@@ -105,24 +105,22 @@ export const ListeningScreen: React.FC = () => {
     }
   }, [listeningUiStorageKey, uiHydratedKey, shadowed, dictation]);
 
-  const isDue = (id: string) => {
-    const dueAt = reviewProgress[id]?.dueAt;
-    return Boolean(dueAt && Number.isFinite(Date.parse(dueAt)) && Date.parse(dueAt) <= Date.now());
-  };
-  const dueCount = countDueListeningReviews(reviewProgress);
+  const dueItemIds = useMemo(() => getDueListeningItemIds(reviewProgress), [reviewProgress]);
+  const dueRank = useMemo(() => new Map(dueItemIds.map((id, index) => [id, index] as const)), [dueItemIds]);
+  const weakItemIds = useMemo(() => getWeakListeningItemIds(reviewProgress), [reviewProgress]);
+  const weakRank = useMemo(() => new Map(weakItemIds.map((id, index) => [id, index] as const)), [weakItemIds]);
+  const isDue = (id: string) => dueRank.has(id);
+  const isWeak = (id: string) => weakRank.has(id);
+  const dueCount = lessons.filter(item => dueRank.has(item.id)).length;
   const attemptedCount = lessons.filter(item => (reviewProgress[item.id]?.attempts || 0) > 0).length;
-  const weakCount = lessons.filter(item => {
-    const entry = reviewProgress[item.id];
-    return Boolean(entry && entry.attempts > 0 && entry.correct / entry.attempts < 0.6);
-  }).length;
+  const weakCount = lessons.filter(item => weakRank.has(item.id)).length;
   const totalAttempts = Object.values(reviewProgress).reduce((sum, item) => sum + item.attempts, 0);
   const totalCorrect = Object.values(reviewProgress).reduce((sum, item) => sum + item.correct, 0);
   const overallAccuracy = totalAttempts ? Math.round((totalCorrect / totalAttempts) * 100) : 0;
 
   const visibleLessons = useMemo(() => {
     const filtered = lessons.filter(item => {
-      const progress = reviewProgress[item.id];
-      const isWeak = Boolean(progress && progress.attempts > 0 && progress.correct / progress.attempts < 0.6);
+      const isWeak = weakRank.has(item.id);
       return (level === 'all' || item.hsk === Number(level)) &&
         (topic === 'Tất cả chủ đề' || item.topic === topic) &&
         (!query.trim() || (item.title + ' ' + item.situation + ' ' + item.hanzi + ' ' + item.meaning).toLowerCase().includes(query.trim().toLowerCase())) &&
@@ -130,19 +128,13 @@ export const ListeningScreen: React.FC = () => {
         (reviewFilter !== 'weak' || isWeak);
     });
     if (reviewFilter === 'due') {
-      return filtered.sort((a, b) => Date.parse(reviewProgress[a.id]?.dueAt || '') - Date.parse(reviewProgress[b.id]?.dueAt || ''));
+      return filtered.sort((a, b) => (dueRank.get(a.id) ?? Number.POSITIVE_INFINITY) - (dueRank.get(b.id) ?? Number.POSITIVE_INFINITY));
     }
     if (reviewFilter === 'weak') {
-      return filtered.sort((a, b) => {
-        const accuracy = (id: string) => {
-          const progress = reviewProgress[id];
-          return progress?.attempts ? progress.correct / progress.attempts : 1;
-        };
-        return accuracy(a.id) - accuracy(b.id);
-      });
+      return filtered.sort((a, b) => (weakRank.get(a.id) ?? Number.POSITIVE_INFINITY) - (weakRank.get(b.id) ?? Number.POSITIVE_INFINITY));
     }
     return filtered;
-  }, [level, topic, query, reviewFilter, reviewProgress]);
+  }, [level, topic, query, reviewFilter, reviewProgress, dueRank, weakRank]);
   const score = visibleLessons.filter(item => revealed[item.id] && selected[item.id] === item.answer).length;
   const answered = visibleLessons.filter(item => revealed[item.id]).length;
 
@@ -236,7 +228,7 @@ export const ListeningScreen: React.FC = () => {
               const itemProgress = reviewProgress[item.id];
               const itemAccuracy = itemProgress?.attempts ? Math.round((itemProgress.correct / itemProgress.attempts) * 100) : null;
               const isDueNow = isDue(item.id);
-              const isWeak = Boolean(itemProgress && itemProgress.attempts > 0 && itemProgress.correct / itemProgress.attempts < 0.6);
+              const isWeak = weakRank.has(item.id);
               const isRevealed=Boolean(revealed[item.id]); const choice=selected[item.id]; const isCorrect=choice===item.answer;
               return <article key={item.id} className="flex min-w-0 flex-col overflow-hidden rounded-3xl border border-stone-200 bg-white dark:border-stone-800 dark:bg-stone-900">
                 <div className="border-b border-stone-100 p-4 dark:border-stone-800"><div className="flex flex-wrap items-center gap-2"><span className="rounded-lg bg-amber-50 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-amber-800 dark:bg-amber-950/40 dark:text-amber-300">HSK {item.hsk} · {levelLabels[item.hsk]}</span><span className="rounded-lg bg-stone-100 px-2 py-1 text-[10px] font-semibold text-stone-600 dark:bg-stone-800 dark:text-stone-300">{item.topic}</span>{isRevealed&&<span className="ml-auto inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 dark:text-emerald-300"><CheckCircle2 className="h-3.5 w-3.5"/> Đã làm</span>}{itemProgress?.attempts ? <span className="rounded-lg bg-sky-50 px-2 py-1 text-[10px] font-semibold text-sky-800 dark:bg-sky-950/30 dark:text-sky-200" title={`${itemProgress.correct} lượt đúng trên ${itemProgress.attempts} lượt`}>{itemProgress.attempts} lượt · {itemAccuracy}%</span> : null}{isDueNow&&<span className="rounded-lg bg-amber-50 px-2 py-1 text-[10px] font-bold text-amber-800 dark:bg-amber-950/30 dark:text-amber-200">Đến hạn ôn</span>}{isWeak&&<span className="rounded-lg bg-rose-50 px-2 py-1 text-[10px] font-bold text-rose-800 dark:bg-rose-950/30 dark:text-rose-200">Cần củng cố</span>}</div><h3 className="mt-2 text-lg font-bold text-stone-900 dark:text-stone-100">{item.title}</h3><p className="mt-1 text-xs text-stone-500 dark:text-stone-400">{item.situation}</p></div>
