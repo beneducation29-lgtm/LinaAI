@@ -69,6 +69,40 @@ export function recordListeningAnswer(
   };
 }
 
+export function getDueListeningItemIds(
+  progress: ListeningProgress,
+  now: Date = new Date(),
+): string[] {
+  const timestamp = now.getTime();
+  return Object.entries(progress)
+    .filter(([, entry]) => {
+      if (!entry.dueAt) return false;
+      const dueTimestamp = Date.parse(entry.dueAt);
+      return Number.isFinite(dueTimestamp) && dueTimestamp <= timestamp;
+    })
+    .sort(([idA, a], [idB, b]) =>
+      Date.parse(a.dueAt || '') - Date.parse(b.dueAt || '') || idA.localeCompare(idB)
+    )
+    .map(([id]) => id);
+}
+
+export function getWeakListeningItemIds(
+  progress: ListeningProgress,
+  minimumAccuracy = 0.6,
+): string[] {
+  const threshold = Number.isFinite(minimumAccuracy)
+    ? Math.min(1, Math.max(0, minimumAccuracy))
+    : 0.6;
+  return Object.entries(progress)
+    .filter(([, entry]) => entry.attempts > 0 && entry.correct / entry.attempts < threshold)
+    .sort(([idA, a], [idB, b]) =>
+      (a.correct / a.attempts) - (b.correct / b.attempts) ||
+      b.attempts - a.attempts ||
+      idA.localeCompare(idB)
+    )
+    .map(([id]) => id);
+}
+
 export function countDueListeningReviews(
   progress: ListeningProgress,
   now: Date = new Date(),
