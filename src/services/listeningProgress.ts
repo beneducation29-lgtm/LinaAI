@@ -103,6 +103,48 @@ export function getWeakListeningItemIds(
     .map(([id]) => id);
 }
 
+/** Build a short adaptive queue: overdue reviews first, weak items next, then unseen lessons. */
+export function getSmartListeningItemIds(
+  progress: ListeningProgress,
+  candidateIds: string[],
+  maxItems = 5,
+  now: Date = new Date(),
+): string[] {
+  const limit = Number.isFinite(maxItems) ? Math.max(0, Math.floor(maxItems)) : 5;
+  if (limit === 0 || candidateIds.length === 0) return [];
+
+  const candidates = [...new Set(candidateIds.filter(id => typeof id === 'string' && id.length > 0))];
+  const candidateSet = new Set(candidates);
+  const ordered: string[] = [];
+  const added = new Set<string>();
+  const append = (ids: string[]) => {
+    for (const id of ids) {
+      if (candidateSet.has(id) && !added.has(id)) {
+        ordered.push(id);
+        added.add(id);
+      }
+    }
+  };
+
+  append(getDueListeningItemIds(progress, now));
+  append(getWeakListeningItemIds(progress));
+  append(candidates.filter(id => (progress[id]?.attempts || 0) === 0));
+
+  const remaining = candidates
+    .filter(id => !added.has(id))
+    .sort((idA, idB) => {
+      const a = progress[idA];
+      const b = progress[idB];
+      const attemptsDifference = (a?.attempts || 0) - (b?.attempts || 0);
+      if (attemptsDifference !== 0) return attemptsDifference;
+      const accuracyA = a?.attempts ? a.correct / a.attempts : 0;
+      const accuracyB = b?.attempts ? b.correct / b.attempts : 0;
+      return accuracyA - accuracyB || idA.localeCompare(idB);
+    });
+  append(remaining);
+  return ordered.slice(0, limit);
+}
+
 export function countDueListeningReviews(
   progress: ListeningProgress,
   now: Date = new Date(),
