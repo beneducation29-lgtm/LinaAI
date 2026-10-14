@@ -1,6 +1,6 @@
 import React from 'react';
 import { useApp, TabType } from '../../context/AppContext';
-import { Home, BookOpen, Mic, Brain, User } from 'lucide-react';
+import { Home, BookOpen, Mic, Headphones, Brain, User } from 'lucide-react';
 
 export const BottomNavigation: React.FC = () => {
   const { currentTab, setCurrentTab } = useApp();
@@ -9,6 +9,7 @@ export const BottomNavigation: React.FC = () => {
     { tab: 'home', label: 'Trang chủ', icon: Home },
     { tab: 'learn', label: 'Học', icon: BookOpen },
     { tab: 'speak', label: 'Nói', icon: Mic },
+    { tab: 'listening', label: 'Luyện nghe', icon: Headphones },
     { tab: 'review', label: 'Ôn tập', icon: Brain },
     { tab: 'profile', label: 'Tôi', icon: User },
   ];
@@ -18,7 +19,7 @@ export const BottomNavigation: React.FC = () => {
       aria-label="Thanh điều hướng chính ứng dụng"
       className="zen-bottom-nav md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-stone-900/95 backdrop-blur-md border-t border-stone-200/90 dark:border-stone-800 transition-colors safe-area-bottom"
     >
-      <div className="grid grid-cols-5 items-center min-h-16 max-w-md mx-auto px-1">
+      <div className="grid grid-cols-6 items-center min-h-16 max-w-md mx-auto px-1">
         {navItems.map((item) => {
           const isActive = currentTab === item.tab;
           const Icon = item.icon;
