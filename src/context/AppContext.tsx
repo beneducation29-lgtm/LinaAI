@@ -18,6 +18,8 @@ import { getCurrentUser, login as loginAccountRequest, signup as signupAccountRe
 import type { AuthUser } from '../services/authService';
 import type { SyncState, SyncRecord } from '../types/sync';
 import { storage } from '../services/storage';
+import { recordListeningAnswer, sanitizeListeningProgress } from '../services/listeningProgress';
+import type { ListeningProgress } from '../services/listeningProgress';
 import { findLessonForItem, updateLessonProgress } from '../services/progressService';
 import { createLocalMemoryRepository, emptyMemory, updateMemory, syncMistakeMemory } from '../services/aiMemory';
 import { buildLearnerMemory } from '../services/learningEngine';
@@ -73,6 +75,8 @@ interface AppContextType {
   toggleSaveStructuredVocabulary: (id: string) => void;
   isStructuredVocabularySaved: (id: string) => boolean;
   recordLearningResult: (itemId: string, correct: boolean, rating?: ReviewRating) => void;
+  listeningProgress: ListeningProgress;
+  recordListeningQuizResult: (itemId: string, correct: boolean) => void;
   addMistake: (input: { type: MistakeType; original: string; corrected: string; explanation: string; mastery?: number; severity?: 'low'|'medium'|'high'; resolved?: boolean; relatedVocabulary?: string[]; relatedGrammar?: string[]; relatedPronunciation?: string[] }) => void;
   resolveMistake: (mistakeId: string) => void;
   reopenMistake: (mistakeId: string) => void;
@@ -107,7 +111,20 @@ const STORAGE_KEYS = {
   STRUCTURED_PROGRESS: 'lina_structured_progress_v1',
   REVIEW_SCHEDULES: 'lina_review_schedules_v1',
   MISTAKES: 'lina_mistakes_v1',
-  STRUCTURED_SAVED: 'lina_structured_saved_v1'
+  STRUCTURED_SAVED: 'lina_structured_saved_v1',
+  LISTENING_PROGRESS: 'lina_listening_progress_v1'
+};
+
+const listeningProgressStorageKey = (userId: string | null | undefined) =>
+  `${STORAGE_KEYS.LISTENING_PROGRESS}:${userId || 'guest'}`;
+
+const readListeningProgress = (userId: string | null | undefined): ListeningProgress => {
+  try {
+    const raw = storage.getItem(listeningProgressStorageKey(userId));
+    return raw ? sanitizeListeningProgress(JSON.parse(raw)) : {};
+  } catch {
+    return {};
+  }
 };
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -190,6 +207,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [aiMemory, setAiMemory] = useState<AIStoredMemory>(() => memoryRepoRef.current!.load());
   const [motivation, setMotivation] = useState<MotivationState>(() => loadMotivationState(INITIAL_USER_PROFILE.dailyGoalMinutes, INITIAL_USER_PROFILE.streakDays));
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
+  const [listeningProgress, setListeningProgress] = useState<ListeningProgress>(() => readListeningProgress(null));
+  const listeningProgressOwnerRef = React.useRef('guest');
+  const skipListeningProgressPersistRef = React.useRef(false);
   const [syncState, setSyncState] = useState<SyncState>(() => ({ status: 'offline', lastSyncedAt: null, pendingCount: 0, error: null, userId: null }));
   const syncReadyRef = React.useRef(false);
   const [syncReady, setSyncReady] = useState(false);
@@ -236,6 +256,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
     return INITIAL_FLASHCARDS.map(enrichFlashcard);
   });
+
+  useEffect(() => {
+    const owner = authUser?.id || 'guest';
+    listeningProgressOwnerRef.current = owner;
+    skipListeningProgressPersistRef.current = true;
+    setListeningProgress(readListeningProgress(owner));
+  }, [authUser?.id]);
 
   useEffect(() => {
     const unsubscribe = syncEngine.subscribe(setSyncState);
@@ -321,6 +348,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           case 'flashcards': setFlashcards(record.data as Flashcard[]); break;
           case 'structuredProgress': setStructuredProgress(record.data as typeof structuredProgress); break;
           case 'reviewSchedules': setReviewSchedules(record.data as Record<string, ReviewSchedule>); break;
+          case 'listeningProgress': setListeningProgress(sanitizeListeningProgress(record.data)); break;
           case 'mistakes': setMistakes(record.data as MistakeRecord[]); break;
           case 'structuredSavedVocabulary': setStructuredSavedVocabularyIds(record.data as string[]); break;
           case 'aiMemory': setAiMemory(record.data as AIStoredMemory); break;
@@ -345,12 +373,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     enqueue('flashcards', flashcards);
     enqueue('structuredProgress', structuredProgress);
     enqueue('reviewSchedules', reviewSchedules);
+    enqueue('listeningProgress', listeningProgress);
     enqueue('mistakes', mistakes);
     enqueue('structuredSavedVocabulary', structuredSavedVocabularyIds);
     enqueue('aiMemory', aiMemory);
     enqueue('motivation', motivation);
     enqueue('learnerMemory', learnerMemory);
-  }, [authUser, syncReady, user, preferences, conversation, flashcards, structuredProgress, reviewSchedules, mistakes, structuredSavedVocabularyIds, aiMemory, motivation, learnerMemory]);
+  }, [authUser, syncReady, user, preferences, conversation, flashcards, structuredProgress, reviewSchedules, listeningProgress, mistakes, structuredSavedVocabularyIds, aiMemory, motivation, learnerMemory]);
 
   const [showOnboarding, setShowOnboarding] = useState<boolean>(() => {
     return !user.onboardingCompleted;
@@ -447,6 +476,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [tutorMode]);
 
   useEffect(() => { try { storage.setItem(STORAGE_KEYS.STRUCTURED_PROGRESS, JSON.stringify(structuredProgress)); } catch {} }, [structuredProgress]);
+  useEffect(() => {
+    const owner = authUser?.id || 'guest';
+    if (listeningProgressOwnerRef.current !== owner) return;
+    if (skipListeningProgressPersistRef.current) {
+      skipListeningProgressPersistRef.current = false;
+      return;
+    }
+    try { storage.setItem(listeningProgressStorageKey(owner), JSON.stringify(listeningProgress)); } catch {}
+  }, [listeningProgress, authUser?.id]);
   useEffect(() => { try { storage.setItem(STORAGE_KEYS.REVIEW_SCHEDULES, JSON.stringify(reviewSchedules)); } catch {} }, [reviewSchedules]);
   useEffect(() => { try { storage.setItem(STORAGE_KEYS.MISTAKES, JSON.stringify(mistakes)); } catch {} }, [mistakes]);
   useEffect(() => { try { storage.setItem(STORAGE_KEYS.STRUCTURED_SAVED, JSON.stringify(structuredSavedVocabularyIds)); } catch {} }, [structuredSavedVocabularyIds]);
@@ -579,6 +617,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setStructuredSavedVocabularyIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   };
   const isStructuredVocabularySaved = (id: string) => structuredSavedVocabularyIds.includes(id);
+  const recordListeningQuizResult = (itemId: string, correct: boolean) => {
+    setListeningProgress(previous => recordListeningAnswer(previous, itemId, correct));
+    recordMotivationActivity({ id: `listening:${itemId}:${Date.now()}`, type: 'listening', minutes: 1, metadata: { itemId, correct } });
+  };
   const recordLearningResult = (itemId: string, correct: boolean, rating: ReviewRating = correct ? 'good' : 'again') => {
     setReviewSchedules(prev => ({ ...prev, [itemId]: scheduleReview({ ...(prev[itemId] || { itemId, lastReviewed: null, nextReview: new Date().toISOString(), interval: 0, ease: 2.5, correctCount: 0, incorrectCount: 0, mastery: 0 }) }, rating) }));
     const lesson = findLessonForItem(HSK1_LESSONS, itemId);
@@ -728,6 +770,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         toggleSaveStructuredVocabulary,
         isStructuredVocabularySaved,
         recordLearningResult,
+        listeningProgress,
+        recordListeningQuizResult,
         addMistake,
         resolveMistake,
         reopenMistake,
@@ -746,7 +790,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setDailyGoalMinutes,
         recordMotivationActivity,
         clearLearningMemory: () => { memoryRepoRef.current!.clear(); setAiMemory(emptyMemory()); setMistakes([]); },
-        resetProgress: () => { setStructuredProgress({}); setReviewSchedules({}); setMistakes([]); memoryRepoRef.current!.clear(); setAiMemory(emptyMemory()); },
+        resetProgress: () => { setStructuredProgress({}); setReviewSchedules({}); setListeningProgress({}); setMistakes([]); memoryRepoRef.current!.clear(); setAiMemory(emptyMemory()); },
         completeGeneratedLesson
       }}
     >

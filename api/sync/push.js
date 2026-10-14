@@ -16,6 +16,7 @@ const ALLOWED_KEYS = new Set([
   'aiMemory',
   'motivation',
   'learnerMemory',
+  'listeningProgress',
 ]);
 
 function headers(extra = {}) {
