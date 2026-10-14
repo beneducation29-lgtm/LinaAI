@@ -1,5 +1,5 @@
 export type SyncStatus='synced'|'syncing'|'offline'|'failed';
-export type SyncRecordKey='profile'|'preferences'|'conversation'|'flashcards'|'structuredProgress'|'reviewSchedules'|'mistakes'|'structuredSavedVocabulary'|'aiMemory'|'motivation'|'learnerMemory';
+export type SyncRecordKey='profile'|'preferences'|'conversation'|'flashcards'|'structuredProgress'|'reviewSchedules'|'mistakes'|'structuredSavedVocabulary'|'aiMemory'|'motivation'|'learnerMemory'|'listeningProgress';
 export interface SyncRecord<T=unknown>{key:SyncRecordKey;data:T;updatedAt:string;version:number;deviceId:string;}
 export interface SyncEnvelope{records:SyncRecord[];lastSyncedAt?:string;}
 export interface SyncPullResponse{records:SyncRecord[];serverTime:string;}
