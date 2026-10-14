@@ -1,6 +1,6 @@
 import { storage } from './storage';
 import type { SyncEnvelope, SyncPullResponse, SyncRecord, SyncRecordKey, SyncState } from '../types/sync';
-import { retainUnchangedUnsentRecords } from './syncQueue';
+import { retainUnchangedUnsentRecords, shouldScheduleSyncAgain } from './syncQueue';
 
 const DEVICE_KEY='lina_sync_device_v1';
 const META_KEY='lina_sync_meta_v1';
@@ -61,7 +61,7 @@ export class SyncEngine{
    }
    if(this.state.userId!==userId)return;
    const remaining=retainUnchangedUnsentRecords(this.loadQueue(userId),queue);this.saveQueue(remaining,userId);const syncedAt=remote.serverTime||now();meta.lastSyncedAt=syncedAt;this.saveMeta(meta,userId);this.state={...this.state,status:'synced',lastSyncedAt:syncedAt,pendingCount:remaining.length,error:null};this.emit();if(remaining.length)this.schedule();
- }catch(e){if(this.state.userId===userId){this.state={...this.state,status:'failed',error:e instanceof Error?e.message:'Sync failed'};this.emit();}}finally{this.syncing=false;if(this.state.userId&&this.loadQueue(this.state.userId).length)this.schedule();}}
+ }catch(e){if(this.state.userId===userId){this.state={...this.state,status:'failed',error:e instanceof Error?e.message:'Sync failed'};this.emit();}}finally{this.syncing=false;const activeUserId=this.state.userId;if(activeUserId&&shouldScheduleSyncAgain(userId,activeUserId,this.loadQueue(activeUserId).length))this.schedule();}}
  private applyRemote(record:SyncRecord,userId=this.state.userId){if(!userId||this.state.userId!==userId)return;window.dispatchEvent(new CustomEvent('lina:sync-remote',{detail:record}));const meta=this.loadMeta(userId);meta.versions[record.key]={version:record.version,updatedAt:record.updatedAt};this.saveMeta(meta,userId);}
  async initialSync(){await this.sync();}
 }
