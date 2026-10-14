@@ -73,7 +73,7 @@ export const ListeningScreen: React.FC = () => {
   const [dictationFeedback, setDictationFeedback] = useState<Record<string, boolean>>({});
   const [shadowed, setShadowed] = useState<Record<string, boolean>>({});
   const [showTranscript, setShowTranscript] = useState<Record<string, boolean>>({});
-  const [reviewOnly, setReviewOnly] = useState(false);
+  const [reviewFilter, setReviewFilter] = useState<'all' | 'due' | 'weak'>('all');
 
   useEffect(() => {
     skipUiPersistRef.current = true;
@@ -111,16 +111,38 @@ export const ListeningScreen: React.FC = () => {
   };
   const dueCount = countDueListeningReviews(reviewProgress);
   const attemptedCount = lessons.filter(item => (reviewProgress[item.id]?.attempts || 0) > 0).length;
+  const weakCount = lessons.filter(item => {
+    const entry = reviewProgress[item.id];
+    return Boolean(entry && entry.attempts > 0 && entry.correct / entry.attempts < 0.6);
+  }).length;
   const totalAttempts = Object.values(reviewProgress).reduce((sum, item) => sum + item.attempts, 0);
   const totalCorrect = Object.values(reviewProgress).reduce((sum, item) => sum + item.correct, 0);
   const overallAccuracy = totalAttempts ? Math.round((totalCorrect / totalAttempts) * 100) : 0;
 
-  const visibleLessons = useMemo(() => lessons.filter(item =>
-    (level === 'all' || item.hsk === Number(level)) &&
-    (topic === 'Tất cả chủ đề' || item.topic === topic) &&
-    (!query.trim() || (item.title + ' ' + item.situation + ' ' + item.hanzi + ' ' + item.meaning).toLowerCase().includes(query.trim().toLowerCase())) &&
-    (!reviewOnly || isDue(item.id))
-  ), [level, topic, query, reviewOnly, reviewProgress]);
+  const visibleLessons = useMemo(() => {
+    const filtered = lessons.filter(item => {
+      const progress = reviewProgress[item.id];
+      const isWeak = Boolean(progress && progress.attempts > 0 && progress.correct / progress.attempts < 0.6);
+      return (level === 'all' || item.hsk === Number(level)) &&
+        (topic === 'Tất cả chủ đề' || item.topic === topic) &&
+        (!query.trim() || (item.title + ' ' + item.situation + ' ' + item.hanzi + ' ' + item.meaning).toLowerCase().includes(query.trim().toLowerCase())) &&
+        (reviewFilter !== 'due' || isDue(item.id)) &&
+        (reviewFilter !== 'weak' || isWeak);
+    });
+    if (reviewFilter === 'due') {
+      return filtered.sort((a, b) => Date.parse(reviewProgress[a.id]?.dueAt || '') - Date.parse(reviewProgress[b.id]?.dueAt || ''));
+    }
+    if (reviewFilter === 'weak') {
+      return filtered.sort((a, b) => {
+        const accuracy = (id: string) => {
+          const progress = reviewProgress[id];
+          return progress?.attempts ? progress.correct / progress.attempts : 1;
+        };
+        return accuracy(a.id) - accuracy(b.id);
+      });
+    }
+    return filtered;
+  }, [level, topic, query, reviewFilter, reviewProgress]);
   const score = visibleLessons.filter(item => revealed[item.id] && selected[item.id] === item.answer).length;
   const answered = visibleLessons.filter(item => revealed[item.id]).length;
 
@@ -188,7 +210,7 @@ export const ListeningScreen: React.FC = () => {
         <div className="rounded-2xl border border-stone-200 bg-white p-4 dark:border-stone-800 dark:bg-stone-900"><p className="text-xs text-stone-500">Bài đã luyện</p><p className="mt-1 text-2xl font-black">{attemptedCount}<span className="ml-1 text-sm font-semibold text-stone-400">/ {lessons.length}</span></p><p className="mt-1 text-xs text-stone-500">Đã có ít nhất một lần kiểm tra</p></div>
         <div className="rounded-2xl border border-stone-200 bg-white p-4 dark:border-stone-800 dark:bg-stone-900"><p className="text-xs text-stone-500">Độ chính xác tích lũy</p><p className="mt-1 text-2xl font-black">{overallAccuracy}%</p><p className="mt-1 text-xs text-stone-500">{totalCorrect}/{totalAttempts} lượt trả lời đúng</p></div>
         <div className="rounded-2xl border border-stone-200 bg-white p-4 dark:border-stone-800 dark:bg-stone-900"><p className="text-xs text-stone-500">Bài đến hạn ôn</p><p className="mt-1 text-2xl font-black">{dueCount}</p><p className="mt-1 text-xs text-stone-500">Sai: nhắc lại sau 10 phút; đúng liên tiếp: giãn dần 1–14 ngày</p></div>
-        <div className="flex flex-col justify-between gap-2 rounded-2xl border border-stone-200 bg-white p-4 dark:border-stone-800 dark:bg-stone-900"><div><p className="text-sm font-bold">Ôn tập ngắt quãng</p><p className="mt-1 text-xs leading-5 text-stone-500">Đăng nhập để đồng bộ tiến độ giữa các thiết bị; khi chưa đăng nhập, dữ liệu chỉ lưu trên trình duyệt này.</p></div><button type="button" onClick={()=>setReviewOnly(v=>!v)} aria-pressed={reviewOnly} className={reviewOnly ? 'min-h-10 rounded-xl border border-amber-400 bg-amber-50 px-3 text-xs font-bold text-amber-900 dark:bg-amber-950/30 dark:text-amber-200' : 'min-h-10 rounded-xl border border-stone-200 px-3 text-xs font-bold text-stone-700 dark:border-stone-700 dark:text-stone-300'}>{reviewOnly?'Đang xem bài đến hạn · Tắt lọc':'Ôn bài đến hạn'} ({dueCount})</button></div>
+        <div className="flex flex-col justify-between gap-2 rounded-2xl border border-stone-200 bg-white p-4 dark:border-stone-800 dark:bg-stone-900"><div><p className="text-sm font-bold">Ôn tập ngắt quãng</p><p className="mt-1 text-xs leading-5 text-stone-500">Đăng nhập để đồng bộ tiến độ giữa các thiết bị; khi chưa đăng nhập, dữ liệu chỉ lưu trên trình duyệt này.</p></div><div className="grid gap-2 sm:grid-cols-2"><button type="button" onClick={()=>setReviewFilter(v=>v==='due'?'all':'due')} aria-pressed={reviewFilter==='due'} className={reviewFilter==='due' ? 'min-h-10 rounded-xl border border-amber-400 bg-amber-50 px-2 text-xs font-bold text-amber-900 dark:bg-amber-950/30 dark:text-amber-200' : 'min-h-10 rounded-xl border border-stone-200 px-2 text-xs font-bold text-stone-700 dark:border-stone-700 dark:text-stone-300'}>{reviewFilter==='due'?'Tắt lọc đến hạn':'Ôn bài đến hạn'} ({dueCount})</button><button type="button" onClick={()=>setReviewFilter(v=>v==='weak'?'all':'weak')} aria-pressed={reviewFilter==='weak'} className={reviewFilter==='weak' ? 'min-h-10 rounded-xl border border-rose-300 bg-rose-50 px-2 text-xs font-bold text-rose-900 dark:bg-rose-950/30 dark:text-rose-200' : 'min-h-10 rounded-xl border border-stone-200 px-2 text-xs font-bold text-stone-700 dark:border-stone-700 dark:text-stone-300'}>{reviewFilter==='weak'?'Tắt lọc bài yếu':'Luyện bài còn yếu'} ({weakCount})</button></div></div>
       </section>
 
       <div className="grid gap-6 xl:grid-cols-[280px_minmax(0,1fr)]">
@@ -203,7 +225,7 @@ export const ListeningScreen: React.FC = () => {
           <div><div className="mb-2 text-xs font-semibold text-stone-600 dark:text-stone-300">Chủ đề</div><div className="flex flex-wrap gap-2 xl:flex-col">{topics.map(t=><button key={t} type="button" onClick={()=>setTopic(t)} className={`min-h-9 rounded-xl border px-3 text-left text-xs font-semibold transition ${topic===t?'border-amber-400 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200':'border-stone-200 text-stone-600 hover:border-stone-300 dark:border-stone-700 dark:text-stone-300'}`}>{t}</button>)}</div></div>
           <div className="border-t border-stone-100 pt-4 dark:border-stone-800"><div className="mb-3 text-xs font-semibold text-stone-600 dark:text-stone-300">Tốc độ TTS <span className="text-amber-700 dark:text-amber-300">{speed.toFixed(2)}×</span></div><input aria-label="Tốc độ giọng đọc" type="range" min="0.65" max="1.15" step="0.05" value={speed} onChange={e=>setSpeed(Number(e.target.value))} className="w-full accent-amber-600" /><div className="mt-1 flex justify-between text-[10px] text-stone-400"><span>Chậm</span><span>Tự nhiên</span></div></div>
           <div className="flex flex-wrap gap-2"><button type="button" onClick={()=>setShowPinyin(v=>!v)} aria-pressed={showPinyin} className={`min-h-9 rounded-lg border px-3 text-xs font-semibold ${showPinyin?'border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300':'border-stone-200 text-stone-500 dark:border-stone-700'}`}>Pinyin {showPinyin?'bật':'tắt'}</button><button type="button" onClick={()=>setShowMeaning(v=>!v)} aria-pressed={showMeaning} className={`min-h-9 rounded-lg border px-3 text-xs font-semibold ${showMeaning?'border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300':'border-stone-200 text-stone-500 dark:border-stone-700'}`}>Nghĩa Việt {showMeaning?'bật':'tắt'}</button></div>
-          <button type="button" onClick={()=>{setLevel('all');setTopic('Tất cả chủ đề');setQuery('');setShowPinyin(true);setShowMeaning(true);setReviewOnly(false);}} className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-xl border border-stone-200 px-3 text-xs font-semibold text-stone-600 hover:bg-stone-50 dark:border-stone-700 dark:text-stone-300 dark:hover:bg-stone-800"><RotateCcw className="h-3.5 w-3.5" /> Xóa bộ lọc</button>
+          <button type="button" onClick={()=>{setLevel('all');setTopic('Tất cả chủ đề');setQuery('');setShowPinyin(true);setShowMeaning(true);setReviewFilter('all');}} className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-xl border border-stone-200 px-3 text-xs font-semibold text-stone-600 hover:bg-stone-50 dark:border-stone-700 dark:text-stone-300 dark:hover:bg-stone-800"><RotateCcw className="h-3.5 w-3.5" /> Xóa bộ lọc</button>
         </aside>
 
         <main className="min-w-0 space-y-4">
@@ -211,9 +233,13 @@ export const ListeningScreen: React.FC = () => {
           {visibleLessons.length===0 ? <div className="rounded-3xl border border-dashed border-stone-300 p-10 text-center dark:border-stone-700"><BookOpen className="mx-auto h-8 w-8 text-stone-400" /><p className="mt-3 font-semibold">Không tìm thấy bài phù hợp</p><p className="mt-1 text-sm text-stone-500">Thử từ khóa hoặc chủ đề khác nhé.</p></div> :
           <div className="grid gap-4 2xl:grid-cols-2">
             {visibleLessons.map((item,index)=>{
+              const itemProgress = reviewProgress[item.id];
+              const itemAccuracy = itemProgress?.attempts ? Math.round((itemProgress.correct / itemProgress.attempts) * 100) : null;
+              const isDueNow = isDue(item.id);
+              const isWeak = Boolean(itemProgress && itemProgress.attempts > 0 && itemProgress.correct / itemProgress.attempts < 0.6);
               const isRevealed=Boolean(revealed[item.id]); const choice=selected[item.id]; const isCorrect=choice===item.answer;
               return <article key={item.id} className="flex min-w-0 flex-col overflow-hidden rounded-3xl border border-stone-200 bg-white dark:border-stone-800 dark:bg-stone-900">
-                <div className="border-b border-stone-100 p-4 dark:border-stone-800"><div className="flex flex-wrap items-center gap-2"><span className="rounded-lg bg-amber-50 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-amber-800 dark:bg-amber-950/40 dark:text-amber-300">HSK {item.hsk} · {levelLabels[item.hsk]}</span><span className="rounded-lg bg-stone-100 px-2 py-1 text-[10px] font-semibold text-stone-600 dark:bg-stone-800 dark:text-stone-300">{item.topic}</span>{isRevealed&&<span className="ml-auto inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 dark:text-emerald-300"><CheckCircle2 className="h-3.5 w-3.5"/> Đã làm</span>}</div><h3 className="mt-2 text-lg font-bold text-stone-900 dark:text-stone-100">{item.title}</h3><p className="mt-1 text-xs text-stone-500 dark:text-stone-400">{item.situation}</p></div>
+                <div className="border-b border-stone-100 p-4 dark:border-stone-800"><div className="flex flex-wrap items-center gap-2"><span className="rounded-lg bg-amber-50 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-amber-800 dark:bg-amber-950/40 dark:text-amber-300">HSK {item.hsk} · {levelLabels[item.hsk]}</span><span className="rounded-lg bg-stone-100 px-2 py-1 text-[10px] font-semibold text-stone-600 dark:bg-stone-800 dark:text-stone-300">{item.topic}</span>{isRevealed&&<span className="ml-auto inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 dark:text-emerald-300"><CheckCircle2 className="h-3.5 w-3.5"/> Đã làm</span>}{itemProgress?.attempts ? <span className="rounded-lg bg-sky-50 px-2 py-1 text-[10px] font-semibold text-sky-800 dark:bg-sky-950/30 dark:text-sky-200" title={`${itemProgress.correct} lượt đúng trên ${itemProgress.attempts} lượt`}>{itemProgress.attempts} lượt · {itemAccuracy}%</span> : null}{isDueNow&&<span className="rounded-lg bg-amber-50 px-2 py-1 text-[10px] font-bold text-amber-800 dark:bg-amber-950/30 dark:text-amber-200">Đến hạn ôn</span>}{isWeak&&<span className="rounded-lg bg-rose-50 px-2 py-1 text-[10px] font-bold text-rose-800 dark:bg-rose-950/30 dark:text-rose-200">Cần củng cố</span>}</div><h3 className="mt-2 text-lg font-bold text-stone-900 dark:text-stone-100">{item.title}</h3><p className="mt-1 text-xs text-stone-500 dark:text-stone-400">{item.situation}</p></div>
                 <div className="flex flex-1 flex-col p-4">
                   <div className="rounded-2xl bg-[#faf8f5] p-3 dark:bg-stone-950/70">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div className="flex items-center gap-3"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-600 text-white"><AudioLines className="h-5 w-5"/></div><div><div className="text-sm font-bold">Nghe đoạn hội thoại</div><div className="text-[11px] text-stone-500">TTS · {speed.toFixed(2)}×</div></div></div><div className="flex gap-2"><button type="button" onClick={()=>playingId===item.id?stopAudio():speak(item)} className="inline-flex min-h-10 flex-1 items-center justify-center gap-2 rounded-xl bg-stone-900 px-3 text-xs font-bold text-white hover:bg-amber-700 dark:bg-stone-100 dark:text-stone-900">{playingId===item.id?<Pause className="h-4 w-4"/>:<Play className="h-4 w-4"/>}{playingId===item.id?'Dừng':'Phát'}</button><button type="button" onClick={()=>setShowTranscript(p=>({...p,[item.id]:true}))} className="min-h-10 rounded-xl border border-stone-200 px-3 text-xs font-semibold text-stone-700 dark:border-stone-700 dark:text-stone-300">Xem lời thoại</button></div></div>
