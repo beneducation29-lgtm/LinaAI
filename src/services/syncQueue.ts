@@ -14,3 +14,16 @@ export function retainUnchangedUnsentRecords(
     return !snapshot || snapshot.version !== current.version || snapshot.updatedAt !== current.updatedAt;
   });
 }
+
+/** Re-run sync after an account switch even when the new account has an empty local queue,
+ * because it still needs to pull its existing remote records. */
+export function shouldScheduleSyncAgain(
+  syncStartedForUserId: string,
+  activeUserId: string | null,
+  activePendingCount: number,
+): boolean {
+  return Boolean(
+    activeUserId &&
+    (activeUserId !== syncStartedForUserId || activePendingCount > 0)
+  );
+}
