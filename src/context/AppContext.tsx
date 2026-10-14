@@ -619,6 +619,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const isStructuredVocabularySaved = (id: string) => structuredSavedVocabularyIds.includes(id);
   const recordListeningQuizResult = (itemId: string, correct: boolean) => {
     setListeningProgress(previous => recordListeningAnswer(previous, itemId, correct));
+    recordMotivationActivity({ id: `listening:${itemId}:${Date.now()}`, type: 'listening', minutes: 1, metadata: { itemId, correct } });
   };
   const recordLearningResult = (itemId: string, correct: boolean, rating: ReviewRating = correct ? 'good' : 'again') => {
     setReviewSchedules(prev => ({ ...prev, [itemId]: scheduleReview({ ...(prev[itemId] || { itemId, lastReviewed: null, nextReview: new Date().toISOString(), interval: 0, ease: 2.5, correctCount: 0, incorrectCount: 0, mastery: 0 }) }, rating) }));
