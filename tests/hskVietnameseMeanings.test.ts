@@ -65,6 +65,12 @@ for (const hanzi of ["乖","拐弯","怪不得","官","关闭","关怀","观察"
   assert.ok(meaning && meaning.trim().length > 0, hanzi + ' should have a Vietnamese meaning');
 }
 
+
+for (const hanzi of ["后果", "呼吸", "忽视", "胡说", "胡同", "糊涂", "花生", "划", "华裔", "化学", "话题", "怀念", "怀孕", "缓解", "幻想", "慌张", "黄瓜", "黄金", "灰", "灰尘", "灰心", "恢复", "回避", "回顾", "回收", "汇率", "婚礼", "婚姻", "活该", "活力", "火柴", "伙伴", "机器", "基本", "激烈", "及格", "集体", "集中", "急忙", "记录", "记忆", "纪律", "技巧", "寂寞", "纪念", "家常", "家伙", "夹", "甲", "假如"]) {
+  const meaning = meanings.get(hanzi);
+  assert.ok(meaning && meaning.trim().length > 0, hanzi + ' should have a Vietnamese meaning');
+}
+
 const chineseCharacter = /[\u3400-\u4DBF\u4E00-\u9FFF]/;
 for (const [hanzi, meaning] of meanings) {
   // 把 is intentionally retained in its grammar explanation as the Chinese construction name.
