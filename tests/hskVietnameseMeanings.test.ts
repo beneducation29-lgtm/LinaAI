@@ -29,11 +29,48 @@ for (const hanzi of ['唉', '爱护', '爱惜', '爱心', '安慰', '安装', '�
   const meaning = meanings.get(hanzi);
   assert.ok(meaning && meaning.trim().length > 0, hanzi + ' should have a Vietnamese meaning');
 }
-assert.ok(meanings.size >= 1365, 'glossary should retain the first 100 HSK 5 meanings');
+assert.ok(meanings.size >= 1715, 'glossary should retain the 350 newly added HSK 5 meanings');
 for (const hanzi of ['脖子', '不必', '不断', '不见得', '不耐烦', '不要紧', '补充', '布', '不安', '不得了', '不好意思', '不免', '不然', '不如', '不足', '部门', '步骤', '财产', '踩', '采访', '采取', '彩虹', '参考', '参与', '餐厅', '残疾', '惭愧', '操场', '操心', '册', '厕所', '测验', '曾经', '插', '差别', '叉子', '拆', '产品', '产生', '长途', '常识', '抄', '朝', '朝代', '炒', '吵架', '车库', '车厢', '彻底', '沉默']) {
   const meaning = meanings.get(hanzi);
   assert.ok(meaning && meaning.trim().length > 0, hanzi + ' should have a Vietnamese meaning');
 }
+for (const hanzi of ['趁', '称', '称呼', '称赞', '乘', '承担', '承认', '承受', '程度', '程序', '成分', '成果', '成就', '成立', '成语', '成长', '诚恳', '吃亏', '持续', '池子', '尺子', '翅膀', '冲', '充电器', '充分', '充满', '重复', '宠物', '抽屉', '抽象', '丑', '臭', '出版', '出色', '出席', '初级', '除', '除非', '除夕', '处理', '传播', '传递', '传染', '传说', '传统', '窗帘', '闯', '创造', '吹', '磁带']) {
+  const meaning = meanings.get(hanzi);
+  assert.ok(meaning && meaning.trim().length > 0, hanzi + ' should have a Vietnamese meaning');
+}
+
+for (const hanzi of ["辞职", "此外", "次要", "刺激", "匆忙", "从此", "从而", "从前", "从事", "醋", "促进", "促使", "催", "存", "存在", "错误", "措施", "答应", "达到", "打工", "打交道", "打喷嚏", "打听", "打招呼", "大方", "大象", "大型", "呆", "贷款", "待遇", "单纯", "单调", "单独", "单位", "单元", "担任", "耽误", "胆小鬼", "淡", "当代", "挡", "岛", "倒霉", "导演", "导致", "倒", "到达", "道德", "道理", "登机牌"]) {
+  const meaning = meanings.get(hanzi);
+  assert.ok(meaning && meaning.trim().length > 0, hanzi + ' should have a Vietnamese meaning');
+}
+
+for (const hanzi of ["登记", "等待", "等候", "等于", "滴", "的确", "敌人", "递", "地道", "地理", "地区", "地毯", "地位", "地震", "点头", "点心", "电池", "电台", "钓", "丁", "顶", "冻", "洞", "动画片", "逗", "豆腐", "独立", "独特", "度过", "短信", "堆", "对比", "对待", "对方", "对手", "对象", "对于", "吨", "蹲", "多亏", "多余", "躲藏", "恶劣", "发表", "发愁", "发达", "发抖", "发挥", "发明", "发票"]) {
+  const meaning = meanings.get(hanzi);
+  assert.ok(meaning && meaning.trim().length > 0, hanzi + ' should have a Vietnamese meaning');
+}
+
+for (const hanzi of ["发言", "罚款", "法院", "翻", "繁荣", "凡是", "反而", "反复", "反应", "反正", "方", "方案", "方式", "妨碍", "房东", "仿佛", "放松", "非", "肥皂", "肺", "废话", "分别", "分布", "分配", "分析", "纷纷", "奋斗", "愤怒", "风格", "风俗", "风险", "疯狂", "讽刺", "否定", "否认", "扶", "幅", "服从", "服装", "辅导", "付款", "妇女", "复制", "改革", "改进", "改正", "盖", "概括", "概念", "干脆"]) {
+  const meaning = meanings.get(hanzi);
+  assert.ok(meaning && meaning.trim().length > 0, hanzi + ' should have a Vietnamese meaning');
+}
+
+for (const hanzi of ["感激","感受","感想","赶紧","赶快","干活儿","钢铁","高档","高速公路","搞","告别","胳膊","鸽子","隔壁","革命","格外","个别","个人","个性","各自","根","根本","更加","公布","公开","公平","公寓","公元","公主","工厂","工程师","工人","工业","功夫","功能","贡献","沟通","构成","姑姑","姑娘","古代","古典","古老","鼓舞","股票","骨头","固定","固体","雇佣","挂号"]) {
+  const meaning = meanings.get(hanzi);
+  assert.ok(meaning && meaning.trim().length > 0, hanzi + ' should have a Vietnamese meaning');
+}
+
+
+for (const hanzi of ["乖","拐弯","怪不得","官","关闭","关怀","观察","观念","管子","冠军","罐头","光滑","光临","光明","光盘","光荣","广场","广大","广泛","规矩","规律","规模","规则","柜台","滚","锅","国籍","国庆节","果实","过分","过敏","过期","哈","海关","海鲜","喊","行业","豪华","好奇","和平","何必","何况","合法","合理","合同","合影","合作","核心","恨","横"]) {
+  const meaning = meanings.get(hanzi);
+  assert.ok(meaning && meaning.trim().length > 0, hanzi + ' should have a Vietnamese meaning');
+}
+
+
+for (const hanzi of ["后果", "呼吸", "忽视", "胡说", "胡同", "糊涂", "花生", "划", "华裔", "化学", "话题", "怀念", "怀孕", "缓解", "幻想", "慌张", "黄瓜", "黄金", "灰", "灰尘", "灰心", "恢复", "回避", "回顾", "回收", "汇率", "婚礼", "婚姻", "活该", "活力", "火柴", "伙伴", "机器", "基本", "激烈", "及格", "集体", "集中", "急忙", "记录", "记忆", "纪律", "技巧", "寂寞", "纪念", "家常", "家伙", "夹", "甲", "假如"]) {
+  const meaning = meanings.get(hanzi);
+  assert.ok(meaning && meaning.trim().length > 0, hanzi + ' should have a Vietnamese meaning');
+}
+
 const chineseCharacter = /[\u3400-\u4DBF\u4E00-\u9FFF]/;
 for (const [hanzi, meaning] of meanings) {
   // 把 is intentionally retained in its grammar explanation as the Chinese construction name.
