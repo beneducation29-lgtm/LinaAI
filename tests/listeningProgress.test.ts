@@ -3,6 +3,7 @@ import {
   countDueListeningReviews,
   getDueListeningItemIds,
   getWeakListeningItemIds,
+  getSmartListeningItemIds,
   recordListeningAnswer,
   sanitizeListeningProgress,
 } from '../src/services/listeningProgress';
@@ -49,5 +50,25 @@ assert.deepEqual(getWeakListeningItemIds(reviewCandidates), ['weakAndDue', 'weak
 assert.deepEqual(getWeakListeningItemIds(reviewCandidates, 0.25), []);
 assert.deepEqual(getWeakListeningItemIds(reviewCandidates, 0.8), ['weakAndDue', 'weakNotDue']);
 assert.deepEqual(getDueListeningItemIds({}, reviewedAt), []);
+assert.deepEqual(
+  getSmartListeningItemIds(
+    reviewCandidates,
+    ['neverAttempted', 'weakNotDue', 'strongestDueFirst', 'weakAndDue'],
+    3,
+    new Date('2026-10-14T00:10:00.000Z'),
+  ),
+  ['strongestDueFirst', 'weakAndDue', 'weakNotDue'],
+);
+assert.deepEqual(
+  getSmartListeningItemIds(
+    reviewCandidates,
+    ['neverAttempted', 'weakNotDue', 'strongestDueFirst', 'weakAndDue', 'weakNotDue'],
+    10,
+    new Date('2026-10-14T00:10:00.000Z'),
+  ),
+  ['strongestDueFirst', 'weakAndDue', 'weakNotDue', 'neverAttempted'],
+);
+assert.deepEqual(getSmartListeningItemIds(reviewCandidates, [], 5, reviewedAt), []);
+assert.deepEqual(getSmartListeningItemIds(reviewCandidates, ['weakAndDue'], 0, reviewedAt), []);
 
 console.log('Listening progress scheduling and validation tests passed.');
