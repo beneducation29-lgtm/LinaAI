@@ -41,7 +41,9 @@ export const HomeDashboard: React.FC = () => {
   const retention = buildRetentionSnapshot(reviewSchedules, aiMemory.mistakes);
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 pb-24 md:pb-12 space-y-6">
+    <div className="zen-dashboard max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-7 pb-24 md:pb-12 space-y-5 sm:space-y-6">
+      <div className="zen-dashboard-kicker" aria-label="Lina AI Chinese Zen"><span className="zen-kicker-mark">文</span><span>静心学习 · 每日进步</span><span className="zen-kicker-line" aria-hidden="true" /></div>
+
       {/* 1. HEADER & GREETING */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -127,7 +129,7 @@ export const HomeDashboard: React.FC = () => {
       </div>
 
       {/* 2. MAIN CARD: CONTINUE LEARNING */}
-      <div className="relative overflow-hidden rounded-3xl bg-linear-to-br from-stone-900 to-stone-800 text-white p-6 shadow-md border border-stone-800">
+      <div className="zen-hero relative overflow-hidden rounded-3xl bg-linear-to-br from-stone-900 to-stone-800 text-white p-6 sm:p-7 shadow-md border border-stone-800">
         <div className="absolute right-0 top-0 bottom-0 w-1/3 opacity-20 hidden sm:block pointer-events-none">
           <img
             src={hskStudyImg}

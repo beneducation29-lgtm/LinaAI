@@ -21,7 +21,7 @@ export const Sidebar: React.FC = () => {
   ];
 
   return (
-    <aside className="hidden md:flex flex-col w-64 h-screen sticky top-0 bg-white dark:bg-stone-900 border-r border-stone-200/90 dark:border-stone-800 p-5 shrink-0 z-30 transition-colors">
+    <aside className="zen-sidebar hidden md:flex flex-col w-64 h-screen sticky top-0 bg-white dark:bg-stone-900 border-r border-stone-200/90 dark:border-stone-800 p-5 shrink-0 z-30 transition-colors">
       {/* Brand Header */}
       <div className="flex items-center gap-3 px-2 py-3 mb-6">
         <div className="w-10 h-10 rounded-2xl bg-amber-600 flex items-center justify-center text-white shadow-xs overflow-hidden">

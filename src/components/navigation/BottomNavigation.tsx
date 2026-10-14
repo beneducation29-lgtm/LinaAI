@@ -16,7 +16,7 @@ export const BottomNavigation: React.FC = () => {
   return (
     <nav 
       aria-label="Thanh điều hướng chính ứng dụng"
-      className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-stone-900/95 backdrop-blur-md border-t border-stone-200/90 dark:border-stone-800 transition-colors safe-area-bottom"
+      className="zen-bottom-nav md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-stone-900/95 backdrop-blur-md border-t border-stone-200/90 dark:border-stone-800 transition-colors safe-area-bottom"
     >
       <div className="grid grid-cols-5 items-center min-h-16 max-w-md mx-auto px-1">
         {navItems.map((item) => {
