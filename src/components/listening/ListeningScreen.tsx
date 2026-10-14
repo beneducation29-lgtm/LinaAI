@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { getDueListeningItemIds, getWeakListeningItemIds } from '../../services/listeningProgress';
+import { getDueListeningItemIds, getSmartListeningItemIds, getWeakListeningItemIds } from '../../services/listeningProgress';
 import { AudioLines, BookOpen, CheckCircle2, CircleHelp, Headphones, Pause, Play, RotateCcw, Search, Settings2, Volume2 } from 'lucide-react';
 
 type ListeningItem = {
@@ -73,7 +73,7 @@ export const ListeningScreen: React.FC = () => {
   const [dictationFeedback, setDictationFeedback] = useState<Record<string, boolean>>({});
   const [shadowed, setShadowed] = useState<Record<string, boolean>>({});
   const [showTranscript, setShowTranscript] = useState<Record<string, boolean>>({});
-  const [reviewFilter, setReviewFilter] = useState<'all' | 'due' | 'weak'>('all');
+  const [reviewFilter, setReviewFilter] = useState<'all' | 'due' | 'weak' | 'smart'>('all');
 
   useEffect(() => {
     skipUiPersistRef.current = true;
@@ -140,6 +140,13 @@ export const ListeningScreen: React.FC = () => {
     }
     if (reviewFilter === 'weak') {
       return filtered.sort((a, b) => (weakRank.get(a.id) ?? Number.POSITIVE_INFINITY) - (weakRank.get(b.id) ?? Number.POSITIVE_INFINITY));
+    }
+    if (reviewFilter === 'smart') {
+      const smartIds = getSmartListeningItemIds(reviewProgress, filtered.map(item => item.id), 5);
+      const smartRank = new Map(smartIds.map((id, index) => [id, index] as const));
+      return filtered
+        .filter(item => smartRank.has(item.id))
+        .sort((a, b) => (smartRank.get(a.id) ?? Number.POSITIVE_INFINITY) - (smartRank.get(b.id) ?? Number.POSITIVE_INFINITY));
     }
     return filtered;
   }, [level, topic, query, reviewFilter, reviewProgress, dueRank, weakRank]);
@@ -210,7 +217,7 @@ export const ListeningScreen: React.FC = () => {
         <div className="rounded-2xl border border-stone-200 bg-white p-4 dark:border-stone-800 dark:bg-stone-900"><p className="text-xs text-stone-500">Bài đã luyện</p><p className="mt-1 text-2xl font-black">{attemptedCount}<span className="ml-1 text-sm font-semibold text-stone-400">/ {lessons.length}</span></p><p className="mt-1 text-xs text-stone-500">Đã có ít nhất một lần kiểm tra</p></div>
         <div className="rounded-2xl border border-stone-200 bg-white p-4 dark:border-stone-800 dark:bg-stone-900"><p className="text-xs text-stone-500">Độ chính xác tích lũy</p><p className="mt-1 text-2xl font-black">{overallAccuracy}%</p><p className="mt-1 text-xs text-stone-500">{totalCorrect}/{totalAttempts} lượt trả lời đúng</p></div>
         <div className="rounded-2xl border border-stone-200 bg-white p-4 dark:border-stone-800 dark:bg-stone-900"><p className="text-xs text-stone-500">Bài đến hạn ôn</p><p className="mt-1 text-2xl font-black">{dueCount}</p><p className="mt-1 text-xs text-stone-500">Sai: nhắc lại sau 10 phút; đúng liên tiếp: giãn dần 1–14 ngày</p></div>
-        <div className="flex flex-col justify-between gap-2 rounded-2xl border border-stone-200 bg-white p-4 dark:border-stone-800 dark:bg-stone-900"><div><p className="text-sm font-bold">Ôn tập ngắt quãng</p><p className="mt-1 text-xs leading-5 text-stone-500">Đăng nhập để đồng bộ tiến độ giữa các thiết bị; khi chưa đăng nhập, dữ liệu chỉ lưu trên trình duyệt này.</p></div><div className="grid gap-2 sm:grid-cols-2"><button type="button" onClick={()=>setReviewFilter(v=>v==='due'?'all':'due')} aria-pressed={reviewFilter==='due'} className={reviewFilter==='due' ? 'min-h-10 rounded-xl border border-amber-400 bg-amber-50 px-2 text-xs font-bold text-amber-900 dark:bg-amber-950/30 dark:text-amber-200' : 'min-h-10 rounded-xl border border-stone-200 px-2 text-xs font-bold text-stone-700 dark:border-stone-700 dark:text-stone-300'}>{reviewFilter==='due'?'Tắt lọc đến hạn':'Ôn bài đến hạn'} ({dueCount})</button><button type="button" onClick={()=>setReviewFilter(v=>v==='weak'?'all':'weak')} aria-pressed={reviewFilter==='weak'} className={reviewFilter==='weak' ? 'min-h-10 rounded-xl border border-rose-300 bg-rose-50 px-2 text-xs font-bold text-rose-900 dark:bg-rose-950/30 dark:text-rose-200' : 'min-h-10 rounded-xl border border-stone-200 px-2 text-xs font-bold text-stone-700 dark:border-stone-700 dark:text-stone-300'}>{reviewFilter==='weak'?'Tắt lọc bài yếu':'Luyện bài còn yếu'} ({weakCount})</button></div></div>
+        <div className="flex flex-col justify-between gap-2 rounded-2xl border border-stone-200 bg-white p-4 dark:border-stone-800 dark:bg-stone-900"><div><p className="text-sm font-bold">Ôn tập ngắt quãng</p><p className="mt-1 text-xs leading-5 text-stone-500">Đăng nhập để đồng bộ tiến độ giữa các thiết bị; khi chưa đăng nhập, dữ liệu chỉ lưu trên trình duyệt này.</p></div><div className="grid gap-2 sm:grid-cols-3"><button type="button" onClick={()=>setReviewFilter(v=>v==='due'?'all':'due')} aria-pressed={reviewFilter==='due'} className={reviewFilter==='due' ? 'min-h-10 rounded-xl border border-amber-400 bg-amber-50 px-2 text-xs font-bold text-amber-900 dark:bg-amber-950/30 dark:text-amber-200' : 'min-h-10 rounded-xl border border-stone-200 px-2 text-xs font-bold text-stone-700 dark:border-stone-700 dark:text-stone-300'}>{reviewFilter==='due'?'Tắt lọc đến hạn':'Ôn bài đến hạn'} ({dueCount})</button><button type="button" onClick={()=>setReviewFilter(v=>v==='weak'?'all':'weak')} aria-pressed={reviewFilter==='weak'} className={reviewFilter==='weak' ? 'min-h-10 rounded-xl border border-rose-300 bg-rose-50 px-2 text-xs font-bold text-rose-900 dark:bg-rose-950/30 dark:text-rose-200' : 'min-h-10 rounded-xl border border-stone-200 px-2 text-xs font-bold text-stone-700 dark:border-stone-700 dark:text-stone-300'}>{reviewFilter==='weak'?'Tắt lọc bài yếu':'Luyện bài còn yếu'} ({weakCount})</button><button type="button" onClick={()=>setReviewFilter(v=>v==='smart'?'all':'smart')} aria-pressed={reviewFilter==='smart'} className={reviewFilter==='smart' ? 'min-h-10 rounded-xl border border-violet-400 bg-violet-50 px-2 text-xs font-bold text-violet-900 dark:bg-violet-950/30 dark:text-violet-200' : 'min-h-10 rounded-xl border border-stone-200 px-2 text-xs font-bold text-stone-700 dark:border-stone-700 dark:text-stone-300'}>{reviewFilter==='smart'?'Tắt luyện thông minh':'Luyện thông minh · 5 bài'}</button></div></div>
       </section>
 
       <div className="grid gap-6 xl:grid-cols-[280px_minmax(0,1fr)]">
@@ -229,7 +236,7 @@ export const ListeningScreen: React.FC = () => {
         </aside>
 
         <main className="min-w-0 space-y-4">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"><div><h2 className="text-lg font-bold text-stone-900 dark:text-stone-100">{topic==='Tất cả chủ đề'?'Thư viện bài nghe':topic}</h2><p className="text-xs text-stone-500">Hiển thị {visibleLessons.length} / {lessons.length} bài · chọn đáp án để kiểm tra</p></div><button type="button" onClick={()=>{setSelected({});setRevealed({});setShowTranscript({});stopAudio();}} className="inline-flex min-h-10 items-center justify-center gap-2 self-start rounded-xl border border-stone-200 px-3 text-xs font-semibold text-stone-600 dark:border-stone-700 dark:text-stone-300"><RotateCcw className="h-3.5 w-3.5" /> Làm lại kết quả phiên này</button></div>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"><div><h2 className="text-lg font-bold text-stone-900 dark:text-stone-100">{reviewFilter==='smart'?'Lộ trình nghe thông minh':topic==='Tất cả chủ đề'?'Thư viện bài nghe':topic}</h2><p className="text-xs text-stone-500">{reviewFilter==='smart'?'Ưu tiên bài đến hạn, bài còn yếu rồi bài chưa luyện. ':''}Hiển thị {visibleLessons.length} bài trong bộ lọc hiện tại · chọn đáp án để kiểm tra</p></div><button type="button" onClick={()=>{setSelected({});setRevealed({});setShowTranscript({});stopAudio();}} className="inline-flex min-h-10 items-center justify-center gap-2 self-start rounded-xl border border-stone-200 px-3 text-xs font-semibold text-stone-600 dark:border-stone-700 dark:text-stone-300"><RotateCcw className="h-3.5 w-3.5" /> Làm lại kết quả phiên này</button></div>
           {visibleLessons.length===0 ? <div className="rounded-3xl border border-dashed border-stone-300 p-10 text-center dark:border-stone-700"><BookOpen className="mx-auto h-8 w-8 text-stone-400" /><p className="mt-3 font-semibold">Không tìm thấy bài phù hợp</p><p className="mt-1 text-sm text-stone-500">Thử từ khóa hoặc chủ đề khác nhé.</p></div> :
           <div className="grid gap-4 2xl:grid-cols-2">
             {visibleLessons.map((item,index)=>{
