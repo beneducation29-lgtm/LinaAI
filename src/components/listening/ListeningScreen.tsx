@@ -213,6 +213,32 @@ export const ListeningScreen: React.FC = () => {
         {practiceMode==='shadowing'&&<p className="mt-3 rounded-xl bg-emerald-50 px-3 py-2 text-xs leading-5 text-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200">Cách tập: nghe trọn đoạn, dừng một nhịp, đọc nhại thành tiếng rồi phát lại để tự so sánh. Trang web không thu âm hoặc chấm điểm phát âm tự động.</p>}
       </section>
 
+      <section aria-labelledby="listening-level-paths" className="space-y-3">
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h2 id="listening-level-paths" className="text-lg font-bold text-stone-900 dark:text-stone-100">Lộ trình luyện nghe theo cấp độ</h2>
+            <p className="mt-1 text-xs leading-5 text-stone-500 dark:text-stone-400">Chọn HSK phù hợp để học từ dễ đến khó. Tiến độ chỉ tính những bài bạn đã thực sự kiểm tra.</p>
+          </div>
+          <button type="button" onClick={() => { setLevel('all'); setTopic('Tất cả chủ đề'); setReviewFilter('all'); }} aria-pressed={level === 'all'} className={`min-h-10 self-start rounded-xl border px-3 text-xs font-bold ${level === 'all' ? 'border-amber-400 bg-amber-50 text-amber-900 dark:bg-amber-950/30 dark:text-amber-200' : 'border-stone-200 text-stone-600 dark:border-stone-700 dark:text-stone-300'}`}>Xem tất cả cấp độ</button>
+        </div>
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 2xl:grid-cols-6">
+          {[1, 2, 3, 4, 5, 6].map(n => {
+            const levelLessons = lessons.filter(item => item.hsk === n);
+            const levelAttempted = levelLessons.filter(item => (reviewProgress[item.id]?.attempts || 0) > 0).length;
+            const levelAttempts = levelLessons.reduce((sum, item) => sum + (reviewProgress[item.id]?.attempts || 0), 0);
+            const levelCorrect = levelLessons.reduce((sum, item) => sum + (reviewProgress[item.id]?.correct || 0), 0);
+            const completion = levelLessons.length ? Math.round(levelAttempted / levelLessons.length * 100) : 0;
+            const active = level === String(n);
+            return <button key={n} type="button" onClick={() => { setLevel(String(n)); setTopic('Tất cả chủ đề'); setReviewFilter('all'); }} aria-pressed={active} className={`min-h-[142px] rounded-2xl border p-3 text-left transition hover:-translate-y-0.5 hover:shadow-sm ${active ? 'border-amber-400 bg-amber-50/80 ring-1 ring-amber-300 dark:border-amber-700 dark:bg-amber-950/30 dark:ring-amber-900' : 'border-stone-200 bg-white dark:border-stone-800 dark:bg-stone-900'}`}>
+              <span className="flex items-center justify-between gap-2"><span className="text-lg font-black text-stone-900 dark:text-stone-100">HSK {n}</span><span className={`rounded-lg px-2 py-1 text-[10px] font-bold ${active ? 'bg-amber-200 text-amber-900 dark:bg-amber-900 dark:text-amber-100' : 'bg-stone-100 text-stone-500 dark:bg-stone-800 dark:text-stone-300'}`}>{levelLabels[n]}</span></span>
+              <span className="mt-2 block text-xs text-stone-500">{levelLessons.length} bài nghe · {levelAttempted} đã luyện</span>
+              <span className="mt-3 block h-1.5 overflow-hidden rounded-full bg-stone-100 dark:bg-stone-800"><span className="block h-full rounded-full bg-amber-600 transition-all" style={{ width: `${completion}%` }} /></span>
+              <span className="mt-1.5 block text-[10px] text-stone-500">{completion}% bài đã luyện{levelAttempts > 0 ? ` · ${Math.round(levelCorrect / levelAttempts * 100)}% đúng` : ' · Chưa có kết quả'}</span>
+            </button>;
+          })}
+        </div>
+      </section>
+
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <div className="rounded-2xl border border-stone-200 bg-white p-4 dark:border-stone-800 dark:bg-stone-900"><p className="text-xs text-stone-500">Bài đã luyện</p><p className="mt-1 text-2xl font-black">{attemptedCount}<span className="ml-1 text-sm font-semibold text-stone-400">/ {lessons.length}</span></p><p className="mt-1 text-xs text-stone-500">Đã có ít nhất một lần kiểm tra</p></div>
         <div className="rounded-2xl border border-stone-200 bg-white p-4 dark:border-stone-800 dark:bg-stone-900"><p className="text-xs text-stone-500">Độ chính xác tích lũy</p><p className="mt-1 text-2xl font-black">{overallAccuracy}%</p><p className="mt-1 text-xs text-stone-500">{totalCorrect}/{totalAttempts} lượt trả lời đúng</p></div>
