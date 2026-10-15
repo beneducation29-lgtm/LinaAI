@@ -62,10 +62,11 @@ console.log('Classic HSK 5000 vocabulary tests passed');
 
 const appShell = fs.readFileSync('src/components/layout/AppShell.tsx', 'utf8');
 const appContext = fs.readFileSync('src/context/AppContext.tsx', 'utf8');
+const mockData = fs.readFileSync('src/data/mockData.ts', 'utf8');
 assert.match(appShell, /!authUser/);
 assert.match(appShell, /Kho học tập riêng của bạn/);
 assert.match(appShell, /Đăng nhập tài khoản/);
-assert.match(appContext, /currentLevel: 'Chưa biết gì'/);
+assert.match(mockData, /currentLevel: 'Cơ bản'/);
 assert.match(appContext, /vocabularyLearnedCount: 0/);
 assert.match(appContext, /tags: \[\.\.\.new Set/);
 assert.match(learningScreen, /Kho HSK cổ điển · dữ liệu thật/);
