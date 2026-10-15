@@ -13,6 +13,7 @@ import {
 import { ReviewSchedule, MistakeRecord, MistakeType, AIStoredMemory, LearnerProfile, MemoryRepository } from '../types/learning';
 import { LessonEngineLesson, LessonQuizResult, LessonCompletionResult } from '../types/lessonEngine';
 import { syncEngine } from '../services/syncEngine';
+import { accountStorageKey } from '../services/accountStorage';
 import { analytics } from '../services/analytics';
 import { getCurrentUser, login as loginAccountRequest, signup as signupAccountRequest, logout as logoutAccountRequest } from '../services/authService';
 import type { AuthUser } from '../services/authService';
@@ -27,7 +28,7 @@ import { scheduleReview, isDue, recordMistake } from '../services/learningEngine
 import { HSK1_LESSONS } from '../data/hsk1Lessons';
 import { completeLesson } from '../services/lessonEngine';
 import { MotivationState, MotivationActivityType } from '../types/motivation';
-import { DailyGoalMinutes, getTodayStats, getMotivationSnapshot, loadMotivationState, recordMotivationActivity as applyMotivationActivity, saveMotivationState } from '../services/motivationEngine';
+import { DailyGoalMinutes, getTodayStats, getMotivationSnapshot, loadMotivationState, recordMotivationActivity as applyMotivationActivity, saveMotivationState, MOTIVATION_STORAGE_KEY } from '../services/motivationEngine';
 import { HSK_SPEAKING_VOCABULARY } from '../data/hskSpeakingVocabulary';
 import { HSK_CLASSIC_VOCABULARY } from '../data/hskClassicVocabulary';
 import { HSK_VI_MEANINGS } from '../data/hskVietnameseMeanings';
@@ -115,8 +116,35 @@ const STORAGE_KEYS = {
   LISTENING_PROGRESS: 'lina_listening_progress_v1'
 };
 
+const legacyGuestStorageIsSafe = () => {
+  try {
+    const raw = readStoredForGuest(STORAGE_KEYS.USER);
+    if (!raw) return true;
+    const saved = JSON.parse(raw) as Partial<UserProfile>;
+    return !saved.id || saved.id === INITIAL_USER_PROFILE.id;
+  } catch {
+    return false;
+  }
+};
+const readStoredForGuest = (key: string) => {
+  const scoped = storage.getItem(accountStorageKey(key, null));
+  if (scoped !== null) return scoped;
+  return legacyGuestStorageIsSafe() ? storage.getItem(key) : null;
+};
+const readAccountJson = <T,>(key: string, userId: string | null, fallback: T): T => {
+  try {
+    const raw = storage.getItem(accountStorageKey(key, userId)) ?? (!userId ? readStoredForGuest(key) : null);
+    return raw ? JSON.parse(raw) as T : fallback;
+  } catch {
+    return fallback;
+  }
+};
+const readAccountString = (key: string, userId: string | null, fallback: string) => {
+  const value = storage.getItem(accountStorageKey(key, userId)) ?? (!userId ? readStoredForGuest(key) : null);
+  return value ?? fallback;
+};
 const listeningProgressStorageKey = (userId: string | null | undefined) =>
-  `${STORAGE_KEYS.LISTENING_PROGRESS}:${userId || 'guest'}`;
+  accountStorageKey(STORAGE_KEYS.LISTENING_PROGRESS, userId);
 
 const readListeningProgress = (userId: string | null | undefined): ListeningProgress => {
   try {
@@ -128,9 +156,10 @@ const readListeningProgress = (userId: string | null | undefined): ListeningProg
 };
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [authUser, setAuthUser] = useState<AuthUser | null>(null);
   const [user, setUser] = useState<UserProfile>(() => {
     try {
-      const saved = storage.getItem(STORAGE_KEYS.USER);
+      const saved = readStoredForGuest(STORAGE_KEYS.USER);
       if (saved) return JSON.parse(saved);
     } catch {
       // fallback
@@ -138,9 +167,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return INITIAL_USER_PROFILE;
   });
 
+  const [showOnboarding, setShowOnboarding] = useState<boolean>(() => !user.onboardingCompleted);
+
   const [preferences, setPreferences] = useState<DisplayPreferences>(() => {
     try {
-      const saved = storage.getItem(STORAGE_KEYS.PREFERENCES);
+      const saved = readStoredForGuest(STORAGE_KEYS.PREFERENCES);
       if (saved) return JSON.parse(saved);
     } catch {
       // fallback
@@ -150,7 +181,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [tutorMode, setTutorModeState] = useState<TutorMode>(() => {
     try {
-      const saved = storage.getItem(STORAGE_KEYS.TUTOR_MODE);
+      const saved = readStoredForGuest(STORAGE_KEYS.TUTOR_MODE);
       if (saved === 'teacher' || saved === 'conversation') return saved;
     } catch {
       // fallback
@@ -160,7 +191,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [learnerMemory, setLearnerMemory] = useState<string[]>(() => {
     try {
-      const saved = storage.getItem(STORAGE_KEYS.LEARNER_MEMORY);
+      const saved = readStoredForGuest(STORAGE_KEYS.LEARNER_MEMORY);
       if (saved) return JSON.parse(saved);
     } catch {
       // fallback
@@ -172,16 +203,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [lessonSectionIndex, setLessonSectionIndex] = useState<number>(0);
   const [currentLesson] = useState<Lesson>(LESSON_HSK1_1);
   const [structuredProgress, setStructuredProgress] = useState<Record<string, { mastery: number; speaking: number; listening: number; grammar: number }>>(() => {
-    try { const saved=storage.getItem(STORAGE_KEYS.STRUCTURED_PROGRESS); if(saved) return JSON.parse(saved); } catch {} return {};
+    try { const saved=readStoredForGuest(STORAGE_KEYS.STRUCTURED_PROGRESS); if(saved) return JSON.parse(saved); } catch {} return {};
   });
   const [reviewSchedules, setReviewSchedules] = useState<Record<string, ReviewSchedule>>(() => {
-    try { const saved=storage.getItem(STORAGE_KEYS.REVIEW_SCHEDULES); if(saved) return JSON.parse(saved); } catch {} return {};
+    try { const saved=readStoredForGuest(STORAGE_KEYS.REVIEW_SCHEDULES); if(saved) return JSON.parse(saved); } catch {} return {};
   });
   const [mistakes, setMistakes] = useState<MistakeRecord[]>(() => {
-    try { const saved=storage.getItem(STORAGE_KEYS.MISTAKES); if(saved) return JSON.parse(saved); } catch {} return [];
+    try { const saved=readStoredForGuest(STORAGE_KEYS.MISTAKES); if(saved) return JSON.parse(saved); } catch {} return [];
   });
   const [structuredSavedVocabularyIds, setStructuredSavedVocabularyIds] = useState<string[]>(() => {
-    try { const saved=storage.getItem(STORAGE_KEYS.STRUCTURED_SAVED); if(saved) return JSON.parse(saved); } catch {} return [];
+    try { const saved=readStoredForGuest(STORAGE_KEYS.STRUCTURED_SAVED); if(saved) return JSON.parse(saved); } catch {} return [];
   });
   const [allVocabularies] = useState<Vocabulary[]>(() => {
     const byKey = new Map<string, Vocabulary>();
@@ -203,10 +234,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }));
   });
   const memoryRepoRef = React.useRef<MemoryRepository | null>(null);
-  if (!memoryRepoRef.current) memoryRepoRef.current = createLocalMemoryRepository();
+  if (!memoryRepoRef.current) memoryRepoRef.current = createLocalMemoryRepository(accountStorageKey('lina_ai_memory_v2', null));
   const [aiMemory, setAiMemory] = useState<AIStoredMemory>(() => memoryRepoRef.current!.load());
-  const [motivation, setMotivation] = useState<MotivationState>(() => loadMotivationState(INITIAL_USER_PROFILE.dailyGoalMinutes, INITIAL_USER_PROFILE.streakDays));
-  const [authUser, setAuthUser] = useState<AuthUser | null>(null);
+  const [motivation, setMotivation] = useState<MotivationState>(() => loadMotivationState(INITIAL_USER_PROFILE.dailyGoalMinutes, INITIAL_USER_PROFILE.streakDays, accountStorageKey(MOTIVATION_STORAGE_KEY, null)));
   const [listeningProgress, setListeningProgress] = useState<ListeningProgress>(() => readListeningProgress(null));
   const listeningProgressOwnerRef = React.useRef('guest');
   const skipListeningProgressPersistRef = React.useRef(false);
@@ -217,7 +247,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [conversation, setConversation] = useState<Conversation>(() => {
     try {
-      const saved = storage.getItem(STORAGE_KEYS.CONVERSATION);
+      const saved = readStoredForGuest(STORAGE_KEYS.CONVERSATION);
       if (saved) return JSON.parse(saved);
     } catch {
       // fallback
@@ -242,7 +272,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
   const [flashcards, setFlashcards] = useState<Flashcard[]>(() => {
     try {
-      const saved = storage.getItem(STORAGE_KEYS.FLASHCARDS);
+      const saved = readStoredForGuest(STORAGE_KEYS.FLASHCARDS);
       if (saved) {
         const parsed = JSON.parse(saved) as Flashcard[];
         if (Array.isArray(parsed)) {
@@ -276,29 +306,43 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     void getCurrentUser().then(account => { if (mounted) setAuthUser(account); });
     return () => { mounted = false; };
   }, []);
+  const resetLocalAccountState = (accountId: string | null, displayName?: string) => {
+    const defaultProfile: UserProfile = {
+      ...INITIAL_USER_PROFILE,
+      ...(accountId ? { id: accountId, name: displayName || 'Học viên' } : {}),
+    };
+    const storedProfile = readAccountJson<UserProfile>(STORAGE_KEYS.USER, accountId, defaultProfile);
+    const profile = accountId && storedProfile.id !== accountId ? defaultProfile : storedProfile;
+    setUser(profile);
+    setPreferences(readAccountJson<DisplayPreferences>(STORAGE_KEYS.PREFERENCES, accountId, profile.preferences));
+    setTutorModeState(readAccountString(STORAGE_KEYS.TUTOR_MODE, accountId, 'conversation') === 'teacher' ? 'teacher' : 'conversation');
+    setLearnerMemory(readAccountJson<string[]>(STORAGE_KEYS.LEARNER_MEMORY, accountId, []));
+    setConversation(readAccountJson<Conversation>(STORAGE_KEYS.CONVERSATION, accountId, INITIAL_CONVERSATION));
+    setFlashcards(readAccountJson<Flashcard[]>(STORAGE_KEYS.FLASHCARDS, accountId, INITIAL_FLASHCARDS).map(enrichFlashcard));
+    setStructuredProgress(readAccountJson(STORAGE_KEYS.STRUCTURED_PROGRESS, accountId, {}));
+    setReviewSchedules(readAccountJson(STORAGE_KEYS.REVIEW_SCHEDULES, accountId, {}));
+    setMistakes(readAccountJson<MistakeRecord[]>(STORAGE_KEYS.MISTAKES, accountId, []));
+    setStructuredSavedVocabularyIds(readAccountJson<string[]>(STORAGE_KEYS.STRUCTURED_SAVED, accountId, []));
+    memoryRepoRef.current = createLocalMemoryRepository(accountStorageKey('lina_ai_memory_v2', accountId));
+    setAiMemory(memoryRepoRef.current.load());
+    setMotivation(loadMotivationState(profile.dailyGoalMinutes, profile.streakDays, accountStorageKey(MOTIVATION_STORAGE_KEY, accountId)));
+    const owner = accountId || 'guest';
+    listeningProgressOwnerRef.current = owner;
+    skipListeningProgressPersistRef.current = true;
+    setListeningProgress(readListeningProgress(owner));
+    setShowOnboarding(!profile.onboardingCompleted);
+  };
+
   useEffect(() => {
-    syncEngine.setUser(authUser?.id || null);
+    const accountId = authUser?.id || null;
+    syncEngine.setUser(accountId);
     syncReadyRef.current = false;
     setSyncReady(false);
+    resetLocalAccountState(accountId, authUser?.name);
     if (!authUser) return;
-    setUser(prev => prev.id === authUser.id ? prev : {
-      ...INITIAL_USER_PROFILE,
-      id: authUser.id,
-      name: authUser.name || 'Học viên',
-      avatarUrl: undefined,
-      currentLevel: 'Chưa biết gì',
-      currentHsk: 'HSK 1',
-      learningGoal: { ...INITIAL_USER_PROFILE.learningGoal, targetMinutesPerDay: 10, targetHskLevel: 'HSK 2' },
-      dailyGoalMinutes: 10,
-      todayMinutesSpent: 0,
-      streakDays: 0,
-      vocabularyLearnedCount: 0,
-      lessonsCompletedCount: 0,
-      pronunciationAccuracy: 0,
-      savedVocabularyIds: [],
-      onboardingCompleted: false
-    });
+    const activeAccountId = authUser.id;
     void syncEngine.initialSync().then(() => {
+      if (activeAccountId !== authUser.id) return;
       syncReadyRef.current = true;
       setSyncReady(true);
       setLearnerMemory(prev => {
@@ -381,10 +425,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     enqueue('learnerMemory', learnerMemory);
   }, [authUser, syncReady, user, preferences, conversation, flashcards, structuredProgress, reviewSchedules, listeningProgress, mistakes, structuredSavedVocabularyIds, aiMemory, motivation, learnerMemory]);
 
-  const [showOnboarding, setShowOnboarding] = useState<boolean>(() => {
-    return !user.onboardingCompleted;
-  });
-
   const speakingActivities = motivation.activities.filter(a => a.type === 'speaking' || a.type === 'pronunciation');
   const speakingScores = speakingActivities.map(a => Number(a.metadata?.score)).filter(Number.isFinite);
   const grammarLearnedCount = Object.values(structuredProgress).filter(p => p.grammar > 0).length;
@@ -414,7 +454,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [user.learningGoal.category, user.learningGoal.targetHskLevel]);
 
   useEffect(() => { memoryRepoRef.current!.save(aiMemory); }, [aiMemory]);
-  useEffect(() => { saveMotivationState(motivation); }, [motivation]);
+  useEffect(() => { saveMotivationState(motivation, accountStorageKey(MOTIVATION_STORAGE_KEY, authUser?.id)); }, [motivation, authUser?.id]);
   useEffect(() => {
     const today=getTodayStats(motivation);
     const lessonCount=motivation.activities.filter(a=>a.type==='lesson').length;
@@ -433,7 +473,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       document.documentElement.classList.remove('dark');
     }
     try {
-      storage.setItem(STORAGE_KEYS.PREFERENCES, JSON.stringify(preferences));
+      storage.setItem(accountStorageKey(STORAGE_KEYS.PREFERENCES, authUser?.id), JSON.stringify(preferences));
     } catch {
       // ignore
     }
@@ -442,7 +482,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Sync user to storage
   useEffect(() => {
     try {
-      storage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
+      storage.setItem(accountStorageKey(STORAGE_KEYS.USER, authUser?.id), JSON.stringify(user));
     } catch {
       // ignore
     }
@@ -451,7 +491,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Sync conversation
   useEffect(() => {
     try {
-      storage.setItem(STORAGE_KEYS.CONVERSATION, JSON.stringify(conversation));
+      storage.setItem(accountStorageKey(STORAGE_KEYS.CONVERSATION, authUser?.id), JSON.stringify(conversation));
     } catch {
       // ignore
     }
@@ -460,7 +500,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Sync flashcards
   useEffect(() => {
     try {
-      storage.setItem(STORAGE_KEYS.FLASHCARDS, JSON.stringify(flashcards));
+      storage.setItem(accountStorageKey(STORAGE_KEYS.FLASHCARDS, authUser?.id), JSON.stringify(flashcards));
     } catch {
       // ignore
     }
@@ -469,13 +509,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Sync tutor mode
   useEffect(() => {
     try {
-      storage.setItem(STORAGE_KEYS.TUTOR_MODE, tutorMode);
+      storage.setItem(accountStorageKey(STORAGE_KEYS.TUTOR_MODE, authUser?.id), tutorMode);
     } catch {
       // ignore
     }
   }, [tutorMode]);
 
-  useEffect(() => { try { storage.setItem(STORAGE_KEYS.STRUCTURED_PROGRESS, JSON.stringify(structuredProgress)); } catch {} }, [structuredProgress]);
+  useEffect(() => { try { storage.setItem(accountStorageKey(STORAGE_KEYS.STRUCTURED_PROGRESS, authUser?.id), JSON.stringify(structuredProgress)); } catch {} }, [structuredProgress]);
   useEffect(() => {
     const owner = authUser?.id || 'guest';
     if (listeningProgressOwnerRef.current !== owner) return;
@@ -485,14 +525,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
     try { storage.setItem(listeningProgressStorageKey(owner), JSON.stringify(listeningProgress)); } catch {}
   }, [listeningProgress, authUser?.id]);
-  useEffect(() => { try { storage.setItem(STORAGE_KEYS.REVIEW_SCHEDULES, JSON.stringify(reviewSchedules)); } catch {} }, [reviewSchedules]);
-  useEffect(() => { try { storage.setItem(STORAGE_KEYS.MISTAKES, JSON.stringify(mistakes)); } catch {} }, [mistakes]);
-  useEffect(() => { try { storage.setItem(STORAGE_KEYS.STRUCTURED_SAVED, JSON.stringify(structuredSavedVocabularyIds)); } catch {} }, [structuredSavedVocabularyIds]);
+  useEffect(() => { try { storage.setItem(accountStorageKey(STORAGE_KEYS.REVIEW_SCHEDULES, authUser?.id), JSON.stringify(reviewSchedules)); } catch {} }, [reviewSchedules]);
+  useEffect(() => { try { storage.setItem(accountStorageKey(STORAGE_KEYS.MISTAKES, authUser?.id), JSON.stringify(mistakes)); } catch {} }, [mistakes]);
+  useEffect(() => { try { storage.setItem(accountStorageKey(STORAGE_KEYS.STRUCTURED_SAVED, authUser?.id), JSON.stringify(structuredSavedVocabularyIds)); } catch {} }, [structuredSavedVocabularyIds]);
 
   // Sync learner memory
   useEffect(() => {
     try {
-      storage.setItem(STORAGE_KEYS.LEARNER_MEMORY, JSON.stringify(learnerMemory));
+      storage.setItem(accountStorageKey(STORAGE_KEYS.LEARNER_MEMORY, authUser?.id), JSON.stringify(learnerMemory));
     } catch {
       // ignore
     }
