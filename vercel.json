@@ -6,7 +6,7 @@
       "headers": [
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; img-src 'self' data: blob:; font-src 'self' https://fonts.gstatic.com; connect-src 'self'; media-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests"
+          "value": "default-src 'self'; script-src 'self' 'sha256-UYSUPGDBIZmpa+Iu0qY63WGgC0ZzqNu19VyJ3rS8wGM=' 'sha256-im4KquB9P1f+SRFwi3KGUutOodJQiWf7tcoXux0858Q='; style-src 'self' https://fonts.googleapis.com 'sha256-OvHKiAQmIBtOB46QTgJKA/vq/ys7FiIIoj/1CnLNSfM='; img-src 'self' data: blob:; font-src 'self' https://fonts.gstatic.com; connect-src 'self'; media-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests"
         },
         {
           "key": "Strict-Transport-Security",
