@@ -118,7 +118,7 @@ const STORAGE_KEYS = {
 
 const legacyGuestStorageIsSafe = () => {
   try {
-    const raw = readStoredForGuest(STORAGE_KEYS.USER);
+    const raw = storage.getItem(STORAGE_KEYS.USER);
     if (!raw) return true;
     const saved = JSON.parse(raw) as Partial<UserProfile>;
     return !saved.id || saved.id === INITIAL_USER_PROFILE.id;
