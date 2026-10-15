@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import {
   countDueListeningReviews,
   getDueListeningItemIds,
@@ -70,5 +71,28 @@ assert.deepEqual(
 );
 assert.deepEqual(getSmartListeningItemIds(reviewCandidates, [], 5, reviewedAt), []);
 assert.deepEqual(getSmartListeningItemIds(reviewCandidates, ['weakAndDue'], 0, reviewedAt), []);
+
+
+const listeningSource = fs.readFileSync('src/components/listening/ListeningScreen.tsx', 'utf8');
+const newListeningLessons: Array<[string, number]> = [
+  ['introduce-school', 1], ['daily-breakfast', 1],
+  ['library-card', 2], ['missed-bus', 2],
+  ['return-package', 3], ['team-decision', 3],
+  ['train-change', 4], ['project-risk', 4],
+  ['media-literacy', 5], ['urban-planning', 5],
+  ['research-limits', 6], ['negotiation', 6],
+];
+for (const [id, hsk] of newListeningLessons) {
+  const lessonLine = listeningSource.split(/\r?\n/).find(line => line.includes(`id:'${id}',hsk:${hsk},`));
+  assert.ok(lessonLine, `Missing HSK ${hsk} listening lesson: ${id}`);
+  assert.match(lessonLine, /hanzi:/, `${id} must include Chinese listening text`);
+  assert.match(lessonLine, /pinyin:/, `${id} must include pinyin`);
+  assert.match(lessonLine, /meaning:/, `${id} must include Vietnamese meaning`);
+  assert.match(lessonLine, /question:/, `${id} must include a comprehension question`);
+  assert.match(lessonLine, /options:/, `${id} must include answer options`);
+  assert.match(lessonLine, /answer:[0-2]/, `${id} must include a valid answer index`);
+  assert.match(lessonLine, /note:/, `${id} must include a learning note`);
+}
+assert.equal(new Set(newListeningLessons.map(([id]) => id)).size, 12, 'new listening lesson IDs must be unique');
 
 console.log('Listening progress scheduling and validation tests passed.');
