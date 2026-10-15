@@ -1,8 +1,10 @@
 import React,{useEffect,useState} from 'react';
 import {ShieldCheck,Download,Trash2,LogOut,Brain,BarChart3,MessageSquare,Mic,UserRound} from 'lucide-react';
 import {DEFAULT_PRIVACY_PREFERENCES,PrivacyPreferences,normalizePrivacyPreferences,clearLearningDataLocally} from '../../services/privacy';
+import {useApp} from '../../context/AppContext';
 
 export const PrivacySecurityPanel:React.FC<{signedIn:boolean}>=({signedIn})=>{
+ const {authUser}=useApp();
  const [preferences,setPreferences]=useState<PrivacyPreferences>(DEFAULT_PRIVACY_PREFERENCES);
  const [loading,setLoading]=useState(false);
  const [message,setMessage]=useState('');
@@ -11,7 +13,7 @@ export const PrivacySecurityPanel:React.FC<{signedIn:boolean}>=({signedIn})=>{
  const save=async(next:PrivacyPreferences)=>{setPreferences(next);setMessage('');try{const r=await fetch('/api/privacy/preferences',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({preferences:next})});if(!r.ok)throw new Error();setMessage('Đã lưu quyền riêng tư.');}catch{setMessage('Không thể lưu cài đặt lúc này.');}};
  const toggle=(key:keyof PrivacyPreferences)=>void save({...preferences,[key]:!preferences[key]});
  const exportData=async()=>{setLoading(true);setMessage('');try{const r=await fetch('/api/privacy/preferences',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'export_data'})});if(!r.ok)throw new Error();const blob=await r.blob();const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='lina-learning-export.json';a.click();URL.revokeObjectURL(url);setMessage('Đã tạo bản xuất dữ liệu học tập.');}catch{setMessage('Không thể xuất dữ liệu lúc này.');}finally{setLoading(false);}};
- const deleteLearning=async()=>{if(!window.confirm('Xóa toàn bộ tiến trình, SRS, lỗi, hội thoại và AI Memory? Hành động này không thể hoàn tác.'))return;setLoading(true);try{const r=await fetch('/api/privacy/preferences',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'delete_learning_data'})});if(!r.ok)throw new Error();clearLearningDataLocally();setMessage('Đã xóa dữ liệu học tập. Hãy bắt đầu lại từ trạng thái sạch.');window.setTimeout(()=>window.location.reload(),700);}catch{setMessage('Không thể hoàn tất xóa dữ liệu.');}finally{setLoading(false);}};
+ const deleteLearning=async()=>{if(!window.confirm('Xóa toàn bộ tiến trình, SRS, lỗi, hội thoại và AI Memory? Hành động này không thể hoàn tác.'))return;setLoading(true);try{const r=await fetch('/api/privacy/preferences',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'delete_learning_data'})});if(!r.ok)throw new Error();clearLearningDataLocally(authUser?.id || null);setMessage('Đã xóa dữ liệu học tập. Hãy bắt đầu lại từ trạng thái sạch.');window.setTimeout(()=>window.location.reload(),700);}catch{setMessage('Không thể hoàn tất xóa dữ liệu.');}finally{setLoading(false);}};
  const deleteAccount=async()=>{const confirmation=window.prompt('Để xóa tài khoản vĩnh viễn, hãy nhập DELETE');if(confirmation!=='DELETE')return;setLoading(true);try{const r=await fetch('/api/privacy/preferences',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'delete_account',confirmation:'DELETE'})});if(!r.ok)throw new Error();window.location.reload();}catch{setMessage('Không thể xóa tài khoản lúc này.');}finally{setLoading(false);}};
  const rows:[keyof PrivacyPreferences,string,string,React.ReactNode][]=[
   ['aiMemoryEnabled','AI Memory','Cho phép Lina nhớ thông tin học tập giữa các buổi.',<Brain className="w-4 h-4"/>],
