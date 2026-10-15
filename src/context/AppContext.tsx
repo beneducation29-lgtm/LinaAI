@@ -316,17 +316,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ...(accountId ? { id: accountId, name: displayName || 'Học viên' } : {}),
     };
     const storedProfile = readAccountJson<UserProfile>(STORAGE_KEYS.USER, accountId, defaultProfile);
-    const profile = accountId && storedProfile.id !== accountId ? defaultProfile : storedProfile;
+    const profile = !storedProfile || typeof storedProfile !== 'object' || (accountId && storedProfile.id !== accountId)
+      ? defaultProfile : storedProfile;
     setUser(profile);
-    setPreferences(readAccountJson<DisplayPreferences>(STORAGE_KEYS.PREFERENCES, accountId, profile.preferences));
+    const storedPreferences = readAccountJson<DisplayPreferences>(STORAGE_KEYS.PREFERENCES, accountId, profile.preferences);
+    setPreferences(storedPreferences && typeof storedPreferences === 'object' ? storedPreferences : profile.preferences);
     setTutorModeState(readAccountString(STORAGE_KEYS.TUTOR_MODE, accountId, 'conversation') === 'teacher' ? 'teacher' : 'conversation');
-    setLearnerMemory(readAccountJson<string[]>(STORAGE_KEYS.LEARNER_MEMORY, accountId, []));
-    setConversation(readAccountJson<Conversation>(STORAGE_KEYS.CONVERSATION, accountId, INITIAL_CONVERSATION));
-    setFlashcards(readAccountJson<Flashcard[]>(STORAGE_KEYS.FLASHCARDS, accountId, INITIAL_FLASHCARDS).map(enrichFlashcard));
-    setStructuredProgress(readAccountJson(STORAGE_KEYS.STRUCTURED_PROGRESS, accountId, {}));
-    setReviewSchedules(readAccountJson(STORAGE_KEYS.REVIEW_SCHEDULES, accountId, {}));
-    setMistakes(readAccountJson<MistakeRecord[]>(STORAGE_KEYS.MISTAKES, accountId, []));
-    setStructuredSavedVocabularyIds(readAccountJson<string[]>(STORAGE_KEYS.STRUCTURED_SAVED, accountId, []));
+    const storedLearnerMemory = readAccountJson<unknown>(STORAGE_KEYS.LEARNER_MEMORY, accountId, []);
+    setLearnerMemory(Array.isArray(storedLearnerMemory) ? storedLearnerMemory.filter((item): item is string => typeof item === 'string').slice(-100) : []);
+    const storedConversation = readAccountJson<unknown>(STORAGE_KEYS.CONVERSATION, accountId, INITIAL_CONVERSATION);
+    setConversation(storedConversation && typeof storedConversation === 'object' && !Array.isArray(storedConversation) ? storedConversation as Conversation : INITIAL_CONVERSATION);
+    const storedFlashcards = readAccountJson<unknown>(STORAGE_KEYS.FLASHCARDS, accountId, INITIAL_FLASHCARDS);
+    setFlashcards((Array.isArray(storedFlashcards) ? storedFlashcards : INITIAL_FLASHCARDS).map(enrichFlashcard));
+    const storedStructuredProgress = readAccountJson<unknown>(STORAGE_KEYS.STRUCTURED_PROGRESS, accountId, {});
+    setStructuredProgress(storedStructuredProgress && typeof storedStructuredProgress === 'object' && !Array.isArray(storedStructuredProgress) ? storedStructuredProgress as Record<string, { mastery: number; speaking: number; listening: number; grammar: number }> : {});
+    const storedReviewSchedules = readAccountJson<unknown>(STORAGE_KEYS.REVIEW_SCHEDULES, accountId, {});
+    setReviewSchedules(storedReviewSchedules && typeof storedReviewSchedules === 'object' && !Array.isArray(storedReviewSchedules) ? storedReviewSchedules as Record<string, ReviewSchedule> : {});
+    const storedMistakes = readAccountJson<unknown>(STORAGE_KEYS.MISTAKES, accountId, []);
+    setMistakes(Array.isArray(storedMistakes) ? storedMistakes as MistakeRecord[] : []);
+    const storedSavedVocabulary = readAccountJson<unknown>(STORAGE_KEYS.STRUCTURED_SAVED, accountId, []);
+    setStructuredSavedVocabularyIds(Array.isArray(storedSavedVocabulary) ? storedSavedVocabulary.filter((item): item is string => typeof item === 'string') : []);
     memoryRepoRef.current = createLocalMemoryRepository(accountStorageKey('lina_ai_memory_v2', accountId));
     setAiMemory(memoryRepoRef.current.load());
     setMotivation(loadMotivationState(profile.dailyGoalMinutes, profile.streakDays, accountStorageKey(MOTIVATION_STORAGE_KEY, accountId)));
