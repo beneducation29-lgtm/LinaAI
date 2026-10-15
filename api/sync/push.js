@@ -4,6 +4,9 @@ const SUPABASE_URL = process.env.SUPABASE_URL || '';
 const SUPABASE_SERVER_KEY =
   process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
+const MAX_RECORD_BYTES = 1024 * 1024;
+const MAX_TOTAL_BYTES = 3 * 1024 * 1024;
+
 const ALLOWED_KEYS = new Set([
   'profile',
   'preferences',
@@ -43,16 +46,33 @@ export default async function handler(req, res) {
       : [];
     const accepted = [];
     const conflicts = [];
+    let totalPayloadBytes = 0;
 
     for (const record of records) {
       if (
         !record ||
         !ALLOWED_KEYS.has(record.key) ||
         typeof record.updatedAt !== 'string' ||
-        !Number.isFinite(Number(record.version))
+        !Number.isFinite(Date.parse(record.updatedAt)) ||
+        !Number.isInteger(record.version) ||
+        record.version < 1 ||
+        !Object.prototype.hasOwnProperty.call(record, 'data')
       ) {
         continue;
       }
+
+      let payload;
+      try {
+        payload = JSON.stringify(record.data);
+      } catch {
+        continue;
+      }
+      if (typeof payload !== 'string') continue;
+      const payloadBytes = Buffer.byteLength(payload, 'utf8');
+      if (payloadBytes > MAX_RECORD_BYTES || totalPayloadBytes + payloadBytes > MAX_TOTAL_BYTES) {
+        return json(res, 413, { error: 'Sync payload quá lớn. Vui lòng đồng bộ ít dữ liệu hơn.' });
+      }
+      totalPayloadBytes += payloadBytes;
 
       const lookup = new URL(`${SUPABASE_URL}/rest/v1/lina_learning_sync_records`);
       lookup.searchParams.set('select', 'version,updated_at');
@@ -86,10 +106,7 @@ export default async function handler(req, res) {
             user_id: user.id,
             record_key: record.key,
             payload: record.data,
-            version: Math.max(
-              Number(record.version) || 1,
-              Number(existing?.version || 0) + 1
-            ),
+            version: Math.max(record.version, Number(existing?.version || 0) + 1),
             updated_at: record.updatedAt,
             device_id: String(record.deviceId || 'unknown').slice(0, 100),
           }),
