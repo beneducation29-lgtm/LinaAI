@@ -357,11 +357,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     resetLocalAccountState(accountId, authUser?.name);
     if (!authUser) { setAuthScopeReady(true); return; }
     const activeAccountId = authUser.id;
-    void syncEngine.initialSync().then(() => {
+    void syncEngine.initialSync().then(synced => {
       if (activeAccountIdRef.current !== activeAccountId) return;
+      setAuthScopeReady(true);
+      // Do not enqueue local defaults over remote data when the initial pull failed.
+      if (!synced) return;
       syncReadyRef.current = true;
       setSyncReady(true);
-      setAuthScopeReady(true);
       setLearnerMemory(prev => {
         const seed = `Học viên tên là: ${authUser.name || 'Học viên'}`;
         return prev.includes(seed) ? prev : [...prev, seed].slice(-8);
@@ -424,7 +426,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const loginAccount = async (email: string, password: string) => { const account = await loginAccountRequest(email, password); setAuthScopeReady(false); setAuthUser(account); };
   const signupAccount = async (email: string, password: string, name?: string) => { const account = await signupAccountRequest(email, password, name); if (account) { setAuthScopeReady(false); setAuthUser(account); } };
   const logoutAccount = async () => { setAuthScopeReady(false); await logoutAccountRequest(); syncEngine.setUser(null); setAuthUser(null); };
-  const syncNow = async () => { await syncEngine.sync(); };
+  const syncNow = async () => {
+    const synced = await syncEngine.sync();
+    if (!synced || !authUser || syncReadyRef.current) return;
+    syncReadyRef.current = true;
+    setSyncReady(true);
+    setAuthScopeReady(true);
+    setLearnerMemory(prev => {
+      const seed = `Học viên tên là: ${authUser.name || 'Học viên'}`;
+      return prev.includes(seed) ? prev : [...prev, seed].slice(-8);
+    });
+  };
+  useEffect(() => {
+    const handleOnline = () => { if (authUser && !syncReadyRef.current) void syncNow(); };
+    window.addEventListener('online', handleOnline);
+    return () => window.removeEventListener('online', handleOnline);
+  }, [authUser?.id]);
   useEffect(() => {
     if (!authUser || !syncReady || !syncReadyRef.current || applyingRemoteRef.current) return;
     const enqueue = (key: any, data: unknown) => syncEngine.enqueue(key, data);
