@@ -25,12 +25,19 @@ export function normalizePrivacyPreferences(input:unknown):PrivacyPreferences{
 }
 
 
-export function clearLearningDataLocally(){
+export function clearLearningDataLocally(userId?: string | null){
   if(typeof localStorage==='undefined')return;
   const keys=[
-    'lina_conversation_v1','lina_flashcards_v1','lina_structured_progress_v1',
-    'lina_review_schedules_v1','lina_mistakes_v1','lina_structured_saved_v1',
-    'lina_tutor_mode_v1','lina_learner_memory_v1','lina_sync_queue_v1','lina_sync_meta_v1'
+    'lina_user_profile_v1','lina_conversation_v1','lina_flashcards_v1','lina_structured_progress_v1',
+    'lina_review_schedules_v1','lina_mistakes_v1','lina_structured_saved_v1','lina_listening_progress_v1',
+    'lina_tutor_mode_v1','lina_learner_memory_v1','lina_ai_memory_v2','lina_motivation_v1',
+    'lina_sync_queue_v1','lina_sync_meta_v1'
   ];
-  for(const key of keys){try{localStorage.removeItem(key);}catch{}}
+  const owner = typeof userId === 'string' && userId.trim() ? userId.trim() : null;
+  for(const key of keys){
+    try{
+      localStorage.removeItem(`${key}:${owner || 'guest'}`);
+      if(!owner) localStorage.removeItem(key);
+    }catch{}
+  }
 }

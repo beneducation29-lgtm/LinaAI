@@ -27,9 +27,9 @@ const dayDifference=(a:string,b:string)=>dayNumber(b)-dayNumber(a);
 
 export const emptyMotivationState=(dailyGoalMinutes:DailyGoalMinutes=5,legacyStreakDays=0):MotivationState=>({activities:[],xp:0,streakDays:legacyStreakDays,lastStudyDate:null,dailyGoalMinutes,achievementIds:[]});
 
-export const loadMotivationState=(dailyGoalMinutes:DailyGoalMinutes,legacyStreakDays=0):MotivationState=>{
+export const loadMotivationState=(dailyGoalMinutes:DailyGoalMinutes,legacyStreakDays=0,storageKey=MOTIVATION_STORAGE_KEY):MotivationState=>{
   try{
-    const raw=storage.getItem(MOTIVATION_STORAGE_KEY);
+    const raw=storage.getItem(storageKey);
     if(raw){
       const parsed=JSON.parse(raw) as MotivationState;
       return {...emptyMotivationState(dailyGoalMinutes,legacyStreakDays),...parsed,
@@ -40,7 +40,7 @@ export const loadMotivationState=(dailyGoalMinutes:DailyGoalMinutes,legacyStreak
   }catch{}
   return emptyMotivationState(dailyGoalMinutes,legacyStreakDays);
 };
-export const saveMotivationState=(state:MotivationState)=>{try{storage.setItem(MOTIVATION_STORAGE_KEY,JSON.stringify(state));}catch{}};
+export const saveMotivationState=(state:MotivationState,storageKey=MOTIVATION_STORAGE_KEY)=>{try{storage.setItem(storageKey,JSON.stringify(state));}catch{}};
 
 export const getTodayStats=(state:MotivationState,date=localDate()):MotivationDailyStats=>{
   const a=state.activities.filter(x=>x.localDate===date);
