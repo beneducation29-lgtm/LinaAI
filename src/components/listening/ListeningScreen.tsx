@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { LongListeningLab } from './LongListeningLab';
 import { useApp } from '../../context/AppContext';
 import { getDueListeningItemIds, getSmartListeningItemIds, getWeakListeningItemIds } from '../../services/listeningProgress';
 import { AudioLines, BookOpen, CheckCircle2, CircleHelp, Headphones, Pause, Play, RotateCcw, Search, Settings2, Volume2 } from 'lucide-react';
@@ -229,6 +230,8 @@ export const ListeningScreen: React.FC = () => {
           <div className="rounded-2xl border border-stone-200 bg-white p-3 dark:border-stone-800 dark:bg-stone-900"><div className="text-xs text-stone-500">Đúng trong lọc</div><div className="mt-1 text-2xl font-black text-stone-900 dark:text-stone-100">{score}/{answered}</div></div>
         </div>
       </header>
+
+      <LongListeningLab />
 
       <section className="rounded-3xl border border-stone-200 bg-white p-4 dark:border-stone-800 dark:bg-stone-900">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
