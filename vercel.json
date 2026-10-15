@@ -31,10 +31,12 @@
       ]
     }
   ],
-  "regions": [
-    "sin1"
-  ],
+  "regions": ["sin1"],
   "rewrites": [
+    {
+      "source": "/api/analytics/events",
+      "destination": "/api/admin/analytics"
+    },
     {
       "source": "/auth/callback",
       "destination": "/"
