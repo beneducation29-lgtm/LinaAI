@@ -21,7 +21,7 @@ const AdminCMS = React.lazy(() =>
 );
 
 export const AppShell: React.FC = () => {
-  const { currentTab, setCurrentTab, user, preferences, toggleTheme, showOnboarding, authUser, loginAccount, signupAccount } = useApp();
+  const { currentTab, setCurrentTab, user, preferences, toggleTheme, showOnboarding, authUser, authScopeReady, loginAccount, signupAccount } = useApp();
   const [accountMode, setAccountMode] = React.useState<'login'|'signup'>('login');
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
@@ -93,6 +93,10 @@ export const AppShell: React.FC = () => {
         </div>
       </div>
     );
+  }
+
+  if (!authScopeReady) {
+    return <main className="min-h-screen grid place-items-center bg-[#FAF8F5] text-stone-700 dark:bg-stone-950 dark:text-stone-200" role="status" aria-live="polite"><div className="text-center"><img src={linaAvatarImg} alt="" className="w-14 h-14 rounded-2xl mx-auto mb-4 object-cover"/><p className="text-sm font-semibold">Đang tải dữ liệu tài khoản an toàn…</p></div></main>;
   }
 
   if (window.location.pathname === '/admin/analytics') {
