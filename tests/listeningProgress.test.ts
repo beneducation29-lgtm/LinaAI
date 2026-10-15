@@ -83,7 +83,7 @@ const newListeningLessons: Array<[string, number]> = [
   ['research-limits', 6], ['negotiation', 6],
 ];
 for (const [id, hsk] of newListeningLessons) {
-  const lessonLine = listeningSource.split('\\n').find(line => line.includes(`id:'${id}',hsk:${hsk},`));
+  const lessonLine = listeningSource.split(/\r?\n/).find(line => line.includes(`id:'${id}',hsk:${hsk},`));
   assert.ok(lessonLine, `Missing HSK ${hsk} listening lesson: ${id}`);
   assert.match(lessonLine, /hanzi:/, `${id} must include Chinese listening text`);
   assert.match(lessonLine, /pinyin:/, `${id} must include pinyin`);
