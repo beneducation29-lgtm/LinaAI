@@ -62,7 +62,7 @@ export class SyncEngine{
    if(this.state.userId!==userId)return false;
    const remaining=retainUnchangedUnsentRecords(this.loadQueue(userId),queue);this.saveQueue(remaining,userId);const syncedAt=remote.serverTime||now();meta.lastSyncedAt=syncedAt;this.saveMeta(meta,userId);this.state={...this.state,status:'synced',lastSyncedAt:syncedAt,pendingCount:remaining.length,error:null};this.emit();if(remaining.length)this.schedule();return true;
  }catch(e){if(this.state.userId===userId){this.state={...this.state,status:'failed',error:e instanceof Error?e.message:'Sync failed'};this.emit();}return false;}finally{this.syncing=false;const activeUserId=this.state.userId;if(activeUserId&&shouldScheduleSyncAgain(userId,activeUserId,this.loadQueue(activeUserId).length))this.schedule();}}
- private applyRemote(record:SyncRecord,userId=this.state.userId){if(!userId||this.state.userId!==userId)return false;window.dispatchEvent(new CustomEvent('lina:sync-remote',{detail:record}));const meta=this.loadMeta(userId);meta.versions[record.key]={version:record.version,updatedAt:record.updatedAt};this.saveMeta(meta,userId);}
+ private applyRemote(record:SyncRecord,userId=this.state.userId){if(!userId||this.state.userId!==userId)return;window.dispatchEvent(new CustomEvent('lina:sync-remote',{detail:record}));const meta=this.loadMeta(userId);meta.versions[record.key]={version:record.version,updatedAt:record.updatedAt};this.saveMeta(meta,userId);}
  async initialSync():Promise<boolean>{return this.sync();}
 }
 export const syncEngine=new SyncEngine();
