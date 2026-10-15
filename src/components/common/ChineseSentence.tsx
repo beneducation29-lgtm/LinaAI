@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { PinyinText } from './PinyinText';
 import { VietnameseTranslation } from './VietnameseTranslation';
@@ -10,6 +10,7 @@ interface ChineseSentenceProps {
   className?: string;
   size?: 'sm' | 'base' | 'lg' | 'xl';
   forceShowAll?: boolean;
+  vocabulary?: Array<{ hanzi: string; pinyin: string; vietnamese: string }>;
 }
 
 export const ChineseSentence: React.FC<ChineseSentenceProps> = ({
@@ -18,8 +19,23 @@ export const ChineseSentence: React.FC<ChineseSentenceProps> = ({
   vietnamese,
   className = '',
   size = 'base',
-  forceShowAll = false
+  forceShowAll = false,
+  vocabulary = []
 }) => {
+  const [selectedWord, setSelectedWord] = useState<string | null>(null);
+  const wordMatches = useMemo(() => vocabulary.filter((v) => v.hanzi && v.pinyin && v.vietnamese).sort((a, b) => b.hanzi.length - a.hanzi.length), [vocabulary]);
+  const renderChinese = () => {
+    if (!wordMatches.length) return hanzi;
+    const parts: Array<{ text: string; word?: typeof wordMatches[number] }> = [];
+    let index = 0;
+    while (index < hanzi.length) {
+      const match = wordMatches.find((v) => hanzi.startsWith(v.hanzi, index));
+      if (match) { parts.push({ text: match.hanzi, word: match }); index += match.hanzi.length; }
+      else { parts.push({ text: hanzi[index] }); index += 1; }
+    }
+    return parts.map((part, i) => part.word ? <button key={i} type="button" onClick={() => setSelectedWord(selectedWord === part.word!.hanzi ? null : part.word!.hanzi)} className={`rounded-sm transition-colors cursor-pointer ${selectedWord === part.word.hanzi ? 'bg-amber-200 text-amber-950 dark:bg-amber-700 dark:text-white underline decoration-2 underline-offset-4' : 'hover:bg-amber-100/80 dark:hover:bg-amber-900/40'}`} aria-pressed={selectedWord === part.word.hanzi} title="Bấm để xem từ vựng tương ứng">{part.text}</button> : <React.Fragment key={i}>{part.text}</React.Fragment>);
+  };
+  const selected = wordMatches.find((v) => v.hanzi === selectedWord);
   const { preferences } = useApp();
 
   const showHanzi = forceShowAll || preferences.showChinese;
