@@ -72,7 +72,7 @@ async function updatePassword(accessToken,password){
   return supabase('/auth/v1/user',{method:'PUT',headers:{Authorization:`Bearer ${accessToken}`},body:JSON.stringify({password})});
 }
 function message(data,fallback){ return data?.error_description||data?.msg||data?.message||fallback; }
-function validEmail(value){ return typeof value==='string' && value.trim().length<=254 && /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(value.trim()); }
+function validEmail(value){ return typeof value==='string' && value.trim().length<=254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim()); }
 function sameOrigin(req){
   const origin=req.headers.origin;
   if(!origin) return true;
