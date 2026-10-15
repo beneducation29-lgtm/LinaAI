@@ -443,6 +443,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return () => window.removeEventListener('online', handleOnline);
   }, [authUser?.id]);
   useEffect(() => {
+    if (!authUser || syncState.userId !== authUser.id || syncState.status !== 'synced' || syncReadyRef.current) return;
+    syncReadyRef.current = true;
+    setSyncReady(true);
+    setAuthScopeReady(true);
+    setLearnerMemory(prev => {
+      const seed = `Học viên tên là: ${authUser.name || 'Học viên'}`;
+      return prev.includes(seed) ? prev : [...prev, seed].slice(-8);
+    });
+  }, [authUser?.id, syncState.userId, syncState.status]);
+  useEffect(() => {
     if (!authUser || !syncReady || !syncReadyRef.current || applyingRemoteRef.current) return;
     const enqueue = (key: any, data: unknown) => syncEngine.enqueue(key, data);
     enqueue('profile', user);
