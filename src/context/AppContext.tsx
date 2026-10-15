@@ -90,6 +90,7 @@ interface AppContextType {
   completeGeneratedLesson: (lesson: LessonEngineLesson, results: LessonQuizResult[]) => LessonCompletionResult;
   motivation: MotivationState;
   authUser: AuthUser | null;
+  authScopeReady: boolean;
   syncState: SyncState;
   loginAccount: (email: string, password: string) => Promise<void>;
   signupAccount: (email: string, password: string, name?: string) => Promise<void>;
@@ -157,6 +158,9 @@ const readListeningProgress = (userId: string | null | undefined): ListeningProg
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
+  const [authResolved, setAuthResolved] = useState(false);
+  const [authScopeReady, setAuthScopeReady] = useState(false);
+  const activeAccountIdRef = React.useRef<string | null>(null);
   const [user, setUser] = useState<UserProfile>(() => {
     try {
       const saved = readStoredForGuest(STORAGE_KEYS.USER);
@@ -303,7 +307,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, []);
   useEffect(() => {
     let mounted = true;
-    void getCurrentUser().then(account => { if (mounted) setAuthUser(account); });
+    void getCurrentUser().then(account => { if (mounted) { setAuthUser(account); setAuthResolved(true); } }).catch(() => { if (mounted) setAuthResolved(true); });
     return () => { mounted = false; };
   }, []);
   const resetLocalAccountState = (accountId: string | null, displayName?: string) => {
@@ -334,23 +338,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   useEffect(() => {
+    if (!authResolved) return;
     const accountId = authUser?.id || null;
+    activeAccountIdRef.current = accountId;
+    setAuthScopeReady(false);
     syncEngine.setUser(accountId);
     syncReadyRef.current = false;
     setSyncReady(false);
     resetLocalAccountState(accountId, authUser?.name);
-    if (!authUser) return;
+    if (!authUser) { setAuthScopeReady(true); return; }
     const activeAccountId = authUser.id;
     void syncEngine.initialSync().then(() => {
-      if (activeAccountId !== authUser.id) return;
+      if (activeAccountIdRef.current !== activeAccountId) return;
       syncReadyRef.current = true;
       setSyncReady(true);
+      setAuthScopeReady(true);
       setLearnerMemory(prev => {
         const seed = `Học viên tên là: ${authUser.name || 'Học viên'}`;
         return prev.includes(seed) ? prev : [...prev, seed].slice(-8);
       });
     });
-  }, [authUser?.id]);
+  }, [authUser?.id, authResolved]);
   useEffect(() => {
     const handler = (event: Event) => {
       const record = (event as CustomEvent<SyncRecord>).detail;
@@ -404,9 +412,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     window.addEventListener('lina:sync-remote', handler);
     return () => window.removeEventListener('lina:sync-remote', handler);
   }, []);
-  const loginAccount = async (email: string, password: string) => { const account = await loginAccountRequest(email, password); setAuthUser(account); };
-  const signupAccount = async (email: string, password: string, name?: string) => { const account = await signupAccountRequest(email, password, name); if (account) setAuthUser(account); };
-  const logoutAccount = async () => { await logoutAccountRequest(); syncEngine.setUser(null); setAuthUser(null); };
+  const loginAccount = async (email: string, password: string) => { const account = await loginAccountRequest(email, password); setAuthScopeReady(false); setAuthUser(account); };
+  const signupAccount = async (email: string, password: string, name?: string) => { const account = await signupAccountRequest(email, password, name); if (account) { setAuthScopeReady(false); setAuthUser(account); } };
+  const logoutAccount = async () => { setAuthScopeReady(false); await logoutAccountRequest(); syncEngine.setUser(null); setAuthUser(null); };
   const syncNow = async () => { await syncEngine.sync(); };
   useEffect(() => {
     if (!authUser || !syncReady || !syncReadyRef.current || applyingRemoteRef.current) return;
@@ -821,6 +829,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         learnerProfile,
         motivation,
       authUser,
+      authScopeReady,
       syncState,
       loginAccount,
       signupAccount,
