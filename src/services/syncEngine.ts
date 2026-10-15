@@ -24,9 +24,9 @@ export class SyncEngine{
  setUser(userId:string|null){this.state={...this.state,userId,status:userId?'syncing':'offline',lastSyncedAt:userId?this.loadMeta(userId).lastSyncedAt:null,pendingCount:userId?this.loadQueue(userId).length:0,error:null};this.emit();}
  enqueue(key:SyncRecordKey,data:unknown){const userId=this.state.userId;if(!userId)return;const meta=this.loadMeta(userId);const previous=meta.versions[key];const record:SyncRecord={key,data,deviceId:getDeviceId(),version:(previous?.version||0)+1,updatedAt:now()};meta.versions[key]={version:record.version,updatedAt:record.updatedAt};this.saveMeta(meta,userId);const q=this.loadQueue(userId).filter(x=>x.key!==key);q.push(record);this.saveQueue(q,userId);this.schedule();}
  private schedule(){if(this.timer)window.clearTimeout(this.timer);this.timer=window.setTimeout(()=>void this.sync(),900);}
- async sync(){const userId=this.state.userId;if(!userId||!navigator.onLine||this.syncing)return;this.syncing=true;this.state={...this.state,status:'syncing',error:null};this.emit();const queue=this.loadQueue(userId);try{
-   let pull=await fetch('/api/sync/pull',{credentials:'include'}); if(pull.status===401){await fetch('/api/auth/refresh',{method:'POST',credentials:'include'});if(this.state.userId!==userId)return;pull=await fetch('/api/sync/pull',{credentials:'include'});} if(this.state.userId!==userId)return; if(pull.status===401){this.state={...this.state,status:'failed',error:'Phiên đăng nhập đã hết hạn.'};this.emit();return;} if(!pull.ok)throw new Error('Không thể tải dữ liệu đồng bộ.');
-   const remote:SyncPullResponse=await pull.json(); if(this.state.userId!==userId)return; const meta=this.loadMeta(userId);
+ async sync():Promise<boolean>{const userId=this.state.userId;if(!userId||!navigator.onLine||this.syncing)return false;this.syncing=true;this.state={...this.state,status:'syncing',error:null};this.emit();const queue=this.loadQueue(userId);try{
+   let pull=await fetch('/api/sync/pull',{credentials:'include'}); if(pull.status===401){await fetch('/api/auth/refresh',{method:'POST',credentials:'include'});if(this.state.userId!==userId)return false;pull=await fetch('/api/sync/pull',{credentials:'include'});} if(this.state.userId!==userId)return false; if(pull.status===401){this.state={...this.state,status:'failed',error:'Phiên đăng nhập đã hết hạn.'};this.emit();return false;} if(!pull.ok)throw new Error('Không thể tải dữ liệu đồng bộ.');
+   const remote:SyncPullResponse=await pull.json(); if(this.state.userId!==userId)return false; const meta=this.loadMeta(userId);
    const remoteByKey=new Map(remote.records.map(r=>[r.key,r]));
    const localQueue=new Map(queue.map(r=>[r.key,r]));
    const toPush:SyncRecord[]=[];
@@ -43,13 +43,13 @@ export class SyncEngine{
        headers: { 'Content-Type': 'application/json' },
        body: JSON.stringify({ records: toPush } as SyncEnvelope),
      });
-     if (this.state.userId !== userId) return;
+     if (this.state.userId !== userId) return false;
      if (!push.ok) throw new Error('Không thể ghi dữ liệu đồng bộ.');
      const pushResult = await push.json();
-     if (this.state.userId !== userId) return;
+     if (this.state.userId !== userId) return false;
      if (Array.isArray(pushResult.conflicts) && pushResult.conflicts.length) {
        const pullAgain = await fetch('/api/sync/pull', { credentials: 'include' });
-       if (this.state.userId !== userId) return;
+       if (this.state.userId !== userId) return false;
        if (pullAgain.ok) {
          const latest: SyncPullResponse = await pullAgain.json();
          for (const key of pushResult.conflicts) {
@@ -59,10 +59,10 @@ export class SyncEngine{
        }
      }
    }
-   if(this.state.userId!==userId)return;
-   const remaining=retainUnchangedUnsentRecords(this.loadQueue(userId),queue);this.saveQueue(remaining,userId);const syncedAt=remote.serverTime||now();meta.lastSyncedAt=syncedAt;this.saveMeta(meta,userId);this.state={...this.state,status:'synced',lastSyncedAt:syncedAt,pendingCount:remaining.length,error:null};this.emit();if(remaining.length)this.schedule();
- }catch(e){if(this.state.userId===userId){this.state={...this.state,status:'failed',error:e instanceof Error?e.message:'Sync failed'};this.emit();}}finally{this.syncing=false;const activeUserId=this.state.userId;if(activeUserId&&shouldScheduleSyncAgain(userId,activeUserId,this.loadQueue(activeUserId).length))this.schedule();}}
- private applyRemote(record:SyncRecord,userId=this.state.userId){if(!userId||this.state.userId!==userId)return;window.dispatchEvent(new CustomEvent('lina:sync-remote',{detail:record}));const meta=this.loadMeta(userId);meta.versions[record.key]={version:record.version,updatedAt:record.updatedAt};this.saveMeta(meta,userId);}
- async initialSync(){await this.sync();}
+   if(this.state.userId!==userId)return false;
+   const remaining=retainUnchangedUnsentRecords(this.loadQueue(userId),queue);this.saveQueue(remaining,userId);const syncedAt=remote.serverTime||now();meta.lastSyncedAt=syncedAt;this.saveMeta(meta,userId);this.state={...this.state,status:'synced',lastSyncedAt:syncedAt,pendingCount:remaining.length,error:null};this.emit();if(remaining.length)this.schedule();return true;
+ }catch(e){if(this.state.userId===userId){this.state={...this.state,status:'failed',error:e instanceof Error?e.message:'Sync failed'};this.emit();}return false;}finally{this.syncing=false;const activeUserId=this.state.userId;if(activeUserId&&shouldScheduleSyncAgain(userId,activeUserId,this.loadQueue(activeUserId).length))this.schedule();}}
+ private applyRemote(record:SyncRecord,userId=this.state.userId){if(!userId||this.state.userId!==userId)return false;window.dispatchEvent(new CustomEvent('lina:sync-remote',{detail:record}));const meta=this.loadMeta(userId);meta.versions[record.key]={version:record.version,updatedAt:record.updatedAt};this.saveMeta(meta,userId);}
+ async initialSync():Promise<boolean>{return this.sync();}
 }
 export const syncEngine=new SyncEngine();
