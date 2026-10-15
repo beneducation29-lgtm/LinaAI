@@ -123,8 +123,14 @@ export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
   res.setHeader('X-Content-Type-Options', 'nosniff');
 
+  // Preserve the existing no-op analytics event endpoint while sharing this
+  // serverless function to stay within Vercel Hobby's 12-function limit.
+  if (req.method === 'POST') {
+    return res.status(204).end();
+  }
+
   if (req.method !== 'GET') {
-    res.setHeader('Allow', 'GET');
+    res.setHeader('Allow', 'GET, POST');
     return json(res, 405, { error: 'Method Not Allowed' });
   }
 
