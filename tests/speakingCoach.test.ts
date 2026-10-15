@@ -67,7 +67,7 @@ assert.match(appShell, /!authUser/);
 assert.match(appShell, /Kho học tập riêng của bạn/);
 assert.match(appShell, /Đăng nhập tài khoản/);
 assert.match(mockData, /currentLevel: 'Cơ bản'/);
-assert.match(appContext, /vocabularyLearnedCount: 0/);
+assert.match(mockData, /vocabularyLearnedCount: 0/);
 assert.match(appContext, /tags: \[\.\.\.new Set/);
 assert.match(learningScreen, /Kho HSK cổ điển · dữ liệu thật/);
 assert.match(learningScreen, /vocabularyPageSize = 48/);
