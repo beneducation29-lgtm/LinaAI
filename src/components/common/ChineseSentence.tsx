@@ -61,7 +61,7 @@ export const ChineseSentence: React.FC<ChineseSentenceProps> = ({
       {/* 1. Chinese Characters */}
       {showHanzi && (
         <div className={`font-cjk text-slate-900 dark:text-slate-50 ${hanziSizeClasses[size]}`}>
-          {hanzi}
+          {renderChinese()}
         </div>
       )}
 
@@ -70,7 +70,15 @@ export const ChineseSentence: React.FC<ChineseSentenceProps> = ({
         <PinyinText pinyin={pinyin} size={pinyinSizeMap[size]} />
       )}
 
-      {/* 3. Vietnamese Translation */}
+      {selected && (
+        <div className="mt-1 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100" role="status" aria-live="polite">
+          <div className="font-semibold">{selected.hanzi}</div>
+          <div>{selected.pinyin}</div>
+          <div>{selected.vietnamese}</div>
+        </div>
+      )}
+
+            {/* 3. Vietnamese Translation */}
       {showVietnamese && (
         <VietnameseTranslation vietnamese={vietnamese} size={pinyinSizeMap[size]} />
       )}
