@@ -3,6 +3,39 @@ import { Pause, Play, RotateCcw, Volume2 } from 'lucide-react';
 
 type Segment = { zh: string; py: string; vi: string };
 type Passage = { title: string; topic: string; segments: Segment[] };
+type ListeningQuestion = { question: string; options: string[]; answer: number; explanation: string };
+const comprehension: Record<number, ListeningQuestion[]> = {
+  1: [
+    { question: '小安每天早上先做什么？', options: ['先去图书馆', '起床、洗脸，然后吃早饭', '先和朋友踢足球'], answer: 1, explanation: 'Đoạn đầu nói: thức dậy, rửa mặt rồi ăn sáng.' },
+    { question: '小安下午下课以后去哪儿？', options: ['去图书馆', '去机场', '去医院'], answer: 0, explanation: 'Sau giờ học buổi chiều, Tiểu An đến thư viện đọc sách và làm bài.' },
+    { question: '小安为什么每天练习中文？', options: ['为了找新房子', '为了参加比赛', '为了和更多中国朋友聊天'], answer: 2, explanation: 'Bạn ấy muốn trò chuyện với nhiều bạn Trung Quốc hơn.' }
+  ],
+  2: [
+    { question: '他们怎么去附近的城市？', options: ['坐火车', '开飞机', '骑自行车'], answer: 0, explanation: 'Họ mua vé tàu trước chuyến đi.' },
+    { question: '下午他们参观了什么地方？', options: ['医院', '博物馆', '工厂'], answer: 1, explanation: 'Buổi chiều họ tham quan bảo tàng để tìm hiểu lịch sử.' },
+    { question: '这次旅行让说话人明白了什么？', options: ['旅行只需要拍照', '旅行一定很贵', '旅行也能了解别人和自己'], answer: 2, explanation: 'Du lịch không chỉ chụp ảnh mà còn giúp hiểu người khác và bản thân.' }
+  ],
+  3: [
+    { question: '学习中文时，说话人觉得哪项能力更困难？', options: ['听力', '写汉字', '计算'], answer: 0, explanation: 'Người nói ban đầu thấy nghe khó hơn đọc.' },
+    { question: '第一次听材料时，建议怎么做？', options: ['马上查每个生词', '不看文字，先理解主题和大意', '只看越南语翻译'], answer: 1, explanation: 'Lần đầu nên tập trung nghe chủ đề và ý chính, chưa xem chữ.' },
+    { question: '遇到生词时，说话人建议先做什么？', options: ['放弃学习', '马上背整篇文章', '根据上下文猜测'], answer: 2, explanation: 'Hãy đoán dựa vào ngữ cảnh rồi tra từ điển kiểm chứng.' }
+  ],
+  4: [
+    { question: '公园除了提供休息的地方，还能做什么？', options: ['改善空气质量', '增加交通堵塞', '提高房租'], answer: 0, explanation: 'Công viên cũng góp phần cải thiện chất lượng không khí.' },
+    { question: '评价城市发展时，不能只看什么？', options: ['居民的意见', '建筑数量或经济数据', '公共空间是否安全'], answer: 1, explanation: 'Đoạn nghe nhấn mạnh không thể chỉ dựa vào số công trình hay dữ liệu kinh tế.' },
+    { question: '怎样才能让城市更好地回应真实需求？', options: ['停止收集意见', '只建造更多建筑', '持续收集反馈并调整方案'], answer: 2, explanation: 'Cần liên tục thu thập phản hồi và điều chỉnh phương án.' }
+  ],
+  5: [
+    { question: '信息越来越多，是否代表人们一定更准确地理解世界？', options: ['不一定', '一定', '只要上网就可以'], answer: 0, explanation: 'Nhiều thông tin không đồng nghĩa hiểu thế giới chính xác hơn.' },
+    { question: '转发消息之前，最好先做什么？', options: ['只看标题', '阅读原文并核实来源', '马上转发给所有人'], answer: 1, explanation: 'Nên đọc nội dung gốc và xem xét nguồn trước khi chia sẻ.' },
+    { question: '真正开放的态度意味着什么？', options: ['从不表达意见', '相信所有消息', '愿意根据新证据修正判断'], answer: 2, explanation: 'Cởi mở là sẵn sàng điều chỉnh nhận định khi có bằng chứng mới.' }
+  ],
+  6: [
+    { question: '自动化可能带来什么结果？', options: ['提高效率并降低成本', '让所有岗位都消失', '完全消除不平等'], answer: 0, explanation: 'Tự động hóa có thể tăng hiệu suất và giảm chi phí, nhưng tác động không đồng đều.' },
+    { question: '如果训练数据存在偏差，系统可能怎么样？', options: ['永远正确', '作出不公平的判断', '不需要监督'], answer: 1, explanation: 'Dữ liệu thiên lệch có thể dẫn đến phán đoán thiếu công bằng.' },
+    { question: '企业应该怎样处理个人数据？', options: ['不告诉任何人', '无限期公开数据', '说明数据如何收集、保存和使用'], answer: 2, explanation: 'Doanh nghiệp cần minh bạch về cách thu thập, lưu trữ và sử dụng dữ liệu.' }
+  ]
+};
 const passages: Record<number, Passage> = {
 1:{title:'我的一天',topic:'Sinh hoạt hằng ngày',segments:[
 {zh:'我叫小安，今年二十岁。',py:'Wǒ jiào Xiǎo Ān, jīnnián èrshí suì.',vi:'Tôi tên là Tiểu An, năm nay hai mươi tuổi.'},
@@ -97,7 +130,7 @@ const passages: Record<number, Passage> = {
 };
 
 export const LongListeningLab: React.FC = () => {
- const [hsk,setHsk]=useState(1); const [active,setActive]=useState(-1); const [isPlaying,setIsPlaying]=useState(false); const [isPaused,setIsPaused]=useState(false); const [showPy,setShowPy]=useState(true); const [showVi,setShowVi]=useState(true); const [rate,setRate]=useState(0.85);
+ const [hsk,setHsk]=useState(1); const [active,setActive]=useState(-1); const [isPlaying,setIsPlaying]=useState(false); const [isPaused,setIsPaused]=useState(false); const [showPy,setShowPy]=useState(true); const [showVi,setShowVi]=useState(true); const [rate,setRate]=useState(0.85); const [answers,setAnswers]=useState<Record<number,number>>({}); const [submitted,setSubmitted]=useState(false);
  const utteranceRef=useRef<SpeechSynthesisUtterance|null>(null); const indexRef=useRef(-1);
  const passage=passages[hsk];
  const stop=()=>{if('speechSynthesis' in window) window.speechSynthesis.cancel(); utteranceRef.current=null; indexRef.current=-1; setIsPlaying(false);setIsPaused(false);setActive(-1);};
@@ -105,7 +138,7 @@ export const LongListeningLab: React.FC = () => {
   const next=()=>{const i=indexRef.current;if(i<0||i>=passage.segments.length){setIsPlaying(false);setIsPaused(false);setActive(-1);return;}const seg=passage.segments[i];setActive(i);const u=new SpeechSynthesisUtterance(seg.zh);u.lang='zh-CN';u.rate=rate;const voice=window.speechSynthesis.getVoices().find(v=>v.lang.toLowerCase().startsWith('zh-cn'))||window.speechSynthesis.getVoices().find(v=>v.lang.toLowerCase().startsWith('zh'));if(voice)u.voice=voice;u.onend=()=>{if(indexRef.current===i){indexRef.current=i+1;next();}};u.onerror=()=>{setIsPlaying(false);setIsPaused(false);setActive(-1);};utteranceRef.current=u;window.speechSynthesis.speak(u);};next();
  };
  useEffect(()=>()=>{if('speechSynthesis' in window)window.speechSynthesis.cancel();},[]);
- useEffect(()=>{stop();},[hsk]);
+ useEffect(()=>{stop();setAnswers({});setSubmitted(false);},[hsk]);
  return <section className="rounded-3xl border border-amber-200 bg-gradient-to-br from-amber-50 to-white p-4 shadow-sm dark:border-amber-900/50 dark:from-amber-950/20 dark:to-stone-900 sm:p-6">
   <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between"><div><div className="text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300">Long-form shadow listening</div><h2 className="mt-1 text-xl font-bold text-stone-900 dark:text-stone-100">Nghe đoạn văn dài · HSK 1–6</h2><p className="mt-1 max-w-3xl text-sm leading-6 text-stone-600 dark:text-stone-300">Đọc đồng bộ từng câu: chữ Hán, pinyin và nghĩa tiếng Việt cùng được tô sáng khi câu đang phát. Chọn một câu để nghe lại từ vị trí đó.</p></div>
    <label className="text-sm font-semibold text-stone-700 dark:text-stone-200">Trình độ<select value={hsk} onChange={e=>setHsk(Number(e.target.value))} className="mt-1 block min-h-11 w-full rounded-xl border border-stone-300 bg-white px-3 dark:border-stone-700 dark:bg-stone-900">{[1,2,3,4,5,6].map(n=><option key={n} value={n}>HSK {n}</option>)}</select></label>
@@ -113,6 +146,22 @@ export const LongListeningLab: React.FC = () => {
   <div className="mt-4 flex flex-wrap items-center gap-2"><button onClick={()=>{if(!isPlaying){playFrom(Math.max(0,active));}else if(isPaused){window.speechSynthesis.resume();setIsPaused(false);}else{window.speechSynthesis.pause();setIsPaused(true);}}} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-amber-500 px-4 font-bold text-white hover:bg-amber-600">{isPlaying&&!isPaused?<Pause size={17}/>:<Play size={17}/>} {isPlaying?(isPaused?'Tiếp tục':'Tạm dừng'):'Nghe từ đầu'}</button><button onClick={()=>playFrom(0)} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-stone-300 px-3 text-sm font-semibold dark:border-stone-700"><RotateCcw size={16}/> Phát lại</button><label className="flex items-center gap-2 text-sm">Tốc độ <select value={rate} onChange={e=>setRate(Number(e.target.value))} className="min-h-10 rounded-lg border border-stone-300 bg-white px-2 dark:border-stone-700 dark:bg-stone-900"><option value={0.65}>0.65×</option><option value={0.85}>0.85×</option><option value={1}>1×</option><option value={1.15}>1.15×</option></select></label><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={showPy} onChange={e=>setShowPy(e.target.checked)}/> Pinyin</label><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={showVi} onChange={e=>setShowVi(e.target.checked)}/> Tiếng Việt</label></div>
   <div className="mt-4 flex items-center gap-2 text-sm text-stone-500 dark:text-stone-400"><BookOpenIcon/> <span><strong>{passage.title}</strong> · {passage.topic} · {passage.segments.length} câu đồng bộ</span><span className="ml-auto inline-flex items-center gap-1"><Volume2 size={15}/> TTS tiếng Trung trên thiết bị</span></div>
   <div className="mt-3 space-y-2">{passage.segments.map((s,i)=><button type="button" key={i} onClick={()=>playFrom(i)} className={`block w-full rounded-2xl border p-3 text-left transition sm:p-4 ${active===i?'border-amber-400 bg-amber-100 ring-2 ring-amber-300/60 dark:border-amber-600 dark:bg-amber-950/50':'border-stone-200 bg-white/80 hover:border-amber-300 dark:border-stone-800 dark:bg-stone-950/30'}`}><div className="flex gap-3"><span className="mt-1 text-xs font-bold text-stone-400">{String(i+1).padStart(2,'0')}</span><div className="min-w-0 flex-1"><p className={`text-lg leading-8 sm:text-xl ${active===i?'font-semibold text-amber-950 dark:text-amber-100':'text-stone-900 dark:text-stone-100'}`}>{s.zh}</p>{showPy&&<p className={`mt-1 text-sm leading-6 ${active===i?'font-semibold text-amber-800 dark:text-amber-200':'text-sky-700 dark:text-sky-300'}`}>{s.py}</p>}{showVi&&<p className={`mt-1 text-sm leading-6 ${active===i?'font-semibold text-amber-800 dark:text-amber-200':'text-stone-600 dark:text-stone-300'}`}>{s.vi}</p>}</div></div></button>)}</div>
+
+  <div className="mt-5 rounded-2xl border border-sky-200 bg-sky-50/80 p-4 dark:border-sky-900/60 dark:bg-sky-950/20">
+   <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+    <div><h3 className="font-bold text-stone-900 dark:text-stone-100">Kiểm tra nghe hiểu · HSK {hsk}</h3><p className="mt-1 text-sm text-stone-600 dark:text-stone-300">Nghe đoạn văn trước, sau đó chọn đáp án. Bạn có thể mở pinyin và bản dịch để tự kiểm tra.</p></div>
+    <span className="text-sm font-semibold text-sky-800 dark:text-sky-200">{Object.keys(answers).length}/{comprehension[hsk].length} câu đã chọn</span>
+   </div>
+   <div className="mt-4 space-y-4">
+    {comprehension[hsk].map((q,qi)=><fieldset key={qi} className="rounded-xl border border-sky-100 bg-white p-3 dark:border-stone-800 dark:bg-stone-900/70">
+     <legend className="px-1 text-sm font-semibold text-stone-900 dark:text-stone-100">{qi+1}. {q.question}</legend>
+     <div className="mt-2 grid gap-2 sm:grid-cols-3">{q.options.map((option,oi)=><label key={oi} className={`flex min-h-11 cursor-pointer items-start gap-2 rounded-lg border p-3 text-sm transition ${submitted&&oi===q.answer?'border-emerald-400 bg-emerald-50 dark:bg-emerald-950/30':answers[qi]===oi?'border-sky-400 bg-sky-50 dark:bg-sky-950/30':'border-stone-200 hover:border-sky-300 dark:border-stone-700'}`}><input type="radio" name={`hsk-${hsk}-q-${qi}`} className="mt-0.5" checked={answers[qi]===oi} onChange={()=>{setAnswers(prev=>({...prev,[qi]:oi}));setSubmitted(false);}}/><span>{option}</span></label>)}</div>
+     {submitted&&<p className="mt-2 text-sm leading-5 text-stone-600 dark:text-stone-300"><strong className={answers[qi]===q.answer?'text-emerald-700 dark:text-emerald-300':'text-amber-700 dark:text-amber-300'}>{answers[qi]===q.answer?'Chính xác!':'Chưa chính xác.'}</strong> {q.explanation}</p>}
+    </fieldset>)}
+   </div>
+   <div className="mt-4 flex flex-wrap items-center gap-3"><button type="button" onClick={()=>setSubmitted(true)} disabled={Object.keys(answers).length!==comprehension[hsk].length} className="min-h-11 rounded-xl bg-sky-700 px-4 font-bold text-white hover:bg-sky-800 disabled:cursor-not-allowed disabled:opacity-50">Chấm điểm</button><button type="button" onClick={()=>{setAnswers({});setSubmitted(false);}} className="min-h-11 rounded-xl border border-stone-300 px-4 text-sm font-semibold dark:border-stone-700">Làm lại</button>{submitted&&<p aria-live="polite" className="text-sm font-bold text-stone-800 dark:text-stone-100">Kết quả: {comprehension[hsk].filter((q,qi)=>answers[qi]===q.answer).length}/{comprehension[hsk].length} câu đúng ({Math.round(comprehension[hsk].filter((q,qi)=>answers[qi]===q.answer).length/comprehension[hsk].length*100)}%)</p>}</div>
+  </div>
+
   <p className="mt-3 text-xs leading-5 text-stone-500 dark:text-stone-400">Lưu ý: highlight hiện đồng bộ theo từng câu/nhịp đọc, không phải từng âm tiết. Giọng đọc phụ thuộc giọng tiếng Trung có sẵn trên trình duyệt hoặc thiết bị.</p>
  </section>;
 };
