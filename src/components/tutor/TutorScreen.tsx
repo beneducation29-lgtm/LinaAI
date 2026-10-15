@@ -11,6 +11,8 @@ import { TutorMessage } from './TutorMessage';
 import { LayerToggles } from '../common/LayerToggles';
 import { VoiceSettingsModal } from '../voice/VoiceSettingsModal';
 import { ToneTrainingModal } from '../voice/ToneTrainingModal';
+import { ListeningScreen } from '../listening/ListeningScreen';
+import { ReviewScreen } from '../review/ReviewScreen';
 import { AvatarStage } from '../avatar/AvatarStage';
 import { CharacterDesignModal } from '../avatar/CharacterDesignModal';
 import { 
@@ -27,7 +29,10 @@ import {
 import { getQuickPinyin, getQuickVietnamese } from '../../utils/chinesePinyinMap';
 import { 
   Mic, 
-  MicOff, 
+  MicOff,
+  Headphones,
+  MessagesSquare,
+  RotateCcw, 
   Volume2, 
   Lightbulb, 
   Send, 
@@ -66,6 +71,7 @@ export const TutorScreen: React.FC = () => {
   } = useApp();
 
   // Microphone and Conversation States
+  const [activePracticeTab, setActivePracticeTab] = useState<'listening' | 'speaking' | 'conversation' | 'review'>('conversation');
   const [micState, setMicState] = useState<MicrophoneState>('IDLE');
   const [inputText, setInputText] = useState('');
   
@@ -597,6 +603,34 @@ export const TutorScreen: React.FC = () => {
   const handleChangeImmersion = (level: 'beginner'|'intermediate'|'advanced') => { setRoleplayImmersion(level); roleplayEngine.setImmersion(level); };
   const handleEndRoleplay = () => setShowRoleplaySummary(true);
 
+  const selectPracticeTab = (tab: 'listening' | 'speaking' | 'conversation' | 'review') => {
+    if (micState === 'LISTENING' || micState === 'REQUESTING') speechService.stopListening();
+    realtimeConversationController.interrupt();
+    setMicState('IDLE');
+    setActivePracticeTab(tab);
+    if (tab === 'speaking') setTutorMode('teacher');
+    if (tab === 'conversation') setTutorMode('conversation');
+  };
+
+  const renderPracticeTabs = () => {
+    const tabs = [
+      { id: 'listening' as const, label: 'Luyện nghe', icon: Headphones },
+      { id: 'speaking' as const, label: 'Luyện nói', icon: Mic },
+      { id: 'conversation' as const, label: 'Hội thoại AI', icon: MessagesSquare },
+      { id: 'review' as const, label: 'Ôn tập', icon: RotateCcw },
+    ];
+    return (
+      <nav aria-label="Khu luyện nghe nói" className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 rounded-2xl border border-stone-200 bg-white/90 p-1.5 dark:border-stone-800 dark:bg-stone-900/90 shrink-0">
+        {tabs.map(({ id, label, icon: Icon }) => (
+          <button key={id} type="button" onClick={() => selectPracticeTab(id)} aria-current={activePracticeTab === id ? 'page' : undefined}
+            className={`flex min-h-11 items-center justify-center gap-2 rounded-xl px-2 py-2 text-xs sm:text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 ${activePracticeTab === id ? 'bg-amber-700 text-white shadow-sm' : 'text-stone-600 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-800'}`}>
+            <Icon className="h-4 w-4 shrink-0" aria-hidden="true" /><span>{label}</span>
+          </button>
+        ))}
+      </nav>
+    );
+  };
+
   // State Visual Indicators
   const stateLabels: Record<MicrophoneState, { text: string; badgeColor: string }> = {
     IDLE: { text: 'Sẵn sàng luyện nói', badgeColor: 'bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300' },
@@ -606,6 +640,13 @@ export const TutorScreen: React.FC = () => {
     AI_SPEAKING: { text: 'Lina đang nói...', badgeColor: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300' },
     ERROR: { text: 'Cần thử lại', badgeColor: 'bg-red-100 text-red-800 dark:bg-red-950/60 dark:text-red-300' },
   };
+
+  if (activePracticeTab === 'listening') {
+    return <div className="min-h-[calc(100dvh-4rem)] w-full max-w-6xl mx-auto px-3 sm:px-5 py-3 pb-24 md:pb-8 space-y-4 overflow-y-auto">{renderPracticeTabs()}<ListeningScreen /></div>;
+  }
+  if (activePracticeTab === 'review') {
+    return <div className="min-h-[calc(100dvh-4rem)] w-full max-w-6xl mx-auto px-3 sm:px-5 py-3 pb-24 md:pb-8 space-y-4 overflow-y-auto">{renderPracticeTabs()}<ReviewScreen /></div>;
+  }
 
   return (
     <div className="flex flex-col md:flex-row h-[calc(100dvh-4rem)] md:h-screen max-w-6xl mx-auto w-full px-2 sm:px-4 py-2 gap-3 md:gap-4 overflow-hidden">
@@ -629,7 +670,8 @@ export const TutorScreen: React.FC = () => {
       </div>
 
       {/* 2. CHAT CONVERSATION & CONTROLS COLUMN (100% on mobile, 60-62% on desktop) */}
-      <div className="flex-1 flex flex-col h-full min-w-0">
+      <div className="flex-1 flex flex-col h-full min-w-0 gap-2">
+        {renderPracticeTabs()}
         {/* TOP BAR: Mode, Voice Settings, Tone Training, Layer Toggles */}
         <div className="flex flex-col gap-2 pb-2 border-b border-stone-200 dark:border-stone-800 shrink-0">
           <div className="flex flex-wrap items-center justify-between gap-2">
@@ -637,7 +679,7 @@ export const TutorScreen: React.FC = () => {
             <div className="flex items-center gap-1 p-1 bg-stone-100 dark:bg-stone-800 rounded-xl">
               <button
                 type="button"
-                onClick={() => setTutorMode('conversation')}
+                onClick={() => { setTutorMode('conversation'); setActivePracticeTab('conversation'); }}
                 className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all min-h-[36px] cursor-pointer ${
                   tutorMode === 'conversation'
                     ? 'bg-white dark:bg-stone-900 text-stone-900 dark:text-stone-100 shadow-2xs'
@@ -650,7 +692,7 @@ export const TutorScreen: React.FC = () => {
 
               <button
                 type="button"
-                onClick={() => setTutorMode('teacher')}
+                onClick={() => { setTutorMode('teacher'); setActivePracticeTab('speaking'); }}
                 className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all min-h-[36px] cursor-pointer ${
                   tutorMode === 'teacher'
                     ? 'bg-amber-600 text-white shadow-2xs font-bold'
