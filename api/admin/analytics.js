@@ -1,4 +1,5 @@
 import { json, parseCookies, getUser } from '../auth/_utils.js';
+import { normalizeAnalyticsEvents } from '../../lib/analyticsIngestion.js';
 
 const SUPABASE_URL = String(process.env.SUPABASE_URL || '').replace(/\/$/, '');
 const SUPABASE_SERVER_KEY =
@@ -123,10 +124,46 @@ export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
   res.setHeader('X-Content-Type-Options', 'nosniff');
 
-  // Preserve the existing no-op analytics event endpoint while sharing this
-  // serverless function to stay within Vercel Hobby's 12-function limit.
+  // Share the existing serverless function so event ingestion does not add
+  // another Vercel function to the project.
   if (req.method === 'POST') {
-    return res.status(204).end();
+    if (!SUPABASE_URL || !SUPABASE_SERVER_KEY) {
+      return json(res, 503, { error: 'Analytics database chưa được cấu hình.', code: 'ANALYTICS_DATABASE_NOT_CONFIGURED' });
+    }
+    const contentLength = Number(req.headers['content-length'] || 0);
+    if (Number.isFinite(contentLength) && contentLength > 65536) {
+      return json(res, 413, { error: 'Analytics payload quá lớn.' });
+    }
+    let body = req.body;
+    if (typeof body === 'string') {
+      try { body = JSON.parse(body); } catch { return json(res, 400, { error: 'Analytics payload không hợp lệ.' }); }
+    }
+    const incoming = body && typeof body === 'object' && !Array.isArray(body) ? body.events : null;
+    if (!Array.isArray(incoming)) return json(res, 400, { error: 'Thiếu danh sách analytics events.' });
+    if (incoming.length > 50) return json(res, 413, { error: 'Mỗi lần chỉ nhận tối đa 50 sự kiện.' });
+    try {
+      const user = await getUser(parseCookies(req).lina_access);
+      const rows = normalizeAnalyticsEvents(incoming, { userId: user?.id || null });
+      if (!rows.length) return res.status(204).end();
+      const response = await fetch(SUPABASE_URL + '/rest/v1/lina_analytics_events?on_conflict=event_id', {
+        method: 'POST',
+        headers: {
+          apikey: SUPABASE_SERVER_KEY,
+          Authorization: 'Bearer ' + SUPABASE_SERVER_KEY,
+          'Content-Type': 'application/json',
+          Prefer: 'resolution=ignore-duplicates,return=minimal',
+        },
+        body: JSON.stringify(rows),
+      });
+      if (!response.ok) {
+        console.error('[Lina][ANALYTICS_INGEST_DB_ERROR]', { status: response.status });
+        return json(res, 503, { error: 'Không thể lưu analytics lúc này.' });
+      }
+      return res.status(204).end();
+    } catch (error) {
+      console.error('[Lina][ANALYTICS_INGEST_ERROR]', { name: error?.name || 'Error' });
+      return json(res, 503, { error: 'Không thể lưu analytics lúc này.' });
+    }
   }
 
   if (req.method !== 'GET') {
@@ -155,7 +192,10 @@ export default async function handler(req, res) {
 
     const parsedDays = Number.parseInt(String(req.query?.days || '30'), 10);
     const days = Math.min(90, Math.max(7, Number.isFinite(parsedDays) ? parsedDays : 30));
-    const since = new Date(Date.now() - days * 86400000).toISOString();
+    // DAU/WAU/MAU and D7 retention need at least a 30-day window even when
+    // the admin selects a shorter reporting range.
+    const queryDays = Math.max(30, days);
+    const since = new Date(Date.now() - queryDays * 86400000).toISOString();
     const url = new URL(SUPABASE_URL + '/rest/v1/lina_analytics_events');
     url.searchParams.set('select', 'event_id,user_id,anonymous_id,session_id,event_name,properties,occurred_at');
     url.searchParams.set('occurred_at', 'gte.' + since);
