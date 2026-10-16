@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { PinyinText } from './PinyinText';
 import { VietnameseTranslation } from './VietnameseTranslation';
@@ -26,6 +26,16 @@ export const ChineseSentence: React.FC<ChineseSentenceProps> = ({
 }) => {
   const [selectedWord, setSelectedWord] = useState<string | null>(null);
   const [isPlayingWord, setIsPlayingWord] = useState(false);
+  useEffect(() => {
+    setSelectedWord(null);
+    setIsPlayingWord(false);
+    speechService.stopSpeaking();
+  }, [hanzi, pinyin, vietnamese]);
+
+  useEffect(() => () => {
+    speechService.stopSpeaking();
+  }, []);
+
   const wordMatches = useMemo(
     () => vocabulary
       .filter((v) => v.hanzi?.trim() && v.pinyin?.trim() && v.vietnamese?.trim())
@@ -97,7 +107,16 @@ export const ChineseSentence: React.FC<ChineseSentenceProps> = ({
   };
 
   return (
-    <div className={`flex flex-col space-y-1 ${className}`}>
+    <div
+      className={`flex flex-col space-y-1 ${className}`}
+      onKeyDown={(event) => {
+        if (event.key === 'Escape' && selectedWord) {
+          speechService.stopSpeaking();
+          setIsPlayingWord(false);
+          setSelectedWord(null);
+        }
+      }}
+    >
       {showHanzi && (
         <div className={`font-cjk text-slate-900 dark:text-slate-50 ${hanziSizeClasses[size]}`}>
           {renderChinese()}
@@ -119,7 +138,7 @@ export const ChineseSentence: React.FC<ChineseSentenceProps> = ({
               <button type="button" onClick={playSelectedWord} className="flex min-h-[36px] min-w-[36px] items-center justify-center rounded-lg hover:bg-amber-200 dark:hover:bg-amber-900" aria-label={isPlayingWord ? 'Dừng phát âm từ' : 'Nghe phát âm từ'}>
                 <Volume2 className="h-4 w-4" />
               </button>
-              <button type="button" onClick={() => setSelectedWord(null)} className="flex min-h-[36px] min-w-[36px] items-center justify-center rounded-lg hover:bg-amber-200 dark:hover:bg-amber-900" aria-label="Đóng thẻ từ vựng">
+              <button type="button" onClick={() => { speechService.stopSpeaking(); setIsPlayingWord(false); setSelectedWord(null); }} className="flex min-h-[36px] min-w-[36px] items-center justify-center rounded-lg hover:bg-amber-200 dark:hover:bg-amber-900" aria-label="Đóng thẻ từ vựng">
                 <X className="h-4 w-4" />
               </button>
             </div>
