@@ -78,7 +78,7 @@ export const ChineseSentence: React.FC<ChineseSentenceProps> = ({
         </div>
       )}
 
-            {/* 3. Vietnamese Translation */}
+      {/* 3. Vietnamese Translation */}
       {showVietnamese && (
         <VietnameseTranslation vietnamese={vietnamese} size={pinyinSizeMap[size]} />
       )}
