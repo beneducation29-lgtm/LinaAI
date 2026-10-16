@@ -102,6 +102,7 @@ export const TutorMessage: React.FC<TutorMessageProps> = ({
                 pinyin={message.pinyin}
                 vietnamese={message.vietnamese}
                 size="base"
+                vocabulary={message.vocabulary}
               />
             ) : (
               <div className="space-y-1">
