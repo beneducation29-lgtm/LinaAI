@@ -10,9 +10,23 @@ create table if not exists public.lina_analytics_events (
   constraint lina_analytics_event_name_check check (event_name in (
     'app_open','lesson_start','lesson_complete','vocabulary_review','vocabulary_mastered',
     'mistake','correction','speaking_start','speaking_complete','roleplay_start','roleplay_complete',
-    'pronunciation_practice','quiz_answer','quiz_complete','subscription_start','subscription_cancel'
+    'pronunciation_practice','quiz_answer','quiz_complete','subscription_start','subscription_cancel',
+    'mistake_resolved','mistake_reopened'
   ))
 );
+
+-- Keep existing installations compatible with event names added after the first schema rollout.
+alter table public.lina_analytics_events
+  drop constraint if exists lina_analytics_events_event_name_check;
+alter table public.lina_analytics_events
+  drop constraint if exists lina_analytics_event_name_check;
+alter table public.lina_analytics_events
+  add constraint lina_analytics_events_event_name_check check (event_name in (
+    'app_open','lesson_start','lesson_complete','vocabulary_review','vocabulary_mastered',
+    'mistake','correction','speaking_start','speaking_complete','roleplay_start','roleplay_complete',
+    'pronunciation_practice','quiz_answer','quiz_complete','subscription_start','subscription_cancel',
+    'mistake_resolved','mistake_reopened'
+  ));
 create index if not exists lina_analytics_events_occurred_idx on public.lina_analytics_events(occurred_at desc);
 create index if not exists lina_analytics_events_user_occurred_idx on public.lina_analytics_events(user_id, occurred_at desc);
 create index if not exists lina_analytics_events_name_occurred_idx on public.lina_analytics_events(event_name, occurred_at desc);
