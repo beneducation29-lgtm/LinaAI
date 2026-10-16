@@ -72,6 +72,38 @@ export const HomeDashboard: React.FC = () => {
       {/* Layer Controls bar for user preferences */}
       <LayerToggles />
 
+      {/* Fast entry points keep the existing learning rooms one tap away on desktop and mobile. */}
+      <section aria-labelledby="practice-hub-title" className="space-y-3">
+        <div className="flex items-end justify-between gap-3">
+          <div>
+            <h2 id="practice-hub-title" className="text-sm font-bold text-stone-900 dark:text-stone-100">Bắt đầu luyện tập</h2>
+            <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">Đi thẳng đến đúng không gian học, không thay đổi lộ trình hiện tại.</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
+          <button type="button" onClick={() => setCurrentTab('listening')} className="group min-h-[116px] rounded-2xl border border-stone-200 bg-white p-3 text-left transition hover:border-amber-300 hover:bg-amber-50/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 dark:border-stone-800 dark:bg-stone-900 dark:hover:border-amber-800 dark:hover:bg-amber-950/20 sm:p-4">
+            <span className="mb-3 grid h-9 w-9 place-items-center rounded-xl bg-sky-50 text-sky-700 dark:bg-sky-950/50 dark:text-sky-300"><Music className="h-4 w-4" /></span>
+            <span className="block text-sm font-bold">Luyện nghe</span>
+            <span className="mt-1 block text-[11px] leading-4 text-stone-500 dark:text-stone-400">{learnerProfile.listeningStats.practiceCount} lượt đã ghi nhận · HSK {user.currentHsk}</span>
+          </button>
+          <button type="button" onClick={() => setCurrentTab('speak')} className="group min-h-[116px] rounded-2xl border border-stone-200 bg-white p-3 text-left transition hover:border-amber-300 hover:bg-amber-50/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 dark:border-stone-800 dark:bg-stone-900 dark:hover:border-amber-800 dark:hover:bg-amber-950/20 sm:p-4">
+            <span className="mb-3 grid h-9 w-9 place-items-center rounded-xl bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300"><Mic className="h-4 w-4" /></span>
+            <span className="block text-sm font-bold">Luyện nói cùng Lina</span>
+            <span className="mt-1 block text-[11px] leading-4 text-stone-500 dark:text-stone-400">{learnerProfile.speakingStats.practiceCount} hoạt động nói</span>
+          </button>
+          <button type="button" onClick={() => setCurrentTab('learn')} className="group min-h-[116px] rounded-2xl border border-stone-200 bg-white p-3 text-left transition hover:border-amber-300 hover:bg-amber-50/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 dark:border-stone-800 dark:bg-stone-900 dark:hover:border-amber-800 dark:hover:bg-amber-950/20 sm:p-4">
+            <span className="mb-3 grid h-9 w-9 place-items-center rounded-xl bg-violet-50 text-violet-700 dark:bg-violet-950/50 dark:text-violet-300"><BookOpen className="h-4 w-4" /></span>
+            <span className="block text-sm font-bold">Bài học HSK</span>
+            <span className="mt-1 block text-[11px] leading-4 text-stone-500 dark:text-stone-400">Tiếp tục với cấp {user.currentHsk}</span>
+          </button>
+          <button type="button" onClick={() => setCurrentTab('review')} className="group min-h-[116px] rounded-2xl border border-stone-200 bg-white p-3 text-left transition hover:border-amber-300 hover:bg-amber-50/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 dark:border-stone-800 dark:bg-stone-900 dark:hover:border-amber-800 dark:hover:bg-amber-950/20 sm:p-4">
+            <span className="mb-3 grid h-9 w-9 place-items-center rounded-xl bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300"><Brain className="h-4 w-4" /></span>
+            <span className="block text-sm font-bold">Ôn tập đến hạn</span>
+            <span className="mt-1 block text-[11px] leading-4 text-stone-500 dark:text-stone-400">{totalDueToday} mục cần củng cố</span>
+          </button>
+        </div>
+      </section>
+
       <div className="p-5 rounded-3xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200/80 dark:border-amber-900/40">
         <div className="flex items-center gap-2 text-sm font-bold"><Sparkles className="w-4 h-4 text-amber-600"/>Hôm nay Lina đề xuất cho bạn</div>
         <div className="mt-2 text-[11px] text-stone-500">Lina đang điều chỉnh theo tiến bộ thực tế · {knowledge.overallMastery}% mastery · {totalDueToday} mục cần củng cố</div><div className="mt-3 grid sm:grid-cols-3 gap-2">{generateDailyPlan(learnerProfile, aiMemory, totalDueToday, knowledge).items.slice(0,3).map((item,i)=><button key={i} type="button" onClick={()=>setCurrentTab(item.type==='speaking'?'speak':item.type==='review'||item.type==='quiz'?'review':'learn')} className="text-left p-3 rounded-2xl bg-white/80 dark:bg-stone-900/70 border border-amber-100 dark:border-stone-800"><div className="text-xs font-bold">{item.title}</div><div className="text-[11px] text-stone-500 mt-1 line-clamp-2">{item.target}</div><div className="text-[10px] text-amber-700 mt-2">{item.minutes} phút</div></button>)}</div>
