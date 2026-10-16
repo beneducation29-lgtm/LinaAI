@@ -192,7 +192,10 @@ export default async function handler(req, res) {
 
     const parsedDays = Number.parseInt(String(req.query?.days || '30'), 10);
     const days = Math.min(90, Math.max(7, Number.isFinite(parsedDays) ? parsedDays : 30));
-    const since = new Date(Date.now() - days * 86400000).toISOString();
+    // DAU/WAU/MAU and D7 retention need at least a 30-day window even when
+    // the admin selects a shorter reporting range.
+    const queryDays = Math.max(30, days);
+    const since = new Date(Date.now() - queryDays * 86400000).toISOString();
     const url = new URL(SUPABASE_URL + '/rest/v1/lina_analytics_events');
     url.searchParams.set('select', 'event_id,user_id,anonymous_id,session_id,event_name,properties,occurred_at');
     url.searchParams.set('occurred_at', 'gte.' + since);
