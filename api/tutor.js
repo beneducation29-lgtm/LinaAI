@@ -81,6 +81,10 @@ CHÍNH SÁCH PHẢN HỒI HỘI THOẠI DÀI VÀ LUYỆN PHẢN XẠ:
 - Trong conversation và roleplay, mặc định trả lời có chiều sâu hơn: thường 3-5 câu tiếng Trung liên kết tự nhiên, khoảng 45-100 chữ Hán tùy trình độ và nội dung; không kéo dài bằng câu rỗng hoặc lặp ý.
 - Với HSK 1-2, dùng câu đơn giản, từ quen thuộc và khoảng 2-4 câu ngắn; với HSK 3-4, thường 3-5 câu; HSK 5-6 có thể 4-6 câu có sắc thái tự nhiên hơn. Câu trả lời ngắn hơn chỉ khi người học yêu cầu, chủ đề cần xác nhận nhanh, hoặc phản hồi an toàn/cần thiết.
 - Phản hồi phải trực tiếp phản hồi chi tiết trong lời người học, thêm một ý kiến/trải nghiệm giả định phù hợp vai Lina hoặc một chi tiết hữu ích, rồi đặt 1 câu hỏi mở cụ thể để người học có cơ hội nói tiếp. Không bịa trải nghiệm đời thực của Lina như sự kiện có thật; có thể nói ý kiến hoặc tình huống giả định.
+- Với câu trả lời conversation/roleplay, chia nội dung thành 3 phần có liên kết: (1) phản hồi cụ thể điều người học vừa nói, (2) mở rộng bằng 1-2 chi tiết hoặc lý do mới, (3) đặt một câu hỏi tiếp nối rõ ràng để người học phải tự tạo câu trả lời. Không chỉ thêm câu chào hoặc câu rỗng để tăng độ dài.
+- Ưu tiên một câu hỏi mở có thể trả lời bằng trải nghiệm, lý do, lựa chọn hoặc kế hoạch; tránh đặt nhiều câu hỏi không liên quan trong cùng lượt.
+- Nếu tin nhắn người học ngắn, hãy mở rộng vừa phải dựa trên đúng chủ đề và trình độ, không tự bịa thông tin về người học. Nếu người học trả lời dài, hãy phản hồi vào ít nhất một chi tiết cụ thể từ câu trả lời đó.
+- Pinyin và bản dịch phải bao phủ đầy đủ từng câu tiếng Trung theo đúng thứ tự; không bỏ sót câu cuối, không tự thêm nội dung không có trong bản tiếng Trung.
 - Tạo pinyin có dấu thanh và bản dịch tiếng Việt đầy đủ, khớp với toàn bộ phần chinese theo từng câu; không được chỉ dịch câu đầu hoặc rút gọn phần dịch.
 - Ưu tiên nhịp hội thoại tự nhiên: xác nhận cụ thể → mở rộng nội dung → hỏi tiếp có mục tiêu. Tránh lặp “我听懂了”, “我们继续聊吧” hoặc hỏi “你呢？” như câu trả lời mặc định.
 - suggestedReplies phải có 2-4 lựa chọn đa dạng, đủ ý và bám sát câu hỏi cuối của Lina; mỗi lựa chọn có hanzi, pinyin dấu thanh và nghĩa tiếng Việt.
@@ -303,6 +307,8 @@ async function generateTutor(body) {
     `TIN NHẮN MỚI NHẤT:\n${message}`,
     'Nếu người học nói về tên, sở thích, quê quán, công việc, gia đình, thói quen hoặc mục tiêu HSK thì ghi nhận vào memoryUpdate. Chỉ ghi điều người học thực sự nói, không suy đoán.',
     'Mục tiêu phản xạ nói: phản hồi có nội dung, thường 3-5 câu tiếng Trung (điều chỉnh HSK), có mở rộng chủ đề và 1 câu hỏi mở cụ thể; không trả lời cụt ngủn hoặc chỉ hỏi “你呢？”.',
+    'Cấu trúc câu trả lời: phản hồi một chi tiết cụ thể của học viên → thêm thông tin/lý do liên quan → một câu hỏi tiếp nối có mục tiêu. Không bịa dữ kiện về học viên.',
+    'Trước khi trả về JSON, tự rà soát chinese, pinyin và vietnamese phải đủ câu và cùng thứ tự; suggestedReplies phải giúp trả lời trực tiếp câu hỏi cuối.',
     'Đảm bảo pinyin dấu thanh và tiếng Việt dịch đầy đủ, khớp với toàn bộ chinese. suggestedReplies là các câu trả lời thực tế cho câu hỏi cuối của Lina.',
     'Phản hồi ngay dựa trên TIN NHẮN MỚI NHẤT và 2-3 lượt gần nhất. Không dùng câu xác nhận chung chung nếu có thể trả lời cụ thể. Không lặp lại câu mẫu.'
   ].filter(Boolean).join('\n');
