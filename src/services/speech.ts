@@ -108,6 +108,8 @@ class SpeechService {
   private synth: SpeechSynthesis | null = null;
   private currentUtterance: SpeechSynthesisUtterance | null = null;
   private currentAudioElement: HTMLAudioElement | null = null;
+  private playbackSessionId = 0;
+  private activePlaybackResolve: (() => void) | null = null;
   private audioCache = new Map<string, string>();
   private audioInflight = new Map<string, Promise<string | null>>();
   private audioFailureUntil = 0;
@@ -467,6 +469,12 @@ class SpeechService {
   ): Promise<void> {
     return new Promise(async (resolve) => {
       this.stopSpeaking();
+      const playbackSessionId = this.playbackSessionId;
+      this.activePlaybackResolve = resolve;
+      const finish = () => {
+        if (this.activePlaybackResolve === resolve) this.activePlaybackResolve = null;
+        resolve();
+      };
 
       const rate = options?.rate !== undefined ? options.rate : 1.0;
 
@@ -482,6 +490,10 @@ class SpeechService {
 
       if (preferGemini) {
         const audioSrc = await this.fetchGeminiTTSAudio(text);
+        if (playbackSessionId !== this.playbackSessionId) {
+          finish();
+          return;
+        }
         if (audioSrc) {
           const audio = new Audio(audioSrc);
           audio.playbackRate = rate;
@@ -494,32 +506,42 @@ class SpeechService {
           options?.onStart?.();
 
           audio.onended = () => {
+            if (playbackSessionId !== this.playbackSessionId) return;
             this.currentAudioElement = null;
             this.playbackListeners.forEach(listener => listener(null));
             options?.onEnd?.();
-            resolve();
+            finish();
           };
 
           audio.onerror = () => {
+            if (playbackSessionId !== this.playbackSessionId) return;
             this.currentAudioElement = null;
             this.playbackListeners.forEach(listener => listener(null));
             options?.onError?.();
             options?.onEnd?.();
-            resolve();
+            finish();
           };
 
           audio.play().catch(() => {
+            if (playbackSessionId !== this.playbackSessionId || this.currentAudioElement !== audio) {
+              finish();
+              return;
+            }
             this.currentAudioElement = null;
             this.playbackListeners.forEach(listener => listener(null));
             // fallback to speech synthesis if autoplay blocked
-            this.speakWithSpeechSynthesis(text, options, resolve);
+            this.speakWithSpeechSynthesis(text, options, finish, playbackSessionId);
           });
           return;
         }
       }
 
       // 2. Default standard Web Speech API with selected rate and pitch
-      this.speakWithSpeechSynthesis(text, options, resolve);
+      if (playbackSessionId !== this.playbackSessionId) {
+        finish();
+        return;
+      }
+      this.speakWithSpeechSynthesis(text, options, finish, playbackSessionId);
     });
   }
 
@@ -534,7 +556,8 @@ class SpeechService {
       onEnd?: () => void;
       onError?: () => void;
     } | undefined,
-    resolve: () => void
+    resolve: () => void,
+    playbackSessionId: number
   ) {
     if (!this.synth) {
       options?.onEnd?.();
@@ -565,16 +588,19 @@ class SpeechService {
     }
 
     utterance.onstart = () => {
+      if (playbackSessionId !== this.playbackSessionId) return;
       options?.onStart?.();
     };
 
     utterance.onend = () => {
+      if (playbackSessionId !== this.playbackSessionId) return;
       this.currentUtterance = null;
       options?.onEnd?.();
       resolve();
     };
 
     utterance.onerror = () => {
+      if (playbackSessionId !== this.playbackSessionId) return;
       this.currentUtterance = null;
       options?.onError?.();
       options?.onEnd?.();
@@ -592,6 +618,12 @@ class SpeechService {
   }
 
   stopSpeaking(): void {
+    // Invalidate pending TTS requests as well as audio that has already started.
+    this.playbackSessionId += 1;
+    const resolveActivePlayback = this.activePlaybackResolve;
+    this.activePlaybackResolve = null;
+    resolveActivePlayback?.();
+
     if (this.currentAudioElement) {
       this.currentAudioElement.pause();
       this.currentAudioElement.currentTime = 0;
