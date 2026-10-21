@@ -63,7 +63,7 @@ export const ChineseSentence: React.FC<ChineseSentenceProps> = ({
       <button
         key={`${part.word.hanzi}-${i}`}
         type="button"
-        onClick={() => setSelectedWord((current) => current === part.word!.hanzi ? null : part.word!.hanzi)}
+        onClick={() => handleSelectWord(part.word!.hanzi)}
         className={`rounded-sm transition-colors cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-600 focus-visible:outline-offset-2 ${selectedWord === part.word.hanzi ? 'bg-amber-200 text-amber-950 dark:bg-amber-700 dark:text-white underline decoration-2 underline-offset-4' : 'hover:bg-amber-100/80 dark:hover:bg-amber-900/40'}`}
         aria-pressed={selectedWord === part.word.hanzi}
         aria-label={`Học từ ${part.word.hanzi}: ${part.word.pinyin}, ${part.word.vietnamese}`}
@@ -90,6 +90,13 @@ export const ChineseSentence: React.FC<ChineseSentenceProps> = ({
     base: 'base',
     lg: 'lg',
     xl: 'lg'
+  };
+
+  const handleSelectWord = (word: string) => {
+    // A new selection must not leave audio from the previously selected word playing.
+    speechService.stopSpeaking();
+    setIsPlayingWord(false);
+    setSelectedWord((current) => current === word ? null : word);
   };
 
   const playSelectedWord = async () => {
