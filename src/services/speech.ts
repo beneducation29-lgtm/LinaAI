@@ -523,7 +523,7 @@ class SpeechService {
           };
 
           audio.play().catch(() => {
-            if (playbackSessionId !== this.playbackSessionId) {
+            if (playbackSessionId !== this.playbackSessionId || this.currentAudioElement !== audio) {
               finish();
               return;
             }
