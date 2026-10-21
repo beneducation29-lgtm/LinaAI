@@ -5,6 +5,11 @@ const tutor = fs.readFileSync('src/components/tutor/TutorScreen.tsx', 'utf8');
 const listening = fs.readFileSync('src/components/listening/ListeningScreen.tsx', 'utf8');
 const review = fs.readFileSync('src/components/review/ReviewScreen.tsx', 'utf8');
 const appShell = fs.readFileSync('src/components/layout/AppShell.tsx', 'utf8');
+const chineseSentence = fs.readFileSync('src/components/common/ChineseSentence.tsx', 'utf8');
+
+assert.match(chineseSentence, /const handleSelectWord = \(word: string\) =>/ , 'selecting vocabulary should use the managed audio-selection handler');
+assert.match(chineseSentence, /handleSelectWord\(part\.word!\.hanzi\)/, 'vocabulary taps should stop audio from the previously selected word');
+assert.match(chineseSentence, /speechService\.stopSpeaking\(\);\s*setIsPlayingWord\(false\);\s*setSelectedWord\(/, 'changing vocabulary selection should stop speech and reset playback state');
 
 for (const label of ['Luyện nghe', 'Luyện nói', 'Hội thoại AI', 'Ôn tập']) {
   assert.ok(tutor.includes(label), 'Practice hub must expose ' + label);
