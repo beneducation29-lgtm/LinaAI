@@ -137,9 +137,13 @@ export const ChineseSentence: React.FC<ChineseSentenceProps> = ({
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
               <div className="text-[10px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-300">Từ đang chọn</div>
-              <div className="font-cjk text-lg font-semibold">{selected.hanzi}</div>
-              <div className="font-medium">{selected.pinyin}</div>
-              <div>{selected.vietnamese}</div>
+              <div className="inline-flex rounded-md bg-amber-200/70 px-2 py-0.5 font-cjk text-lg font-semibold dark:bg-amber-800/60">{selected.hanzi}</div>
+              <div className="mt-1 rounded-md bg-white/80 px-2 py-1 font-semibold text-amber-900 dark:bg-stone-900/70 dark:text-amber-200">
+                <span className="mr-1 text-[10px] font-bold uppercase tracking-wide opacity-70">Pinyin</span>{selected.pinyin}
+              </div>
+              <div className="mt-1 rounded-md bg-white/80 px-2 py-1 text-stone-800 dark:bg-stone-900/70 dark:text-stone-100">
+                <span className="mr-1 text-[10px] font-bold uppercase tracking-wide text-amber-700 dark:text-amber-300">Nghĩa</span>{selected.vietnamese}
+              </div>
             </div>
             <div className="flex shrink-0 items-center gap-1">
               <button type="button" onClick={playSelectedWord} className="flex min-h-[36px] min-w-[36px] items-center justify-center rounded-lg hover:bg-amber-200 dark:hover:bg-amber-900" aria-label={isPlayingWord ? 'Dừng phát âm từ' : 'Nghe phát âm từ'}>
