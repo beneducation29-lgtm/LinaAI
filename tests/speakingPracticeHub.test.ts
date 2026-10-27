@@ -28,4 +28,7 @@ assert.match(listening, /recordListeningQuizResult/, 'listening results should c
 assert.match(review, /updateFlashcardRating/, 'review ratings should continue to update spaced repetition');
 assert.match(appShell, /case 'speak':\s*return <TutorScreen \/>/, 'existing navigation should continue to enter the practice hub');
 
+assert.match(chineseSentence, /<span className="mr-1 text-\[10px\] font-bold uppercase tracking-wide opacity-70">Pinyin<\/span>\{selected\.pinyin\}/, 'selected vocabulary should visually emphasize the matching tone-marked pinyin');
+assert.match(chineseSentence, /<span className="mr-1 text-\[10px\] font-bold uppercase tracking-wide text-amber-700 dark:text-amber-300">Nghĩa<\/span>\{selected\.vietnamese\}/, 'selected vocabulary should visually emphasize its Vietnamese meaning alongside Hanzi and pinyin');
+
 console.log('Speaking practice hub navigation and integration tests passed');
