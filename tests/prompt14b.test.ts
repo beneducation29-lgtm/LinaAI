@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import { LipSyncEngine } from '../src/services/lipSyncEngine';
 import { FacialAnimationEngine } from '../src/services/facialAnimationEngine';
 import { AudioStreamController } from '../src/services/audioStreamController';
@@ -24,6 +25,12 @@ if (correcting.emotion !== 'correcting') throw new Error('Emotion enum validatio
 const controller = new AudioStreamController();
 controller.stop();
 controller.destroy();
+
+const realtimeControllerSource = fs.readFileSync('src/services/realtimeConversationController.ts', 'utf8');
+if (!realtimeControllerSource.includes('private playbackSequence = 0;')) throw new Error('Playback generation guard missing');
+if (!realtimeControllerSource.includes('const isCurrentPlayback = () => playbackId === this.playbackSequence;')) throw new Error('Playback current-generation check missing');
+if (!realtimeControllerSource.includes('this.playbackSequence += 1;')) throw new Error('Interrupt should invalidate pending playback callbacks');
+if (!realtimeControllerSource.includes('streamingTTSProvider.stop();')) throw new Error('New response should stop previous audio');
 
 console.log('Prompt 14b tests passed');
 
