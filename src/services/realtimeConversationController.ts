@@ -11,12 +11,18 @@ export interface RealtimeConversationCallbacks {
 
 export class RealtimeConversationController {
   private activeRequest: AbortController | null = null;
+  private playbackSequence = 0;
 
   async speakResponse(
     response: StructuredTutorResponse,
     callbacks: RealtimeConversationCallbacks = {},
     rate = 1
   ): Promise<void> {
+    // A new reply supersedes any previous audio immediately. Sequence guards also
+    // prevent delayed provider callbacks from restoring stale avatar/UI state.
+    const playbackId = ++this.playbackSequence;
+    streamingTTSProvider.stop();
+    const isCurrentPlayback = () => playbackId === this.playbackSequence;
     const emotion = this.validEmotion(response.emotion);
     const startedAt = Date.now();
     callbacks.onResponse?.(response);
@@ -34,7 +40,7 @@ export class RealtimeConversationController {
         text: response.chinese,
         rate,
         lang: 'zh-CN',
-        onStart: () => callbacks.onState?.({
+        onStart: () => { if (!isCurrentPlayback()) return; callbacks.onState?.({
           status: 'SPEAKING',
           text: response.chinese,
           audioState: 'playing',
@@ -42,8 +48,8 @@ export class RealtimeConversationController {
           emotion,
           lipSyncState: 'audio-driven',
           startedAt
-        }),
-        onEnd: () => callbacks.onState?.({
+        }); },
+        onEnd: () => { if (!isCurrentPlayback()) return; callbacks.onState?.({
           status: 'SPEAKING',
           text: response.chinese,
           audioState: 'ended',
@@ -52,16 +58,17 @@ export class RealtimeConversationController {
           lipSyncState: 'audio-driven',
           startedAt,
           endedAt: Date.now()
-        }),
-        onError: error => callbacks.onError?.(error)
+        }); },
+        onError: error => { if (isCurrentPlayback()) callbacks.onError?.(error); }
       });
     } catch (error) {
-      callbacks.onError?.(error instanceof Error ? error : new Error('Speech failed'));
+      if (isCurrentPlayback()) callbacks.onError?.(error instanceof Error ? error : new Error('Speech failed'));
       // Text remains usable when TTS fails; do not turn a voice failure into a conversation crash.
     }
   }
 
   interrupt(): void {
+    this.playbackSequence += 1;
     this.activeRequest?.abort();
     this.activeRequest = null;
     streamingTTSProvider.stop();
@@ -74,6 +81,7 @@ export class RealtimeConversationController {
   }
 
   cancelRequest(): void {
+    this.playbackSequence += 1;
     this.activeRequest?.abort();
     this.activeRequest = null;
     streamingTTSProvider.stop();
