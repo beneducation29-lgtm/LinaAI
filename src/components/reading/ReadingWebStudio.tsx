@@ -88,7 +88,7 @@ export const ReadingWebStudio: React.FC<Props> = ({ vocabularies, onSaveVocabula
           task: 'reading_search',
           query: query.trim(),
           level,
-          vocabulary: vocabularies.slice(0, 100).map(item => ({
+          vocabulary: vocabularies.filter(item => item.hskLevel === level).slice(0, 100).map(item => ({
             hanzi: item.hanzi,
             pinyin: item.pinyin,
             vietnamese: item.vietnamese,
