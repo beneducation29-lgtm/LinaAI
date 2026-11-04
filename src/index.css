@@ -156,3 +156,28 @@
 @media (prefers-reduced-motion: reduce) {
   .zen-auth *, .zen-auth *::before, .zen-auth *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
 }
+
+
+/* Inline ruby readings for continuous Chinese graded-reading paragraphs. */
+.reading-ruby-unit ruby {
+  ruby-position: over;
+  ruby-align: center;
+  white-space: nowrap;
+}
+.reading-ruby-unit rt {
+  color: #0f8a62;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-size: .42em;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0;
+  user-select: none;
+}
+.reading-focus-word {
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+@media (max-width: 639px) {
+  .reading-ruby-unit rt { font-size: .38em; }
+}
+.dark .reading-ruby-unit rt { color: #6ee7b7; }
