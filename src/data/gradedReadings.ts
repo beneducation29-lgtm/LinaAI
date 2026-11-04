@@ -456,6 +456,128 @@ export const GRADED_READINGS: GradedReading[] = [
     ],
     sourceNote: 'Bài đọc do LinaAI biên soạn mới để giải thích khái niệm kinh tế cơ bản, không phải tư vấn tài chính.'
   },
+,
+
+  {
+    id: 'hsk1-at-the-market',
+    title: 'Mua trái cây ở chợ',
+    titleZh: '在市场买水果',
+    level: 'HSK 1',
+    topic: 'Mua sắm & giao tiếp',
+    summary: 'Hỏi giá, chọn trái cây và thanh toán trong tình huống quen thuộc.',
+    estimatedMinutes: 3,
+    sentences: [
+      { chinese: '今天我和姐姐去市场买水果。', pinyin: 'Jīntiān wǒ hé jiějie qù shìchǎng mǎi shuǐguǒ.', vietnamese: 'Hôm nay tôi và chị gái đi chợ mua trái cây.' },
+      { chinese: '我问苹果多少钱，老板说一斤十块钱。', pinyin: 'Wǒ wèn píngguǒ duōshao qián, lǎobǎn shuō yì jīn shí kuài qián.', vietnamese: 'Tôi hỏi táo bao nhiêu tiền, chủ quầy nói mười tệ một cân.' },
+      { chinese: '我们买了两个苹果和三个香蕉，然后高兴地回家。', pinyin: 'Wǒmen mǎi le liǎng ge píngguǒ hé sān ge xiāngjiāo, ránhòu gāoxìng de huí jiā.', vietnamese: 'Chúng tôi mua hai quả táo và ba quả chuối, sau đó vui vẻ về nhà.' }
+    ],
+    focusWords: ['今天', '姐姐', '市场', '买', '水果', '苹果', '多少', '钱', '老板', '一斤', '香蕉', '回家'],
+    questions: [
+      { question: 'Người kể đi chợ với ai?', options: ['Chị gái', 'Bạn học', 'Giáo viên'], answer: 0, explanation: 'Câu đầu nói 我和姐姐 – tôi và chị gái.' },
+      { question: 'Táo có giá bao nhiêu một cân?', options: ['八块钱', '十块钱', '十二块钱'], answer: 1, explanation: 'Chủ quầy nói 一斤十块钱.' }
+    ],
+    sourceNote: 'Bài đọc do LinaAI biên soạn mới theo giao tiếp mua sắm HSK 1.'
+  },
+  {
+    id: 'hsk2-clinic-appointment',
+    title: 'Đặt lịch khám bệnh',
+    titleZh: '预约看医生',
+    level: 'HSK 2',
+    topic: 'Sức khỏe & đời sống',
+    summary: 'Luyện đặt lịch, hỏi thời gian và trao đổi thông tin cơ bản tại phòng khám.',
+    estimatedMinutes: 4,
+    sentences: [
+      { chinese: '我想给医院打电话，预约明天上午的检查。', pinyin: 'Wǒ xiǎng gěi yīyuàn dǎ diànhuà, yùyuē míngtiān shàngwǔ de jiǎnchá.', vietnamese: 'Tôi muốn gọi điện cho bệnh viện để đặt lịch kiểm tra vào sáng mai.' },
+      { chinese: '工作人员问我有没有以前的记录，还让我带上身份证。', pinyin: 'Gōngzuò rényuán wèn wǒ yǒu méiyǒu yǐqián de jìlù, hái ràng wǒ dài shàng shēnfènzhèng.', vietnamese: 'Nhân viên hỏi tôi có hồ sơ trước đây không và dặn tôi mang theo giấy tờ tùy thân.' },
+      { chinese: '我记下时间，准备提前十五分钟到医院。', pinyin: 'Wǒ jì xià shíjiān, zhǔnbèi tíqián shíwǔ fēnzhōng dào yīyuàn.', vietnamese: 'Tôi ghi lại thời gian và chuẩn bị đến bệnh viện sớm mười lăm phút.' }
+    ],
+    focusWords: ['医院', '打电话', '预约', '明天', '上午', '检查', '工作人员', '以前', '记录', '带上', '身份证', '提前'],
+    questions: [
+      { question: 'Người kể đặt lịch vào lúc nào?', options: ['Chiều nay', 'Sáng mai', 'Tuần sau'], answer: 1, explanation: 'Câu đầu có 明天上午 – sáng mai.' },
+      { question: 'Người kể dự định đến sớm bao lâu?', options: ['Mười phút', 'Mười lăm phút', 'Ba mươi phút'], answer: 1, explanation: 'Câu cuối nói 提前十五分钟.' }
+    ],
+    sourceNote: 'Bài đọc luyện ngôn ngữ giao tiếp tại phòng khám, không thay thế tư vấn y tế.'
+  },
+  {
+    id: 'hsk3-train-trip',
+    title: 'Một chuyến tàu cuối tuần',
+    titleZh: '周末坐火车去旅行',
+    level: 'HSK 3',
+    topic: 'Du lịch & di chuyển',
+    summary: 'Mua vé, hỏi sân ga và xử lý thay đổi nhỏ trong hành trình.',
+    estimatedMinutes: 5,
+    sentences: [
+      { chinese: '这个周末，我们打算坐火车去附近的城市旅行。', pinyin: 'Zhège zhōumò, wǒmen dǎsuàn zuò huǒchē qù fùjìn de chéngshì lǚxíng.', vietnamese: 'Cuối tuần này, chúng tôi dự định đi tàu hỏa đến một thành phố gần đó du lịch.' },
+      { chinese: '到车站以后，我先确认车票上的时间和座位号码。', pinyin: 'Dào chēzhàn yǐhòu, wǒ xiān quèrèn chēpiào shàng de shíjiān hé zuòwèi hàomǎ.', vietnamese: 'Sau khi đến nhà ga, tôi kiểm tra trước thời gian và số ghế trên vé.' },
+      { chinese: '虽然出发时间晚了十分钟，但是工作人员及时通知了大家。', pinyin: 'Suīrán chūfā shíjiān wǎn le shí fēnzhōng, dànshì gōngzuò rényuán jíshí tōngzhī le dàjiā.', vietnamese: 'Mặc dù giờ khởi hành muộn mười phút, nhân viên vẫn kịp thời thông báo cho mọi người.' }
+    ],
+    focusWords: ['周末', '打算', '火车', '附近', '城市', '旅行', '车站', '确认', '车票', '时间', '座位', '虽然', '但是', '及时'],
+    questions: [
+      { question: 'Trước khi lên tàu, người kể kiểm tra điều gì?', options: ['Thời gian và số ghế', 'Thời tiết', 'Giá khách sạn'], answer: 0, explanation: 'Câu hai nói kiểm tra 时间和座位号码.' },
+      { question: 'Chuyến tàu bị chậm bao lâu?', options: ['Năm phút', 'Mười phút', 'Nửa giờ'], answer: 1, explanation: 'Câu cuối có 晚了十分钟.' }
+    ],
+    sourceNote: 'Bài đọc do LinaAI biên soạn mới theo tình huống du lịch HSK 3.'
+  },
+  {
+    id: 'hsk4-workplace-feedback',
+    title: 'Trao đổi công việc hiệu quả',
+    titleZh: '有效地沟通工作',
+    level: 'HSK 4',
+    topic: 'Công việc & giao tiếp',
+    summary: 'Luyện nêu tiến độ, phản hồi và thống nhất bước tiếp theo trong nhóm.',
+    estimatedMinutes: 6,
+    sentences: [
+      { chinese: '每次项目会议开始以前，我都会整理目前的进度和遇到的问题。', pinyin: 'Měi cì xiàngmù huìyì kāishǐ yǐqián, wǒ dōu huì zhěnglǐ mùqián de jìndù hé yùdào de wèntí.', vietnamese: 'Trước mỗi cuộc họp dự án, tôi đều tổng hợp tiến độ hiện tại và những vấn đề gặp phải.' },
+      { chinese: '如果某项任务可能延期，我会尽早说明原因，并提出可以实行的解决办法。', pinyin: 'Rúguǒ mǒu xiàng rènwu kěnéng yánqī, wǒ huì jǐnzǎo shuōmíng yuányīn, bìng tíchū kěyǐ shíxíng de jiějué bànfǎ.', vietnamese: 'Nếu một nhiệm vụ có thể bị chậm, tôi sẽ giải thích nguyên nhân sớm và đề xuất cách giải quyết khả thi.' },
+      { chinese: '这样不仅能减少误会，也能让团队更清楚地分配时间和责任。', pinyin: 'Zhèyàng bùjǐn néng jiǎnshǎo wùhuì, yě néng ràng tuánduì gèng qīngchu de fēnpèi shíjiān hé zérèn.', vietnamese: 'Cách này không chỉ giảm hiểu lầm mà còn giúp nhóm phân chia thời gian và trách nhiệm rõ ràng hơn.' }
+    ],
+    focusWords: ['项目', '会议', '整理', '目前', '进度', '问题', '任务', '延期', '尽早', '说明', '原因', '提出', '实行', '解决', '办法', '减少', '误会', '团队', '分配', '责任'],
+    questions: [
+      { question: 'Người kể chuẩn bị gì trước cuộc họp?', options: ['Tiến độ và vấn đề', 'Danh sách mua sắm', 'Kế hoạch nghỉ phép'], answer: 0, explanation: 'Câu đầu nói整理进度和遇到的问题.' },
+      { question: 'Khi nhiệm vụ có nguy cơ chậm, nên làm gì?', options: ['Im lặng chờ đợi', 'Báo sớm và đề xuất giải pháp', 'Đổ lỗi cho người khác'], answer: 1, explanation: 'Câu hai khuyên尽早说明原因，并提出解决办法.' }
+    ],
+    sourceNote: 'Bài đọc do LinaAI biên soạn mới theo giao tiếp công việc HSK 4.'
+  },
+  {
+    id: 'hsk5-media-literacy',
+    title: 'Đọc tin tức với tư duy phản biện',
+    titleZh: '用批判性思维阅读新闻',
+    level: 'HSK 5',
+    topic: 'Tư duy phản biện & truyền thông',
+    summary: 'Phân biệt sự kiện, ý kiến và thông tin chưa được xác minh.',
+    estimatedMinutes: 7,
+    sentences: [
+      { chinese: '面对传播速度很快的消息，我们不应该因为标题醒目就马上相信或转发。', pinyin: 'Miànduì chuánbō sùdù hěn kuài de xiāoxi, wǒmen bù yīnggāi yīnwèi biāotí xǐngmù jiù mǎshàng xiāngxìn huò zhuǎnfā.', vietnamese: 'Trước những tin tức lan truyền nhanh, chúng ta không nên lập tức tin hoặc chia sẻ chỉ vì tiêu đề nổi bật.' },
+      { chinese: '比较可靠的做法是寻找原始来源，区分可以核实的事实和作者表达的看法。', pinyin: 'Bǐjiào kěkào de zuòfǎ shì xúnzhǎo yuánshǐ láiyuán, qūfēn kěyǐ héshí de shìshí hé zuòzhě biǎodá de kànfǎ.', vietnamese: 'Cách đáng tin cậy hơn là tìm nguồn gốc ban đầu, phân biệt sự kiện có thể kiểm chứng với quan điểm của tác giả.' },
+      { chinese: '如果证据还不充分，暂时保留判断比急着得出结论更加负责任。', pinyin: 'Rúguǒ zhèngjù hái bù chōngfèn, zànshí bǎoliú pànduàn bǐ jízhe déchū jiélùn gèngjiā fù zérèn.', vietnamese: 'Nếu bằng chứng chưa đầy đủ, tạm thời giữ lại phán đoán có trách nhiệm hơn là vội vàng kết luận.' }
+    ],
+    focusWords: ['面对', '传播', '消息', '标题', '醒目', '相信', '转发', '可靠', '原始', '来源', '区分', '核实', '事实', '作者', '看法', '证据', '充分', '判断', '结论', '负责'],
+    questions: [
+      { question: 'Vì sao không nên tin ngay một tin tức?', options: ['Tiêu đề nổi bật chưa chứng minh nội dung đúng', 'Tin nào cũng sai', 'Tin tức luôn quá dài'], answer: 0, explanation: 'Câu đầu cảnh báo không tin chỉ vì 标题醒目.' },
+      { question: 'Khi bằng chứng chưa đủ, nên làm gì?', options: ['Chia sẻ ngay', 'Tạm giữ phán đoán', 'Tự thêm thông tin'], answer: 1, explanation: 'Câu cuối khuyên 暂时保留判断.' }
+    ],
+    sourceNote: 'Bài đọc do LinaAI biên soạn mới về kỹ năng đọc tin và kiểm chứng thông tin.'
+  },
+  {
+    id: 'hsk6-cultural-change',
+    title: 'Giữ gìn văn hóa trong xã hội thay đổi',
+    titleZh: '在变化的社会中传承文化',
+    level: 'HSK 6',
+    topic: 'Văn hóa & xã hội',
+    summary: 'Suy ngẫm về bản sắc, truyền thống và khả năng thích nghi của văn hóa.',
+    estimatedMinutes: 8,
+    sentences: [
+      { chinese: '文化并不是一成不变的标本，而是在不同世代的交流与实践中不断获得新意义。', pinyin: 'Wénhuà bìng bú shì yì chéng bú biàn de biāoběn, ér shì zài bùtóng shìdài de jiāoliú yǔ shíjiàn zhōng bùduàn huòdé xīn yìyì.', vietnamese: 'Văn hóa không phải là một mẫu vật bất biến, mà liên tục có thêm ý nghĩa mới qua giao lưu và thực hành giữa các thế hệ.' },
+      { chinese: '传承传统需要了解其形成的历史背景，也需要思考哪些价值能够回应当代人的真实生活。', pinyin: 'Chuánchéng chuántǒng xūyào liǎojiě qí xíngchéng de lìshǐ bèijǐng, yě xūyào sīkǎo nǎxiē jiàzhí nénggòu huíyìng dāngdài rén de zhēnshí shēnghuó.', vietnamese: 'Kế thừa truyền thống đòi hỏi hiểu bối cảnh lịch sử hình thành nó, đồng thời suy nghĩ xem những giá trị nào có thể đáp ứng đời sống thực tế của con người hiện đại.' },
+      { chinese: '因此，尊重文化既不是拒绝改变，也不是盲目模仿，而是在理解的基础上作出有意识的选择。', pinyin: 'Yīncǐ, zūnzhòng wénhuà jì bú shì jùjué gǎibiàn, yě bú shì mángmù mófǎng, ér shì zài lǐjiě de jīchǔ shàng zuòchū yǒu yìshí de xuǎnzé.', vietnamese: 'Vì vậy, tôn trọng văn hóa không phải từ chối thay đổi cũng không phải bắt chước mù quáng, mà là đưa ra lựa chọn có ý thức trên nền tảng thấu hiểu.' }
+    ],
+    focusWords: ['文化', '一成不变', '标本', '世代', '交流', '实践', '不断', '意义', '传承', '传统', '形成', '背景', '价值', '回应', '当代', '尊重', '拒绝', '盲目', '模仿', '意识'],
+    questions: [
+      { question: 'Theo bài đọc, văn hóa thay đổi như thế nào?', options: ['Có thêm ý nghĩa qua giao lưu và thực hành', 'Không bao giờ thay đổi', 'Chỉ tồn tại trong bảo tàng'], answer: 0, explanation: 'Câu đầu nói văn hóa获得新意义 qua交流与实践.' },
+      { question: 'Tôn trọng văn hóa đòi hỏi điều gì?', options: ['Từ chối mọi thay đổi', 'Bắt chước không suy nghĩ', 'Hiểu rồi lựa chọn có ý thức'], answer: 2, explanation: 'Câu cuối nhấn mạnh在理解的基础上作出有意识的选择.' }
+    ],
+    sourceNote: 'Bài đọc do LinaAI biên soạn mới về bản sắc văn hóa và thích nghi xã hội.'
+  },
 
 ];
 
