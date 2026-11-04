@@ -68,8 +68,9 @@ async function handleReadingSearch(req, res, payload) {
   if (!request.vocabulary.length) return res.status(400).json({ error: 'Kho từ vựng hiện chưa có dữ liệu để cá nhân hóa bài đọc.' });
   const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY;
   if (!apiKey) return res.status(503).json({ error: 'Tìm kiếm bài đọc AI chưa được cấu hình ở máy chủ.' });
-  const targetWords = request.vocabulary.filter(item => item.hskLevel === request.level || !item.hskLevel).slice(0, 70);
-  const vocabularyForPrompt = (targetWords.length ? targetWords : request.vocabulary.slice(0, 70));
+  const targetWords = request.vocabulary.filter(item => item.hskLevel === request.level).slice(0, 70);
+  if (!targetWords.length) return res.status(400).json({ error: 'Kho từ vựng chưa có mục nào thuộc cấp độ đã chọn. Hãy chọn HSK khác hoặc bổ sung từ vựng trước.' });
+  const vocabularyForPrompt = targetWords;
   const prompt = `Bạn là biên tập viên học liệu tiếng Trung cho người Việt. Hãy dùng Google Search để tìm 2-5 trang web đáng tin cậy liên quan đến chủ đề: "${request.query}". Ưu tiên nguồn giáo dục, báo chí/chuyên trang có nội dung tiếng Trung giản thể; không dùng trang quảng cáo, nội dung vô danh hoặc trang không liên quan.
 Sau khi đọc và đối chiếu các nguồn, hãy tự viết MỘT bài đọc tiếng Trung mới, không sao chép nguyên văn và không dịch lại nguyên đoạn của nguồn. Nội dung cần phù hợp ${request.level}; dùng tối đa từ có thể từ danh sách từ vựng được cung cấp. Không gắn nhãn HSK cho từ nếu danh sách không có. Mỗi câu phải có chữ Hán giản thể, Pinyin có dấu thanh chính xác và bản dịch tiếng Việt tự nhiên, đồng nhất ý nghĩa. Tạo 3-5 câu hỏi đọc hiểu bằng tiếng Việt, có đáp án và giải thích.
 Chỉ sử dụng các từ trong danh sách làm focusWords; focusWords phải khớp chính xác trường hanzi. Nếu một từ không dùng trong bài thì bỏ khỏi focusWords.
