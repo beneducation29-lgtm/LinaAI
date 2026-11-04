@@ -6,6 +6,7 @@ import { BottomNavigation } from '../navigation/BottomNavigation';
 import { HomeDashboard } from '../home/HomeDashboard';
 import { TutorScreen } from '../tutor/TutorScreen';
 import { ListeningScreen } from '../listening/ListeningScreen';
+import { ReadingScreen } from '../reading/ReadingScreen';
 import { LearningSystemScreen } from '../learning/LearningSystemScreen';
 import { ReviewScreen } from '../review/ReviewScreen';
 import { Profile } from '../profile/Profile';
@@ -187,6 +188,8 @@ export const AppShell: React.FC = () => {
         return <TutorScreen />;
       case 'listening':
         return <ListeningScreen />;
+      case 'reading':
+        return authUser ? <ReadingScreen ownerId={authUser.id} /> : <HomeDashboard />;
       case 'review':
         return <ReviewScreen />;
       case 'profile':

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useApp, TabType } from '../../context/AppContext';
-import { Home, BookOpen, Mic, Headphones, Brain, User, Moon, Sun, Sparkles } from 'lucide-react';
+import { Home, BookOpen, Mic, Headphones, Brain, User, BookOpenText, Moon, Sun, Sparkles } from 'lucide-react';
 import { isDue } from '../../services/learningEngine';
 import linaAvatarImg from '../../assets/images/lina_avatar_stylized_1790862594850.jpg';
 
@@ -17,6 +17,7 @@ export const Sidebar: React.FC = () => {
     { tab: 'learn', label: 'Học', icon: BookOpen, badge: user.currentHsk },
     { tab: 'speak', label: 'Nói', icon: Mic, badge: 'Lina AI' },
     { tab: 'listening', label: 'Luyện nghe', icon: Headphones },
+    { tab: 'reading', label: 'Đọc thông minh', icon: BookOpenText, badge: 'Mới' },
     { tab: 'review', label: 'Ôn tập', icon: Brain, badge: `${todayReviewCount} từ` },
     { tab: 'profile', label: 'Tôi', icon: User },
   ];
