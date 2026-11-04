@@ -275,8 +275,7 @@ export const GRADED_READINGS: GradedReading[] = [
       { question: 'Điều gì cần được dùng để kiểm nghiệm quan điểm?', options: ['Cảm xúc', 'Bằng chứng và logic', 'Số lượt chia sẻ'], answer: 1, explanation: 'Câu ba nêu 证据和逻辑的检验.' }
     ],
     sourceNote: 'Bài đọc do LinaAI biên soạn mới theo chủ đề và vốn từ HSK 6.'
-  }
-
+  },
   {
     id: 'hsk1-at-restaurant',
     title: 'Gọi món ở quán ăn',
