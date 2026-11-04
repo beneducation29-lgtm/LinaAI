@@ -6,7 +6,7 @@ type BeforeInstallPromptEvent = Event & { prompt: () => Promise<void>; userChoic
 let deferredPrompt: BeforeInstallPromptEvent | null = null;
 export function registerPwa() {
   if (Capacitor.isNativePlatform() || !('serviceWorker' in navigator)) return;
-  window.addEventListener('load', () => { navigator.serviceWorker.register('/sw.js').catch(() => undefined); });
+  window.addEventListener('load', () => {\n    navigator.serviceWorker.register('/sw.js').then(registration => registration.update()).catch(() => undefined);\n  });
 }
 export function isStandaloneDisplay() {
   return window.matchMedia?.('(display-mode: standalone)').matches || Boolean((navigator as Navigator & { standalone?: boolean }).standalone);
