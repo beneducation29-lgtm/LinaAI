@@ -16,5 +16,5 @@ assert.equal(unknown.some(token => token.focus), false);
 const aligned = alignPinyinToHanzi('今天早上，我六点起床。', 'Jīntiān zǎoshang, wǒ liù diǎn qǐchuáng.');
 assert.ok(aligned, 'A sentence with one syllable per Hanzi should align.');
 assert.deepEqual(aligned?.map(item => item.pinyin), ['jin', 'tian', 'zao', 'shang', 'wo', 'liu', 'dian', 'qi', 'chuang']);
-assert.equal(alignPinyinToHanzi('儿化词语', 'érhuà cíyǔ'), null, 'Do not invent character alignment when syllable and Hanzi counts differ.');
+assert.equal(alignPinyinToHanzi('你好世界', 'nǐhǎo'), null, 'Do not invent character alignment when syllable and Hanzi counts differ.');
 \nconsole.log('Interactive reading vocabulary tokenizer and ruby pinyin tests passed.');
