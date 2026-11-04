@@ -32,7 +32,7 @@ function readProgress(ownerId: string): ReadingProgress {
 
 interface ReadingToken { text: string; focus: boolean; }
 
-function tokenizeReadingSentence(sentence: string, focusWords: string[]): ReadingToken[] {
+export function tokenizeReadingSentence(sentence: string, focusWords: string[]): ReadingToken[] {
   const characters = Array.from(sentence);
   const candidates = [...focusWords].filter(Boolean).sort((a, b) => Array.from(b).length - Array.from(a).length);
   const tokens: ReadingToken[] = [];
