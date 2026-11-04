@@ -64,9 +64,9 @@ export const ReadingScreen: React.FC<Props> = ({ ownerId }) => {
     setBusy(true);
     try {
       const image = await prepareImage(file);
-      const response = await fetch('/api/reading/ocr', {
+      const response = await fetch('/api/lesson/generate', {
         method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(image)
+        body: JSON.stringify({ ...image, task: 'reading_ocr' })
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload.error || 'Không thể nhận diện ảnh.');
