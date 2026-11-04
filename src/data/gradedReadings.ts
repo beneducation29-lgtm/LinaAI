@@ -275,7 +275,188 @@ export const GRADED_READINGS: GradedReading[] = [
       { question: 'Điều gì cần được dùng để kiểm nghiệm quan điểm?', options: ['Cảm xúc', 'Bằng chứng và logic', 'Số lượt chia sẻ'], answer: 1, explanation: 'Câu ba nêu 证据和逻辑的检验.' }
     ],
     sourceNote: 'Bài đọc do LinaAI biên soạn mới theo chủ đề và vốn từ HSK 6.'
-  }
+  },
+  {
+    id: 'hsk1-at-restaurant',
+    title: 'Gọi món ở quán ăn',
+    titleZh: '在饭馆点菜',
+    level: 'HSK 1',
+    topic: 'Giao tiếp hằng ngày',
+    summary: 'Luyện gọi món, hỏi giá và nói lời cảm ơn trong quán ăn.',
+    estimatedMinutes: 3,
+    sentences: [
+      { chinese: '今天我和朋友去饭馆吃饭。', pinyin: 'Jīntiān wǒ hé péngyou qù fànguǎn chīfàn.', vietnamese: 'Hôm nay tôi và bạn đi ăn ở quán.' },
+      { chinese: '我想要一碗米饭和一杯水。', pinyin: 'Wǒ xiǎng yào yì wǎn mǐfàn hé yì bēi shuǐ.', vietnamese: 'Tôi muốn một bát cơm và một cốc nước.' },
+      { chinese: '服务员说一共三十块钱，我说谢谢。', pinyin: 'Fúwùyuán shuō yígòng sānshí kuài qián, wǒ shuō xièxie.', vietnamese: 'Nhân viên nói tổng cộng ba mươi tệ, tôi nói cảm ơn.' }
+    ],
+    focusWords: ['今天', '朋友', '饭馆', '吃饭', '想', '要', '米饭', '水', '服务员', '一共', '钱', '谢谢'],
+    questions: [
+      { question: 'Người kể đi ăn với ai?', options: ['Bạn', 'Giáo viên', 'Mẹ'], answer: 0, explanation: 'Câu đầu nói 我和朋友 – tôi và bạn.' },
+      { question: 'Tổng số tiền là bao nhiêu?', options: ['二十块', '三十块', '四十块'], answer: 1, explanation: 'Nhân viên nói 一共三十块钱.' }
+    ],
+    sourceNote: 'Bài đọc do LinaAI biên soạn mới theo giao tiếp cơ bản HSK 1.'
+  },
+  {
+    id: 'hsk2-ask-directions',
+    title: 'Hỏi đường khi đi trong thành phố',
+    titleZh: '在城市里问路',
+    level: 'HSK 2',
+    topic: 'Giao tiếp hằng ngày',
+    summary: 'Luyện hỏi vị trí, nghe chỉ dẫn và xác nhận đường đi.',
+    estimatedMinutes: 4,
+    sentences: [
+      { chinese: '请问，地铁站离这里远不远？', pinyin: 'Qǐngwèn, dìtiězhàn lí zhèlǐ yuǎn bu yuǎn?', vietnamese: 'Xin hỏi, ga tàu điện ngầm có xa đây không?' },
+      { chinese: '不太远，你一直往前走，在银行旁边就能看见。', pinyin: 'Bú tài yuǎn, nǐ yìzhí wǎng qián zǒu, zài yínháng pángbiān jiù néng kànjiàn.', vietnamese: 'Không xa lắm, bạn cứ đi thẳng về phía trước, sẽ nhìn thấy nó bên cạnh ngân hàng.' },
+      { chinese: '好的，谢谢你！我现在就过去。', pinyin: 'Hǎo de, xièxie nǐ! Wǒ xiànzài jiù guòqu.', vietnamese: 'Được rồi, cảm ơn bạn! Bây giờ tôi đi qua đó.' }
+    ],
+    focusWords: ['请问', '地铁站', '离', '远', '一直', '前', '银行', '旁边', '看见', '现在', '过去'],
+    questions: [
+      { question: 'Ga tàu điện ngầm ở đâu?', options: ['Bên cạnh ngân hàng', 'Trong trường học', 'Phía sau bệnh viện'], answer: 0, explanation: 'Người chỉ đường nói 在银行旁边.' },
+      { question: 'Người hỏi đường sẽ làm gì?', options: ['Gọi taxi', 'Đi đến ga ngay', 'Về nhà'], answer: 1, explanation: 'Câu cuối nói 我现在就过去.' }
+    ],
+    sourceNote: 'Bài đọc do LinaAI biên soạn mới theo tình huống giao tiếp HSK 2.'
+  },
+  {
+    id: 'hsk3-tea-culture',
+    title: 'Một buổi uống trà cùng bạn',
+    titleZh: '和朋友一起喝茶',
+    level: 'HSK 3',
+    topic: 'Văn hóa & phong tục',
+    summary: 'Tìm hiểu cách mời trà, trò chuyện và thể hiện sự lịch sự.',
+    estimatedMinutes: 5,
+    sentences: [
+      { chinese: '周末，我第一次去朋友家做客，他的家人热情地请我喝茶。', pinyin: 'Zhōumò, wǒ dì yī cì qù péngyou jiā zuòkè, tā de jiārén rèqíng de qǐng wǒ hē chá.', vietnamese: 'Cuối tuần, lần đầu tiên tôi đến nhà bạn chơi, gia đình bạn nhiệt tình mời tôi uống trà.' },
+      { chinese: '主人先给长辈倒茶，再请客人选择自己喜欢的茶。', pinyin: 'Zhǔrén xiān gěi zhǎngbèi dào chá, zài qǐng kèrén xuǎnzé zìjǐ xǐhuan de chá.', vietnamese: 'Chủ nhà rót trà cho người lớn tuổi trước, sau đó mời khách chọn loại trà mình thích.' },
+      { chinese: '我们一边喝茶一边聊天，慢慢了解彼此的生活和习惯。', pinyin: 'Wǒmen yìbiān hē chá yìbiān liáotiān, mànmàn liǎojiě bǐcǐ de shēnghuó hé xíguàn.', vietnamese: 'Chúng tôi vừa uống trà vừa trò chuyện, từ từ tìm hiểu cuộc sống và thói quen của nhau.' }
+    ],
+    focusWords: ['周末', '第一次', '做客', '家人', '热情', '主人', '长辈', '客人', '选择', '一边', '聊天', '习惯'],
+    questions: [
+      { question: 'Chủ nhà rót trà cho ai trước?', options: ['Trẻ em', 'Người lớn tuổi', 'Người phục vụ'], answer: 1, explanation: 'Câu hai nói 先给长辈倒茶.' },
+      { question: 'Hai người vừa uống trà vừa làm gì?', options: ['Trò chuyện', 'Nấu ăn', 'Xem tivi'], answer: 0, explanation: '一边喝茶一边聊天 nghĩa là vừa uống trà vừa trò chuyện.' }
+    ],
+    sourceNote: 'Bài đọc do LinaAI biên soạn mới về phép lịch sự trong văn hóa tiếp khách.'
+  },
+  {
+    id: 'hsk3-study-plan',
+    title: 'Học ít nhưng đều đặn',
+    titleZh: '少学一点儿，坚持每天学',
+    level: 'HSK 3',
+    topic: 'Học tập',
+    summary: 'Trao đổi về lịch học ngắn, ôn tập và duy trì động lực.',
+    estimatedMinutes: 5,
+    sentences: [
+      { chinese: '以前我常常在考试前才开始学习，所以总觉得时间不够。', pinyin: 'Yǐqián wǒ chángcháng zài kǎoshì qián cái kāishǐ xuéxí, suǒyǐ zǒng juéde shíjiān bú gòu.', vietnamese: 'Trước đây tôi thường đợi đến trước kỳ thi mới bắt đầu học nên lúc nào cũng thấy không đủ thời gian.' },
+      { chinese: '现在我每天安排二十分钟复习生词，再读一小段文章。', pinyin: 'Xiànzài wǒ měitiān ānpái èrshí fēnzhōng fùxí shēngcí, zài dú yì xiǎo duàn wénzhāng.', vietnamese: 'Bây giờ mỗi ngày tôi sắp xếp hai mươi phút ôn từ mới, sau đó đọc một đoạn văn ngắn.' },
+      { chinese: '虽然每天学的内容不多，但是坚持下来以后，我发现自己进步了。', pinyin: 'Suīrán měitiān xué de nèiróng bù duō, dànshì jiānchí xiàlai yǐhòu, wǒ fāxiàn zìjǐ jìnbù le.', vietnamese: 'Tuy mỗi ngày học không nhiều, nhưng sau khi kiên trì, tôi nhận ra mình đã tiến bộ.' }
+    ],
+    focusWords: ['以前', '考试', '开始', '时间', '安排', '分钟', '复习', '生词', '文章', '虽然', '坚持', '发现', '进步'],
+    questions: [
+      { question: 'Trước đây người kể thường bắt đầu học khi nào?', options: ['Mỗi sáng', 'Trước kỳ thi', 'Cuối mỗi tháng'], answer: 1, explanation: 'Câu đầu nói 在考试前才开始学习.' },
+      { question: 'Mỗi ngày người kể dành bao lâu để ôn từ mới?', options: ['十分钟', '二十分钟', '一个小时'], answer: 1, explanation: 'Câu hai nói 安排二十分钟.' }
+    ],
+    sourceNote: 'Bài đọc do LinaAI biên soạn mới theo chủ đề học tập HSK 3.'
+  },
+  {
+    id: 'hsk4-money-habits',
+    title: 'Quản lý tiền bạc trong cuộc sống',
+    titleZh: '管理日常开支',
+    level: 'HSK 4',
+    topic: 'Kinh tế & tiền bạc',
+    summary: 'Luyện nói về thu nhập, chi tiêu, tiết kiệm và lựa chọn mua sắm.',
+    estimatedMinutes: 6,
+    sentences: [
+      { chinese: '刚开始工作的时候，我常常月底才发现自己的钱已经花得差不多了。', pinyin: 'Gāng kāishǐ gōngzuò de shíhou, wǒ chángcháng yuèdǐ cái fāxiàn zìjǐ de qián yǐjīng huā de chàbuduō le.', vietnamese: 'Khi mới bắt đầu đi làm, tôi thường đến cuối tháng mới nhận ra mình gần như đã tiêu hết tiền.' },
+      { chinese: '后来我把每个月的收入分成生活费、储蓄和学习费用。', pinyin: 'Hòulái wǒ bǎ měi ge yuè de shōurù fēn chéng shēnghuófèi, chǔxù hé xuéxí fèiyòng.', vietnamese: 'Sau đó tôi chia thu nhập mỗi tháng thành chi phí sinh hoạt, tiền tiết kiệm và chi phí học tập.' },
+      { chinese: '买东西以前，我会先比较价格，也会想一想自己是不是真的需要它。', pinyin: 'Mǎi dōngxi yǐqián, wǒ huì xiān bǐjiào jiàgé, yě huì xiǎng yi xiǎng zìjǐ shì bú shì zhēn de xūyào tā.', vietnamese: 'Trước khi mua đồ, tôi sẽ so sánh giá và suy nghĩ xem mình có thực sự cần nó hay không.' }
+    ],
+    focusWords: ['工作', '月底', '发现', '差不多', '收入', '分成', '生活费', '储蓄', '费用', '比较', '价格', '需要'],
+    questions: [
+      { question: 'Người kể chia thu nhập thành những khoản nào?', options: ['Sinh hoạt, tiết kiệm, học tập', 'Du lịch, quà tặng, giải trí', 'Chỉ tiền ăn'], answer: 0, explanation: 'Câu hai liệt kê 生活费、储蓄和学习费用.' },
+      { question: 'Trước khi mua đồ, người kể làm gì?', options: ['Mua ngay', 'So sánh giá và cân nhắc nhu cầu', 'Hỏi tất cả bạn bè'], answer: 1, explanation: 'Câu ba nói 比较价格 và nghĩ xem có thật sự cần không.' }
+    ],
+    sourceNote: 'Bài đọc do LinaAI biên soạn mới về thói quen tài chính cá nhân, không phải lời khuyên đầu tư.'
+  },
+  {
+    id: 'hsk4-life-attitude',
+    title: 'Giữ bình tĩnh trước những thay đổi',
+    titleZh: '面对变化，保持平静',
+    level: 'HSK 4',
+    topic: 'Triết lý sống',
+    summary: 'Đọc về chấp nhận thay đổi, phân biệt điều có thể kiểm soát và giữ thái độ tích cực.',
+    estimatedMinutes: 6,
+    sentences: [
+      { chinese: '生活不会总是按照我们的计划发展，有时候变化来得比想象中更快。', pinyin: 'Shēnghuó bú huì zǒngshì ànzhào wǒmen de jìhuà fāzhǎn, yǒu shíhou biànhuà lái de bǐ xiǎngxiàng zhōng gèng kuài.', vietnamese: 'Cuộc sống không phải lúc nào cũng phát triển theo kế hoạch của chúng ta; đôi khi thay đổi đến nhanh hơn tưởng tượng.' },
+      { chinese: '遇到困难时，与其一直担心结果，不如先看看自己能够做些什么。', pinyin: 'Yùdào kùnnan shí, yǔqí yìzhí dānxīn jiéguǒ, bùrú xiān kànkan zìjǐ nénggòu zuò xiē shénme.', vietnamese: 'Khi gặp khó khăn, thay vì liên tục lo lắng về kết quả, tốt hơn hãy xem trước mình có thể làm được điều gì.' },
+      { chinese: '我们不能决定所有事情，但是可以选择用什么态度面对它们。', pinyin: 'Wǒmen bù néng juédìng suǒyǒu shìqing, dànshì kěyǐ xuǎnzé yòng shénme tàidu miànduì tāmen.', vietnamese: 'Chúng ta không thể quyết định mọi việc, nhưng có thể lựa chọn thái độ để đối diện với chúng.' }
+    ],
+    focusWords: ['生活', '按照', '计划', '发展', '变化', '想象', '困难', '担心', '结果', '能够', '决定', '选择', '态度', '面对'],
+    questions: [
+      { question: 'Khi gặp khó khăn, bài đọc khuyên nên làm gì?', options: ['Chỉ lo lắng', 'Xem mình có thể hành động thế nào', 'Bỏ mọi kế hoạch'], answer: 1, explanation: 'Câu hai khuyên先看看自己能够做些什么.' },
+      { question: 'Điều gì nằm trong khả năng lựa chọn của chúng ta?', options: ['Mọi kết quả', 'Thái độ đối diện sự việc', 'Hành động của người khác'], answer: 1, explanation: 'Câu cuối nhấn mạnh 可以选择…态度.' }
+    ],
+    sourceNote: 'Bài đọc do LinaAI biên soạn mới theo chủ đề triết lý sống HSK 4.'
+  },
+  {
+    id: 'hsk5-festival-culture',
+    title: 'Ý nghĩa của những ngày lễ truyền thống',
+    titleZh: '传统节日的意义',
+    level: 'HSK 5',
+    topic: 'Văn hóa & phong tục',
+    summary: 'Tìm hiểu Tết Nguyên đán, sum họp gia đình và việc gìn giữ phong tục.',
+    estimatedMinutes: 7,
+    sentences: [
+      { chinese: '对很多家庭来说，春节不仅是一个重要的节日，也是家人重新聚在一起的机会。', pinyin: 'Duì hěn duō jiātíng lái shuō, Chūnjié bù jǐn shì yí ge zhòngyào de jiérì, yě shì jiārén chóngxīn jù zài yìqǐ de jīhuì.', vietnamese: 'Với nhiều gia đình, Tết Nguyên đán không chỉ là một ngày lễ quan trọng mà còn là dịp để các thành viên sum họp.' },
+      { chinese: '人们准备食物、打扫房间，并向长辈表达祝福和感谢。', pinyin: 'Rénmen zhǔnbèi shíwù, dǎsǎo fángjiān, bìng xiàng zhǎngbèi biǎodá zhùfú hé gǎnxiè.', vietnamese: 'Mọi người chuẩn bị thức ăn, dọn dẹp nhà cửa và gửi lời chúc cùng sự biết ơn đến người lớn tuổi.' },
+      { chinese: '时代虽然不断变化，但节日中关于团聚、关心和分享的价值仍然值得保留。', pinyin: 'Shídài suīrán búduàn biànhuà, dàn jiérì zhōng guānyú tuánjù, guānxīn hé fēnxiǎng de jiàzhí réngrán zhídé bǎoliú.', vietnamese: 'Dù thời đại không ngừng thay đổi, những giá trị về đoàn tụ, quan tâm và sẻ chia trong ngày lễ vẫn đáng được gìn giữ.' }
+    ],
+    focusWords: ['家庭', '春节', '不仅', '重要', '节日', '重新', '机会', '准备', '打扫', '长辈', '表达', '祝福', '感谢', '时代', '变化', '团聚', '分享', '价值', '保留'],
+    questions: [
+      { question: 'Tết có ý nghĩa gì với nhiều gia đình?', options: ['Chỉ là ngày nghỉ', 'Dịp sum họp gia đình', 'Dịp mua đồ mới'], answer: 1, explanation: 'Câu đầu nói家人重新聚在一起的机会.' },
+      { question: 'Giá trị nào được nhắc đến ở câu cuối?', options: ['Đoàn tụ, quan tâm và sẻ chia', 'Cạnh tranh và tốc độ', 'Tiêu dùng và giải trí'], answer: 0, explanation: 'Câu cuối nêu 团聚、关心和分享.' }
+    ],
+    sourceNote: 'Bài đọc do LinaAI biên soạn mới về văn hóa Tết và giá trị gia đình.'
+  },
+  {
+    id: 'hsk5-life-philosophy',
+    title: 'Thành công không chỉ có một định nghĩa',
+    titleZh: '成功不只有一种定义',
+    level: 'HSK 5',
+    topic: 'Triết lý sống',
+    summary: 'Thảo luận về thành công, mục tiêu cá nhân và cân bằng trong cuộc sống.',
+    estimatedMinutes: 7,
+    sentences: [
+      { chinese: '社会常常用收入、职位和名声来衡量一个人的成功，却容易忽略每个人的生活目标并不相同。', pinyin: 'Shèhuì chángcháng yòng shōurù, zhíwèi hé míngshēng lái héngliáng yí ge rén de chénggōng, què róngyì hūlüè měi ge rén de shēnghuó mùbiāo bìng bù xiāngtóng.', vietnamese: 'Xã hội thường dùng thu nhập, chức vụ và danh tiếng để đo lường thành công, nhưng dễ bỏ qua việc mục tiêu sống của mỗi người không giống nhau.' },
+      { chinese: '有人希望创造事业，有人更重视家庭、健康或持续学习。', pinyin: 'Yǒu rén xīwàng chuàngzào shìyè, yǒu rén gèng zhòngshì jiātíng, jiànkāng huò chíxù xuéxí.', vietnamese: 'Có người muốn xây dựng sự nghiệp, có người coi trọng gia đình, sức khỏe hoặc việc học hỏi liên tục hơn.' },
+      { chinese: '与其盲目追随别人的标准，不如先弄清楚自己真正重视什么，再为目标安排时间和精力。', pinyin: 'Yǔqí mángmù zhuīsuí biérén de biāozhǔn, bùrú xiān nòng qīngchu zìjǐ zhēnzhèng zhòngshì shénme, zài wèi mùbiāo ānpái shíjiān hé jīnglì.', vietnamese: 'Thay vì mù quáng chạy theo tiêu chuẩn của người khác, tốt hơn hãy hiểu rõ điều mình thực sự coi trọng rồi dành thời gian và sức lực cho mục tiêu đó.' }
+    ],
+    focusWords: ['社会', '收入', '职位', '名声', '衡量', '成功', '忽略', '目标', '相同', '创造', '事业', '重视', '持续', '盲目', '追随', '标准', '真正', '精力'],
+    questions: [
+      { question: 'Theo bài đọc, vì sao không nên chỉ dùng thu nhập để đánh giá thành công?', options: ['Vì mọi người có mục tiêu sống khác nhau', 'Vì thu nhập không quan trọng', 'Vì chức vụ luôn quan trọng hơn'], answer: 0, explanation: 'Câu đầu nói mỗi người có不同的生活目标.' },
+      { question: 'Tác giả khuyên nên làm gì trước?', options: ['Bắt chước người khác', 'Hiểu điều bản thân thực sự coi trọng', 'Tăng giờ làm việc'], answer: 1, explanation: 'Câu cuối khuyên先弄清楚自己真正重视什么.' }
+    ],
+    sourceNote: 'Bài đọc do LinaAI biên soạn mới để luyện diễn đạt quan điểm HSK 5.'
+  },
+  {
+    id: 'hsk6-economic-choices',
+    title: 'Chi phí cơ hội trong lựa chọn hằng ngày',
+    titleZh: '日常选择中的机会成本',
+    level: 'HSK 6',
+    topic: 'Kinh tế & tiền bạc',
+    summary: 'Giải thích chi phí cơ hội qua thời gian, tiền bạc và quyết định tiêu dùng.',
+    estimatedMinutes: 8,
+    sentences: [
+      { chinese: '当我们决定把时间或金钱用于某件事情时，也就放弃了用同样资源去做其他事情的可能。', pinyin: 'Dāng wǒmen juédìng bǎ shíjiān huò jīnqián yòng yú mǒu jiàn shìqing shí, yě jiù fàngqì le yòng tóngyàng zīyuán qù zuò qítā shìqing de kěnéng.', vietnamese: 'Khi quyết định dùng thời gian hoặc tiền bạc cho một việc, chúng ta cũng từ bỏ khả năng dùng nguồn lực ấy cho việc khác.' },
+      { chinese: '经济学把这种被放弃的最佳替代方案称为机会成本，它提醒我们比较选择背后的真实代价。', pinyin: 'Jīngjìxué bǎ zhè zhǒng bèi fàngqì de zuìjiā tìdài fāngàn chēng wéi jīhuì chéngběn, tā tíxǐng wǒmen bǐjiào xuǎnzé bèihòu de zhēnshí dàijià.', vietnamese: 'Kinh tế học gọi phương án thay thế tốt nhất bị từ bỏ này là chi phí cơ hội; khái niệm đó nhắc chúng ta so sánh cái giá thực sự phía sau mỗi lựa chọn.' },
+      { chinese: '理解机会成本并不意味着每次都要选择最赚钱的方案，而是让决定更加符合自己的优先顺序。', pinyin: 'Lǐjiě jīhuì chéngběn bìng bù yìwèizhe měi cì dōu yào xuǎnzé zuì zhuànqián de fāngàn, ér shì ràng juédìng gèngjiā fúhé zìjǐ de yōuxiān shùnxù.', vietnamese: 'Hiểu chi phí cơ hội không có nghĩa lần nào cũng phải chọn phương án kiếm nhiều tiền nhất, mà là giúp quyết định phù hợp hơn với thứ tự ưu tiên của bản thân.' }
+    ],
+    focusWords: ['决定', '时间', '金钱', '放弃', '资源', '可能', '经济学', '最佳', '替代', '方案', '称为', '机会成本', '提醒', '比较', '选择', '代价', '赚钱', '符合', '优先', '顺序'],
+    questions: [
+      { question: 'Chi phí cơ hội là gì?', options: ['Tổng số tiền đã chi', 'Giá trị của phương án tốt nhất bị từ bỏ', 'Khoản thuế phải nộp'], answer: 1, explanation: 'Câu hai gọi phương án thay thế tốt nhất bị từ bỏ là 机会成本.' },
+      { question: 'Hiểu chi phí cơ hội giúp ích điều gì?', options: ['Luôn chọn phương án kiếm nhiều tiền nhất', 'Đưa ra quyết định phù hợp ưu tiên cá nhân', 'Không cần cân nhắc lựa chọn'], answer: 1, explanation: 'Câu cuối nói 决定更加符合自己的优先顺序.' }
+    ],
+    sourceNote: 'Bài đọc do LinaAI biên soạn mới để giải thích khái niệm kinh tế cơ bản, không phải tư vấn tài chính.'
+  },
+
 ];
 
 export const HSK_LEVELS: HSKLevel[] = ['HSK 1', 'HSK 2', 'HSK 3', 'HSK 4', 'HSK 5', 'HSK 6'];

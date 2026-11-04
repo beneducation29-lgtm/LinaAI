@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { alignPinyinToHanzi, tokenizeReadingSentence } from '../src/components/reading/ReadingScreen';
+import { alignPinyinToHanzi, getReadingProsody, tokenizeReadingSentence } from '../src/components/reading/ReadingScreen';
 
 const tokens = tokenizeReadingSentence('今天早上，我去学校学习汉语。', ['今天', '早上', '学校', '学习', '汉语']);
 assert.equal(tokens.map(token => token.text).join(''), '今天早上，我去学校学习汉语。', 'Tokenization must preserve every original character.');
@@ -18,4 +18,10 @@ assert.ok(aligned, 'A sentence with one syllable per Hanzi should align.');
 assert.deepEqual(aligned?.map(item => item.pinyin), ['jin', 'tian', 'zao', 'shang', 'wo', 'liu', 'dian', 'qi', 'chuang']);
 assert.equal(alignPinyinToHanzi('你好世界', 'nǐhǎo'), null, 'Do not invent character alignment when syllable and Hanzi counts differ.');
 
-console.log('Interactive reading vocabulary tokenizer and ruby pinyin tests passed.');
+const questionProsody = getReadingProsody('你今天有空吗？');
+assert.equal(questionProsody.rate, 0.78, 'Reading voice should be slower than the browser default.');
+assert.ok(questionProsody.pitch > 1, 'Questions should use a raised pitch.');
+assert.ok(getReadingProsody('这件事特别重要。').pitch > getReadingProsody('今天天气很好。').pitch, 'Emphasis words should receive a distinct pitch contour.');
+assert.ok(getReadingProsody('今天天气很好。').pause >= 300, 'Sentence endings should include a natural pause.');
+
+console.log('Interactive reading vocabulary, ruby pinyin and speech prosody tests passed.');

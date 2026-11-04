@@ -1,5 +1,5 @@
 import React from 'react';
-import { BookOpen, Bookmark, CheckCircle2, ChevronDown, ChevronUp, Headphones, Library, Search, Volume2 } from 'lucide-react';
+import { BookOpen, Bookmark, CheckCircle2, ChevronDown, ChevronUp, Eye, EyeOff, Headphones, Library, Search, Volume2 } from 'lucide-react';
 import type { HSKLevel, Vocabulary } from '../../types';
 import { HSK_LEVELS, GRADED_READINGS, type GradedReading } from '../../data/gradedReadings';
 import { accountStorageKey } from '../../services/accountStorage';
@@ -107,13 +107,44 @@ export function tokenizeReadingSentence(sentence: string, focusWords: string[]):
   return tokens;
 }
 
-function speakChinese(value: string) {
+let readingSpeechTimer: number | undefined;
+
+export function getReadingProsody(sentence: string, index = 0) {
+  const ending = sentence.trim().slice(-1);
+  const expressive = /但是|然而|不过|其实|重要|特别|真正|一定/.test(sentence);
+  const pitch = /[？?]$/.test(ending) ? 1.12 : /[！!]$/.test(ending) ? 1.1 : expressive ? 1.06 : index % 2 === 0 ? 0.98 : 1.03;
+  const pause = /[！!]$/.test(ending) ? 440 : /[？?]$/.test(ending) ? 400 : /[。；]$/.test(ending) ? 340 : 220;
+  return { rate: 0.78, pitch, pause };
+}
+
+function speakChinese(value: string | string[]) {
   if (!('speechSynthesis' in window)) return;
   window.speechSynthesis.cancel();
-  const utterance = new SpeechSynthesisUtterance(value);
-  utterance.lang = 'zh-CN';
-  utterance.rate = 0.86;
-  window.speechSynthesis.speak(utterance);
+  if (readingSpeechTimer) window.clearTimeout(readingSpeechTimer);
+  const sentences = (Array.isArray(value) ? value : [value]).map(item => item.trim()).filter(Boolean);
+  const voices = window.speechSynthesis.getVoices();
+  const chineseVoice = voices.find(voice => /^zh-CN/i.test(voice.lang)) || voices.find(voice => /^zh/i.test(voice.lang));
+  let index = 0;
+  const speakNext = () => {
+    if (index >= sentences.length) return;
+    const current = sentences[index];
+    const prosody = getReadingProsody(current, index);
+    const utterance = new SpeechSynthesisUtterance(current);
+    utterance.lang = 'zh-CN';
+    utterance.rate = prosody.rate;
+    utterance.pitch = prosody.pitch;
+    if (chineseVoice) utterance.voice = chineseVoice;
+    utterance.onend = () => {
+      index += 1;
+      if (index < sentences.length) readingSpeechTimer = window.setTimeout(speakNext, prosody.pause);
+    };
+    utterance.onerror = () => {
+      index += 1;
+      if (index < sentences.length) readingSpeechTimer = window.setTimeout(speakNext, prosody.pause);
+    };
+    window.speechSynthesis.speak(utterance);
+  };
+  speakNext();
 }
 
 export const ReadingScreen: React.FC<Props> = ({ ownerId, vocabularies, onSaveVocabulary, isVocabularySaved }) => {
@@ -216,11 +247,11 @@ export const ReadingScreen: React.FC<Props> = ({ ownerId, vocabularies, onSaveVo
           {legacyActive ? <div className="space-y-3"><button onClick={()=>setLegacyActive(null)} className="text-xs font-bold text-emerald-700">← Quay lại bài đọc HSK</button><h2 className="text-xl font-black">{legacyActive.title}</h2><p className="whitespace-pre-wrap font-cjk text-base leading-8">{legacyActive.text}</p><p className="text-xs text-stone-500">Tài liệu OCR cũ · {legacyActive.sourceName || 'Văn bản đã lưu'}</p></div> : <>
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div><div className="flex flex-wrap items-center gap-2"><span className={`rounded-full px-2.5 py-1 text-[10px] font-extrabold ${levelColor[active.level]}`}>{active.level}</span><span className="text-xs text-stone-500">{active.topic} · {active.estimatedMinutes} phút</span></div><h2 className="mt-2 text-xl font-black text-stone-900 dark:text-stone-100 sm:text-2xl">{active.title}</h2><p className="mt-1 font-cjk text-lg text-emerald-800 dark:text-emerald-300">{active.titleZh}</p><p className="mt-2 text-sm text-stone-500">{active.summary}</p></div>
-              <button onClick={()=>speakChinese(active.sentences.map(sentence=>sentence.chinese).join(''))} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-emerald-200 px-3 text-xs font-bold text-emerald-800 hover:bg-emerald-50 dark:border-emerald-900 dark:text-emerald-300"><Headphones className="h-4 w-4"/> Nghe toàn bài</button>
+              <button onClick={()=>speakChinese(active.sentences.map(sentence=>sentence.chinese))} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-emerald-200 px-3 text-xs font-bold text-emerald-800 hover:bg-emerald-50 dark:border-emerald-900 dark:text-emerald-300"><Headphones className="h-4 w-4"/> Nghe chậm & có ngữ điệu</button>
             </div>
             <div className="mt-5 flex flex-wrap gap-4 border-y border-stone-100 py-3 text-xs dark:border-stone-800">
-              <label className="flex items-center gap-2"><input type="checkbox" checked={showPinyin} onChange={e=>setShowPinyin(e.target.checked)}/> Hiện Pinyin</label>
-              <label className="flex items-center gap-2"><input type="checkbox" checked={showVietnamese} onChange={e=>setShowVietnamese(e.target.checked)}/> Hiện tiếng Việt</label>
+              <button type="button" onClick={()=>setShowPinyin(value=>!value)} aria-pressed={showPinyin} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-emerald-200 px-3 font-bold text-emerald-800 transition hover:bg-emerald-50 dark:border-emerald-900 dark:text-emerald-300 dark:hover:bg-emerald-950/40">{showPinyin?<EyeOff className="h-4 w-4"/>:<Eye className="h-4 w-4"/>}{showPinyin?'Ẩn Pinyin · tự kiểm tra':'Hiện lại Pinyin'}</button>
+              <label className="flex min-h-10 items-center gap-2"><input type="checkbox" checked={showVietnamese} onChange={e=>setShowVietnamese(e.target.checked)}/> Hiện tiếng Việt</label>
             </div>
             <article className="mt-4 rounded-2xl border border-stone-200 bg-[#fffefb] p-4 sm:p-6 dark:border-stone-800 dark:bg-stone-950/60">
               <div className="mb-4 flex items-center justify-between gap-3"><span className="text-[10px] font-bold uppercase tracking-[.16em] text-stone-400">Bài đọc · đọc liền mạch</span><span className="text-[10px] text-stone-400">Chạm từ gạch chân để tra nghĩa</span></div>
@@ -251,7 +282,7 @@ export const ReadingScreen: React.FC<Props> = ({ ownerId, vocabularies, onSaveVo
                   <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">Từ được chọn</div>
                   <div className="mt-1 font-cjk text-2xl font-black text-stone-900 dark:text-stone-100">{selectedTerm}</div>
                   {selectedVocabulary ? <>
-                    <p className="mt-1 text-sm font-semibold text-emerald-800 dark:text-emerald-300">{selectedVocabulary.pinyin}</p>
+                    <p className="mt-1 text-sm font-semibold text-emerald-800 dark:text-emerald-300">{showPinyin ? selectedVocabulary.pinyin : 'Ẩn trong chế độ tự kiểm tra'}</p>
                     <p className="mt-1 text-sm text-stone-700 dark:text-stone-200">{selectedVocabulary.vietnamese}</p>
                     <p className="mt-1 text-[11px] text-stone-500">{selectedVocabulary.hskLevel} · {selectedVocabulary.partOfSpeech || 'Từ vựng'}</p>
                   </> : <p className="mt-2 text-sm text-stone-600 dark:text-stone-300">Từ này chưa có mục từ khớp chính xác trong kho từ vựng LinaAI. Mình không tự tạo Pinyin hoặc nghĩa để tránh hiển thị sai.</p>}
@@ -268,7 +299,7 @@ export const ReadingScreen: React.FC<Props> = ({ ownerId, vocabularies, onSaveVo
 
         {!legacyActive&&<section className="rounded-3xl border border-stone-200 bg-white p-4 dark:border-stone-800 dark:bg-stone-900 sm:p-5">
           <div className="flex flex-wrap items-center justify-between gap-2"><div><h3 className="font-extrabold">Từ vựng trọng tâm</h3><p className="mt-1 text-xs text-stone-500">Đối chiếu trực tiếp với kho từ vựng LinaAI hiện có.</p></div><span className="text-xs text-stone-500">{matchedWords.length}/{active.focusWords.length} từ đã có trong kho</span></div>
-          {matchedWords.length>0&&<div className="mt-3 flex flex-wrap gap-2">{matchedWords.map(word=><div key={word.id} className="flex items-center gap-1.5 rounded-xl border border-stone-200 px-2.5 py-2 dark:border-stone-700"><div><div className="font-cjk text-sm font-bold">{word.hanzi}</div><div className="text-[10px] text-emerald-700">{word.pinyin}</div><div className="max-w-36 text-[10px] text-stone-500">{word.vietnamese}</div></div><button onClick={()=>onSaveVocabulary(word.id)} title={isVocabularySaved(word.id)?'Bỏ lưu từ':'Lưu vào ôn tập'} aria-label={`${isVocabularySaved(word.id)?'Bỏ lưu':'Lưu'} ${word.hanzi}`} className={`rounded-lg p-1.5 ${isVocabularySaved(word.id)?'text-emerald-700':'text-stone-400 hover:text-emerald-700'}`}><Bookmark className="h-4 w-4" fill={isVocabularySaved(word.id)?'currentColor':'none'}/></button></div>)}</div>}
+          {matchedWords.length>0&&<div className="mt-3 flex flex-wrap gap-2">{matchedWords.map(word=><div key={word.id} className="flex items-center gap-1.5 rounded-xl border border-stone-200 px-2.5 py-2 dark:border-stone-700"><div><div className="font-cjk text-sm font-bold">{word.hanzi}</div>{showPinyin&&<div className="text-[10px] text-emerald-700">{word.pinyin}</div>}<div className="max-w-36 text-[10px] text-stone-500">{word.vietnamese}</div></div><button onClick={()=>onSaveVocabulary(word.id)} title={isVocabularySaved(word.id)?'Bỏ lưu từ':'Lưu vào ôn tập'} aria-label={`${isVocabularySaved(word.id)?'Bỏ lưu':'Lưu'} ${word.hanzi}`} className={`rounded-lg p-1.5 ${isVocabularySaved(word.id)?'text-emerald-700':'text-stone-400 hover:text-emerald-700'}`}><Bookmark className="h-4 w-4" fill={isVocabularySaved(word.id)?'currentColor':'none'}/></button></div>)}</div>}
           {missingWords.length>0&&<details className="mt-3 text-xs text-stone-500"><summary className="cursor-pointer font-semibold">Xem {missingWords.length} từ chưa có mục từ khớp trong kho</summary><p className="mt-2 leading-6">{missingWords.join('、')}</p><p className="mt-1">Các từ này vẫn xuất hiện trong bài đọc, nhưng chưa được tính là từ đã có trong kho.</p></details>}
         </section>}
 
