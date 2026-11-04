@@ -189,7 +189,7 @@ export const AppShell: React.FC = () => {
       case 'listening':
         return <ListeningScreen />;
       case 'reading':
-        return authUser ? <ReadingScreen ownerId={authUser.id} /> : <HomeDashboard />;
+        return authUser ? <ReadingScreen ownerId={authUser.id} vocabularies={useApp().allVocabularies} onSaveVocabulary={useApp().toggleSaveVocabulary} isVocabularySaved={useApp().isVocabularySaved} /> : <HomeDashboard />;
       case 'review':
         return <ReviewScreen />;
       case 'profile':
