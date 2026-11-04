@@ -30,7 +30,7 @@ export const ReadingWebStudio: React.FC<Props> = ({ vocabularies, onSaveVocabula
   const [submitted, setSubmitted] = React.useState(false);
 
   const vocabularyByHanzi = React.useMemo(() => new Map(vocabularies.map(item => [item.hanzi, item])), [vocabularies]);
-  const availableCount = vocabularies.filter(item => item.hskLevel === level || !item.hskLevel).length;
+  const availableCount = vocabularies.filter(item => item.hskLevel === level).length;
 
   const searchAndCreate = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -75,7 +75,7 @@ export const ReadingWebStudio: React.FC<Props> = ({ vocabularies, onSaveVocabula
     <form onSubmit={searchAndCreate} className="grid gap-3 md:grid-cols-[minmax(0,1fr)_150px_auto]">
       <label className="block"><span className="mb-1 block text-xs font-bold text-stone-600 dark:text-stone-300">Chủ đề muốn đọc</span><input value={query} onChange={event=>setQuery(event.target.value)} maxLength={180} placeholder="Ví dụ: thói quen buổi sáng, công nghệ xanh, văn hóa Trung Quốc…" className="min-h-12 w-full rounded-xl border border-stone-200 bg-white px-3 text-sm outline-none focus:border-sky-500 dark:border-stone-700 dark:bg-stone-950"/></label>
       <label className="block"><span className="mb-1 block text-xs font-bold text-stone-600 dark:text-stone-300">Cấp độ</span><select value={level} onChange={event=>setLevel(event.target.value as HSKLevel)} className="min-h-12 w-full rounded-xl border border-stone-200 bg-white px-3 text-sm dark:border-stone-700 dark:bg-stone-950">{HSK_LEVELS.map(item=><option key={item} value={item}>{item}</option>)}</select></label>
-      <div className="flex flex-col justify-end"><button type="submit" disabled={busy||!query.trim()||!vocabularies.length} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-sky-700 px-5 text-sm font-extrabold text-white transition hover:bg-sky-800 disabled:cursor-not-allowed disabled:opacity-50">{busy?<Loader2 className="h-4 w-4 animate-spin"/>:<Search className="h-4 w-4"/>}{busy?'Đang tìm nguồn…':'Tìm & tạo bài đọc'}</button></div>
+      <div className="flex flex-col justify-end"><button type="submit" disabled={busy||!query.trim()||availableCount===0} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-sky-700 px-5 text-sm font-extrabold text-white transition hover:bg-sky-800 disabled:cursor-not-allowed disabled:opacity-50">{busy?<Loader2 className="h-4 w-4 animate-spin"/>:<Search className="h-4 w-4"/>}{busy?'Đang tìm nguồn…':'Tìm & tạo bài đọc'}</button></div>
     </form>
     <p className="text-xs text-stone-500 dark:text-stone-400">Kho từ hiện có ở {level}: {availableCount.toLocaleString('vi-VN')} mục. Bài đọc ưu tiên sử dụng từ trong kho này; từ không khớp sẽ không được đánh dấu là từ trọng tâm.</p>
     {error&&<div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-200">{error}</div>}
