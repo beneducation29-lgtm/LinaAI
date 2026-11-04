@@ -18,11 +18,11 @@ async function prepareImage(file: File): Promise<{ mimeType: string; data: strin
     context.drawImage(source, 0, 0, canvas.width, canvas.height);
     let quality = 0.82;
     let blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/jpeg', quality));
-    while (blob && blob.size > 850 * 1024 && quality > 0.48) {
+    while (blob && blob.size > 620 * 1024 && quality > 0.38) {
       quality -= 0.1;
       blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/jpeg', quality));
     }
-    if (!blob || blob.size > 900 * 1024) throw new Error('Ảnh vẫn quá lớn sau khi tối ưu. Hãy cắt ảnh gọn hơn.');
+    if (!blob || blob.size > 700 * 1024) throw new Error('Ảnh vẫn quá lớn sau khi tối ưu. Hãy cắt ảnh gọn hơn.');
     const data = await new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => resolve(String(reader.result).split(',')[1] || '');
