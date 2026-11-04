@@ -456,7 +456,6 @@ export const GRADED_READINGS: GradedReading[] = [
     ],
     sourceNote: 'Bài đọc do LinaAI biên soạn mới để giải thích khái niệm kinh tế cơ bản, không phải tư vấn tài chính.'
   },
-,
 
   {
     id: 'hsk1-at-the-market',
