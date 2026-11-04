@@ -4,6 +4,7 @@ import type { HSKLevel, Vocabulary } from '../../types';
 import { HSK_LEVELS, GRADED_READINGS, type GradedReading } from '../../data/gradedReadings';
 import { accountStorageKey } from '../../services/accountStorage';
 import { listReadingDocuments, type ReadingDocument } from '../../services/readingLibrary';
+import { getReadingVocabularyFit } from '../../services/readingVocabularyFit';
 
 interface Props {
   ownerId: string;
@@ -207,6 +208,14 @@ export const ReadingScreen: React.FC<Props> = ({ ownerId, vocabularies, onSaveVo
   }, [vocabularies]);
   const matchedWords = active.focusWords.map(word => vocabByHanzi.get(word)).filter((item): item is Vocabulary => Boolean(item));
   const missingWords = active.focusWords.filter(word => !vocabByHanzi.has(word));
+  const activeVocabularyFit = getReadingVocabularyFit(active.focusWords, vocabularies.map(item => item.hanzi));
+  const bestFitReading = React.useMemo(() => {
+    if (vocabularies.length === 0) return null;
+    return GRADED_READINGS
+      .map(reading => ({ reading, fit: getReadingVocabularyFit(reading.focusWords, vocabularies.map(item => item.hanzi)) }))
+      .filter(item => item.fit.matchedCount > 0)
+      .sort((a, b) => b.fit.coveragePercent - a.fit.coveragePercent || a.fit.missingCount - b.fit.missingCount)[0] || null;
+  }, [vocabularies]);
   const selectedVocabulary = selectedTerm ? vocabByHanzi.get(selectedTerm) : undefined;
   const score = active.questions.reduce((total, question, index) => total + (answers[index] === question.answer ? 1 : 0), 0);
   const completedCount = Object.keys(progress).length;
@@ -246,6 +255,14 @@ export const ReadingScreen: React.FC<Props> = ({ ownerId, vocabularies, onSaveVo
       <div className="mt-5 flex flex-wrap gap-2 text-[11px] font-semibold text-emerald-50/90"><span className="rounded-full border border-white/20 px-3 py-1.5">HSK 1–6</span><span className="rounded-full border border-white/20 px-3 py-1.5">Song ngữ theo câu</span><span className="rounded-full border border-white/20 px-3 py-1.5">Lưu tiến độ theo tài khoản</span><span className="rounded-full border border-white/20 px-3 py-1.5">Từ vựng liên kết ôn tập</span></div>
     </section>
 
+    {bestFitReading && <section className="flex flex-col gap-3 rounded-2xl border border-sky-200 bg-sky-50/70 p-4 dark:border-sky-900 dark:bg-sky-950/20 sm:flex-row sm:items-center sm:justify-between">
+      <div className="min-w-0">
+        <p className="text-[10px] font-extrabold uppercase tracking-wider text-sky-700 dark:text-sky-300">Gợi ý theo vốn từ của bạn</p>
+        <h2 className="mt-1 font-bold text-stone-900 dark:text-stone-100">{bestFitReading.reading.title} <span className="ml-1 text-xs font-semibold text-sky-700 dark:text-sky-300">{bestFitReading.reading.level}</span></h2>
+        <p className="mt-1 text-xs leading-5 text-stone-600 dark:text-stone-300">Bạn đã có {bestFitReading.fit.matchedCount}/{bestFitReading.fit.totalCount} từ trọng tâm ({bestFitReading.fit.coveragePercent}%). Bài này giúp tận dụng từ đã học và bổ sung {bestFitReading.fit.missingCount} từ mới.</p>
+      </div>
+      <button type="button" onClick={() => selectReading(bestFitReading.reading)} className="min-h-10 shrink-0 rounded-xl bg-sky-800 px-4 text-xs font-bold text-white hover:bg-sky-700">Đọc bài phù hợp →</button>
+    </section>}
     <section className="grid gap-3 rounded-2xl border border-stone-200 bg-white p-4 dark:border-stone-800 dark:bg-stone-900 sm:grid-cols-2 xl:grid-cols-[minmax(220px,1fr)_170px_190px_190px]">
       <label className="relative block"><span className="sr-only">Tìm bài đọc hoặc từ vựng</span><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400"/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Tìm chủ đề, tiêu đề hoặc từ vựng…" className="min-h-11 w-full rounded-xl border border-stone-200 bg-stone-50 pl-9 pr-3 text-sm outline-none focus:border-emerald-600 dark:border-stone-700 dark:bg-stone-950"/></label>
       <label className="text-xs font-bold text-stone-500">Cấp độ HSK<select value={level} onChange={e=>setLevel(e.target.value as HSKLevel | '全部')} className="mt-1.5 min-h-11 w-full rounded-xl border border-stone-200 bg-stone-50 px-3 text-sm text-stone-800 dark:border-stone-700 dark:bg-stone-950 dark:text-stone-100"><option value="全部">Tất cả cấp độ</option>{HSK_LEVELS.map(item=><option key={item}>{item}</option>)}</select></label>
@@ -321,7 +338,9 @@ export const ReadingScreen: React.FC<Props> = ({ ownerId, vocabularies, onSaveVo
         </section>
 
         {!legacyActive&&<section className="rounded-3xl border border-stone-200 bg-white p-4 dark:border-stone-800 dark:bg-stone-900 sm:p-5">
-          <div className="flex flex-wrap items-center justify-between gap-2"><div><h3 className="font-extrabold">Từ vựng trọng tâm</h3><p className="mt-1 text-xs text-stone-500">Đối chiếu trực tiếp với kho từ vựng LinaAI hiện có.</p></div><span className="text-xs text-stone-500">{matchedWords.length}/{active.focusWords.length} từ đã có trong kho</span></div>
+          <div className="flex flex-wrap items-center justify-between gap-2"><div><h3 className="font-extrabold">Từ vựng trọng tâm</h3><p className="mt-1 text-xs text-stone-500">Đối chiếu trực tiếp với kho từ vựng LinaAI hiện có.</p></div><span className="text-xs font-bold text-emerald-700 dark:text-emerald-300">{activeVocabularyFit.matchedCount}/{activeVocabularyFit.totalCount} từ · {activeVocabularyFit.coveragePercent}% phù hợp</span></div>
+          <div className="mt-3 h-2 overflow-hidden rounded-full bg-stone-100 dark:bg-stone-800" role="progressbar" aria-label="Mức độ phù hợp của bài đọc với vốn từ" aria-valuemin={0} aria-valuemax={100} aria-valuenow={activeVocabularyFit.coveragePercent}><div className="h-full rounded-full bg-emerald-600 transition-all" style={{ width: activeVocabularyFit.coveragePercent + '%' }}/></div>
+          <p className="mt-1 text-[11px] text-stone-500">{activeVocabularyFit.coveragePercent >= 80 ? 'Phù hợp tốt: phần lớn từ trọng tâm bạn đã học.' : activeVocabularyFit.coveragePercent >= 40 ? 'Phù hợp vừa phải: có cả từ quen thuộc và từ mới để mở rộng vốn từ.' : 'Thử đọc chậm và lưu các từ mới vào ôn tập để xây nền tảng.'}</p>
           {matchedWords.length>0&&<div className="mt-3 flex flex-wrap gap-2">{matchedWords.map(word=><div key={word.id} className="flex items-center gap-1.5 rounded-xl border border-stone-200 px-2.5 py-2 dark:border-stone-700"><div><div className="font-cjk text-sm font-bold">{word.hanzi}</div>{showPinyin&&<div className="text-[10px] text-emerald-700">{word.pinyin}</div>}<div className="max-w-36 text-[10px] text-stone-500">{word.vietnamese}</div></div><button onClick={()=>onSaveVocabulary(word.id)} title={isVocabularySaved(word.id)?'Bỏ lưu từ':'Lưu vào ôn tập'} aria-label={`${isVocabularySaved(word.id)?'Bỏ lưu':'Lưu'} ${word.hanzi}`} className={`rounded-lg p-1.5 ${isVocabularySaved(word.id)?'text-emerald-700':'text-stone-400 hover:text-emerald-700'}`}><Bookmark className="h-4 w-4" fill={isVocabularySaved(word.id)?'currentColor':'none'}/></button></div>)}</div>}
           {missingWords.length>0&&<details className="mt-3 text-xs text-stone-500"><summary className="cursor-pointer font-semibold">Xem {missingWords.length} từ chưa có mục từ khớp trong kho</summary><p className="mt-2 leading-6">{missingWords.join('、')}</p><p className="mt-1">Các từ này vẫn xuất hiện trong bài đọc, nhưng chưa được tính là từ đã có trong kho.</p></details>}
         </section>}
