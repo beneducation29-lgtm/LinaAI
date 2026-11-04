@@ -30,6 +30,32 @@ function readProgress(ownerId: string): ReadingProgress {
   } catch { return {}; }
 }
 
+interface ReadingToken { text: string; focus: boolean; }
+
+function tokenizeReadingSentence(sentence: string, focusWords: string[]): ReadingToken[] {
+  const characters = Array.from(sentence);
+  const candidates = [...focusWords].filter(Boolean).sort((a, b) => Array.from(b).length - Array.from(a).length);
+  const tokens: ReadingToken[] = [];
+  let plain = '';
+  const flushPlain = () => {
+    if (plain) tokens.push({ text: plain, focus: false });
+    plain = '';
+  };
+  for (let index = 0; index < characters.length;) {
+    const match = candidates.find(word => characters.slice(index, index + Array.from(word).length).join('') === word);
+    if (match) {
+      flushPlain();
+      tokens.push({ text: match, focus: true });
+      index += Array.from(match).length;
+    } else {
+      plain += characters[index];
+      index += 1;
+    }
+  }
+  flushPlain();
+  return tokens;
+}
+
 function speakChinese(value: string) {
   if (!('speechSynthesis' in window)) return;
   window.speechSynthesis.cancel();
@@ -46,6 +72,7 @@ export const ReadingScreen: React.FC<Props> = ({ ownerId, vocabularies, onSaveVo
   const [activeId, setActiveId] = React.useState(GRADED_READINGS[0].id);
   const [showPinyin, setShowPinyin] = React.useState(true);
   const [showVietnamese, setShowVietnamese] = React.useState(true);
+  const [selectedTerm, setSelectedTerm] = React.useState<string | null>(null);
   const [answers, setAnswers] = React.useState<Record<number, number>>({});
   const [submitted, setSubmitted] = React.useState(false);
   const [progress, setProgress] = React.useState<ReadingProgress>(() => readProgress(ownerId));
@@ -76,6 +103,7 @@ export const ReadingScreen: React.FC<Props> = ({ ownerId, vocabularies, onSaveVo
   }, [vocabularies]);
   const matchedWords = active.focusWords.map(word => vocabByHanzi.get(word)).filter((item): item is Vocabulary => Boolean(item));
   const missingWords = active.focusWords.filter(word => !vocabByHanzi.has(word));
+  const selectedVocabulary = selectedTerm ? vocabByHanzi.get(selectedTerm) : undefined;
   const score = active.questions.reduce((total, question, index) => total + (answers[index] === question.answer ? 1 : 0), 0);
   const completedCount = Object.keys(progress).length;
 
@@ -83,6 +111,7 @@ export const ReadingScreen: React.FC<Props> = ({ ownerId, vocabularies, onSaveVo
     setActiveId(item.id);
     setAnswers({});
     setSubmitted(false);
+    setSelectedTerm(null);
     setLegacyActive(null);
   };
   const submitAnswers = () => {
@@ -137,11 +166,28 @@ export const ReadingScreen: React.FC<Props> = ({ ownerId, vocabularies, onSaveVo
             <div className="mt-4 space-y-3">
               {active.sentences.map((sentence,index)=><article key={index} className="rounded-2xl border border-stone-200 bg-[#fffefb] p-4 dark:border-stone-800 dark:bg-stone-950/60">
                 <div className="flex items-center justify-between"><span className="text-[10px] font-bold uppercase tracking-wider text-stone-400">Câu {index+1}</span><button onClick={()=>speakChinese(sentence.chinese)} aria-label={`Nghe câu ${index+1}`} className="rounded-lg p-2 text-emerald-800 hover:bg-emerald-50 dark:text-emerald-300"><Volume2 className="h-4 w-4"/></button></div>
-                <p className="mt-1 font-cjk text-lg leading-9 text-stone-900 dark:text-stone-100">{sentence.chinese}</p>
+                <p className="mt-1 font-cjk text-lg leading-10 text-stone-900 dark:text-stone-100">{tokenizeReadingSentence(sentence.chinese, active.focusWords).map((token, tokenIndex) => token.focus ? <button key={tokenIndex} type="button" onClick={() => setSelectedTerm(token.text)} aria-pressed={selectedTerm === token.text} className={"rounded px-0.5 underline decoration-dotted decoration-emerald-500 underline-offset-4 transition hover:bg-emerald-100 dark:hover:bg-emerald-950/60 " + (selectedTerm === token.text ? "bg-emerald-100 text-emerald-900 dark:bg-emerald-900/60 dark:text-emerald-100" : "")}>{token.text}</button> : <React.Fragment key={tokenIndex}>{token.text}</React.Fragment>)}</p>
                 {showPinyin&&<p className="mt-1 text-sm leading-6 text-emerald-800 dark:text-emerald-300">{sentence.pinyin}</p>}
                 {showVietnamese&&<p className="mt-1 text-sm leading-6 text-stone-600 dark:text-stone-300">{sentence.vietnamese}</p>}
               </article>)}
             </div>
+            {selectedTerm && <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4 dark:border-emerald-900 dark:bg-emerald-950/20" aria-live="polite">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">Từ được chọn</div>
+                  <div className="mt-1 font-cjk text-2xl font-black text-stone-900 dark:text-stone-100">{selectedTerm}</div>
+                  {selectedVocabulary ? <>
+                    <p className="mt-1 text-sm font-semibold text-emerald-800 dark:text-emerald-300">{selectedVocabulary.pinyin}</p>
+                    <p className="mt-1 text-sm text-stone-700 dark:text-stone-200">{selectedVocabulary.vietnamese}</p>
+                    <p className="mt-1 text-[11px] text-stone-500">{selectedVocabulary.hskLevel} · {selectedVocabulary.partOfSpeech || 'Từ vựng'}</p>
+                  </> : <p className="mt-2 text-sm text-stone-600 dark:text-stone-300">Từ này chưa có mục từ khớp chính xác trong kho từ vựng LinaAI. Mình không tự tạo Pinyin hoặc nghĩa để tránh hiển thị sai.</p>}
+                </div>
+                <div className="flex shrink-0 items-center gap-1">
+                  {selectedVocabulary && <button type="button" onClick={() => onSaveVocabulary(selectedVocabulary.id)} className="rounded-xl border border-emerald-300 p-2 text-emerald-800 hover:bg-white dark:border-emerald-800 dark:text-emerald-300" aria-label={isVocabularySaved(selectedVocabulary.id) ? 'Bỏ lưu từ' : 'Lưu từ vào ôn tập'}><Bookmark className="h-4 w-4" fill={isVocabularySaved(selectedVocabulary.id) ? 'currentColor' : 'none'}/></button>}
+                  <button type="button" onClick={() => setSelectedTerm(null)} className="rounded-xl p-2 text-stone-500 hover:bg-white dark:hover:bg-stone-900" aria-label="Đóng giải thích từ">×</button>
+                </div>
+              </div>
+            </div>}
             <p className="mt-4 text-[11px] leading-5 text-stone-400">{active.sourceNote}</p>
           </>}
         </section>
