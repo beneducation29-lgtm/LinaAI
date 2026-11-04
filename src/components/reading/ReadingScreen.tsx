@@ -54,12 +54,12 @@ zi za zai zan zang zao ze zei zen zeng zi zong zou zu zuan zui zun zuo
 ci ca cai can cang cao ce cen ceng ci cong cou cu cuan cui cun cuo
 si sa sai san sang sao se sen seng si song sou su suan sui sun suo
 y ya yan yang yao ye yi yin ying yo yong you yu yuan yue yun
-w wa wai wan wang wei wen weng wo wu``.split(/\\s+/));
+w wa wai wan wang wei wen weng wo wu``.split(/\s+/));
 
 const PINYIN_TONE_MAP: Record<string, string> = {ā:'a',á:'a',ǎ:'a',à:'a',ē:'e',é:'e',ě:'e',è:'e',ī:'i',í:'i',ǐ:'i',ì:'i',ō:'o',ó:'o',ǒ:'o',ò:'o',ū:'u',ú:'u',ǔ:'u',ù:'u',ǖ:'v',ǘ:'v',ǚ:'v',ǜ:'v',ü:'v',ń:'n',ň:'n',ḿ:'m'};
 
 export function alignPinyinToHanzi(chinese: string, pinyin: string): Array<{ hanzi: string; pinyin: string }> | null {
-  const hanzi = Array.from(chinese).filter(char => /[\\u3400-\\u9fff]/u.test(char));
+  const hanzi = Array.from(chinese).filter(char => /[\u3400-\u9fff]/u.test(char));
   const normalized = Array.from(pinyin.toLocaleLowerCase()).map(char => PINYIN_TONE_MAP[char] || char).join('').replace(/u:/g, 'v');
   const compact = normalized.replace(/[^a-zv]/g, '');
   const memo = new Map<string, string[] | null>();
@@ -80,7 +80,8 @@ export function alignPinyinToHanzi(chinese: string, pinyin: string): Array<{ han
   if (!syllables || syllables.length !== hanzi.length) return null;
   return hanzi.map((char, index) => ({ hanzi: char, pinyin: syllables[index] }));
 }
-\ninterface ReadingToken { text: string; focus: boolean; }
+
+interface ReadingToken { text: string; focus: boolean; }
 
 export function tokenizeReadingSentence(sentence: string, focusWords: string[]): ReadingToken[] {
   const characters = Array.from(sentence);
@@ -230,7 +231,7 @@ export const ReadingScreen: React.FC<Props> = ({ ownerId, vocabularies, onSaveVo
                   const renderToken = (token: ReadingToken, tokenIndex: number) => {
                     const chars = Array.from(token.text);
                     const rendered = chars.map((char, charIndex) => {
-                      const hasReading = /[\\u3400-\\u9fff]/u.test(char);
+                      const hasReading = /[\u3400-\u9fff]/u.test(char);
                       const reading = hasReading ? aligned?.[hanziIndex++] : undefined;
                       const glyph = <span key={charIndex} className="reading-ruby-unit">{showPinyin && reading ? <ruby>{char}<rt>{reading.pinyin}</rt></ruby> : char}</span>;
                       return glyph;
