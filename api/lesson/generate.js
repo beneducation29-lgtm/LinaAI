@@ -42,20 +42,23 @@ export function validateGeneratedReading(value, vocabulary) {
   if (sentences.some(sentence => !/[\u3400-\u9fff]/u.test(sentence.chinese) || !sentence.pinyin || !sentence.vietnamese)) return { error: 'Mỗi câu phải có chữ Hán, Pinyin và nghĩa tiếng Việt.' };
   const allowed = new Set(vocabulary.map(item => item.hanzi));
   const focusWords = Array.isArray(value.focusWords) ? [...new Set(value.focusWords.map(word => String(word).trim()).filter(word => allowed.has(word)))].slice(0, 15) : [];
-  const questions = Array.isArray(value.questions) ? value.questions.slice(0, 5).map(question => ({
+  const normalizeQuestions = (items, limit) => Array.isArray(items) ? items.slice(0, limit).map(question => ({
     question: String(question?.question || '').slice(0, 300),
     options: Array.isArray(question?.options) ? question.options.slice(0, 4).map(option => String(option).slice(0, 180)) : [],
     answer: Number(question?.answer),
     explanation: String(question?.explanation || '').slice(0, 400)
   })).filter(question => question.question && question.options.length >= 2 && Number.isInteger(question.answer) && question.answer >= 0 && question.answer < question.options.length && question.explanation) : [];
+  const questions = normalizeQuestions(value.questions, 5);
+  const listeningQuestions = normalizeQuestions(value.listeningQuestions, 4);
+  const memoryQuestions = normalizeQuestions(value.memoryQuestions, 4);
   if (!focusWords.length) return { error: 'Bài đọc chưa liên kết được từ vựng trong kho LinaAI.' };
-  if (!questions.length) return { error: 'Bài đọc chưa có câu hỏi kiểm tra hợp lệ.' };
+  if (!questions.length || !listeningQuestions.length || !memoryQuestions.length) return { error: 'Bài đọc cần có đủ câu hỏi đọc hiểu, nghe hiểu và nhớ từ.' };
   return {
     reading: {
       title: String(value.title || '').slice(0, 160),
       titleZh: String(value.titleZh || '').slice(0, 100),
       summary: String(value.summary || '').slice(0, 360),
-      sentences, focusWords, questions
+      sentences, focusWords, questions, listeningQuestions, memoryQuestions
     }
   };
 }
@@ -96,9 +99,11 @@ async function handleReadingSearch(req, res, payload) {
         summary: { type: 'STRING' },
         sentences: { type: 'ARRAY', items: { type: 'OBJECT', properties: { chinese: { type: 'STRING' }, pinyin: { type: 'STRING' }, vietnamese: { type: 'STRING' } }, required: ['chinese', 'pinyin', 'vietnamese'] } },
         focusWords: { type: 'ARRAY', items: { type: 'STRING' } },
-        questions: { type: 'ARRAY', items: { type: 'OBJECT', properties: { question: { type: 'STRING' }, options: { type: 'ARRAY', items: { type: 'STRING' } }, answer: { type: 'INTEGER' }, explanation: { type: 'STRING' } }, required: ['question', 'options', 'answer', 'explanation'] } }
+        questions: { type: 'ARRAY', items: { type: 'OBJECT', properties: { question: { type: 'STRING' }, options: { type: 'ARRAY', items: { type: 'STRING' } }, answer: { type: 'INTEGER' }, explanation: { type: 'STRING' } }, required: ['question', 'options', 'answer', 'explanation'] },
+        listeningQuestions: { type: 'ARRAY', items: { type: 'OBJECT', properties: { question: { type: 'STRING' }, options: { type: 'ARRAY', items: { type: 'STRING' } }, answer: { type: 'INTEGER' }, explanation: { type: 'STRING' } }, required: ['question', 'options', 'answer', 'explanation'] },
+        memoryQuestions: { type: 'ARRAY', items: { type: 'OBJECT', properties: { question: { type: 'STRING' }, options: { type: 'ARRAY', items: { type: 'STRING' } }, answer: { type: 'INTEGER' }, explanation: { type: 'STRING' } }, required: ['question', 'options', 'answer', 'explanation'] }
       },
-      required: ['title', 'titleZh', 'summary', 'sentences', 'focusWords', 'questions']
+      required: ['title', 'titleZh', 'summary', 'sentences', 'focusWords', 'questions', 'listeningQuestions', 'memoryQuestions']
     };
     const authorPrompt = `Bạn là biên tập viên học liệu tiếng Trung cho người Việt. Hãy dựa trên phần nghiên cứu web đã được tìm kiếm và kiểm chứng dưới đây để tự biên soạn một bài đọc mới phù hợp ${request.level} về chủ đề "${request.query}". Không sao chép nguyên văn nguồn, không bịa sự kiện ngoài ghi chú nghiên cứu. Dùng tối đa từ vựng phù hợp từ danh sách LinaAI. Mỗi câu phải có chữ Hán giản thể, Pinyin có dấu thanh chính xác và bản dịch tiếng Việt tự nhiên, đồng nhất ý nghĩa. Viết 5-8 câu, tạo 3-5 câu hỏi đọc hiểu bằng tiếng Việt kèm đáp án và giải thích. Chỉ liệt kê trong focusWords những từ có hanzi khớp chính xác với danh sách từ vựng. Không sửa Pinyin/nghĩa của từ trong kho.
 Ghi chú nghiên cứu từ nguồn web:
