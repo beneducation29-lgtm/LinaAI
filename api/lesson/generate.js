@@ -39,7 +39,7 @@ export function validateGeneratedReading(value, vocabulary) {
     pinyin: String(sentence?.pinyin || '').trim().slice(0, 700),
     vietnamese: String(sentence?.vietnamese || '').trim().slice(0, 900)
   }));
-  if (sentences.some(sentence => !/[\\u3400-\\u9fff]/u.test(sentence.chinese) || !sentence.pinyin || !sentence.vietnamese)) return { error: 'Mỗi câu phải có chữ Hán, Pinyin và nghĩa tiếng Việt.' };
+  if (sentences.some(sentence => !/[\u3400-\u9fff]/u.test(sentence.chinese) || !sentence.pinyin || !sentence.vietnamese)) return { error: 'Mỗi câu phải có chữ Hán, Pinyin và nghĩa tiếng Việt.' };
   const allowed = new Set(vocabulary.map(item => item.hanzi));
   const focusWords = Array.isArray(value.focusWords) ? [...new Set(value.focusWords.map(word => String(word).trim()).filter(word => allowed.has(word)))].slice(0, 15) : [];
   const questions = Array.isArray(value.questions) ? value.questions.slice(0, 5).map(question => ({
@@ -89,12 +89,12 @@ Từ vựng đã có trong LinaAI (chỉ dùng các mục phù hợp, không t�
     const candidate = result?.candidates?.[0];
     const raw = candidate?.content?.parts?.map(part => part.text || '').join('').trim() || '';
     let parsed;
-    try { parsed = JSON.parse(raw.replace(/^\\s*```(?:json)?\\s*/i, '').replace(/\\s*```\\s*$/, '')); }
+    try { parsed = JSON.parse(raw.replace(/^\s*```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '')); }
     catch { return res.status(502).json({ error: 'AI trả về bài đọc không đúng định dạng. Vui lòng thử lại.' }); }
     const validated = validateGeneratedReading(parsed, vocabularyForPrompt);
     if (validated.error) return res.status(502).json({ error: validated.error });
     const chunks = candidate?.groundingMetadata?.groundingChunks || [];
-    const sources = chunks.map(chunk => chunk?.web).filter(web => typeof web?.uri === 'string' && /^https?:\\/\\//i.test(web.uri)).map(web => ({ title: String(web.title || new URL(web.uri).hostname).slice(0, 180), url: web.uri })).filter((source, index, all) => all.findIndex(item => item.url === source.url) === index).slice(0, 5);
+    const sources = chunks.map(chunk => chunk?.web).filter(web => typeof web?.uri === 'string' && /^https?:\/\//i.test(web.uri)).map(web => ({ title: String(web.title || new URL(web.uri).hostname).slice(0, 180), url: web.uri })).filter((source, index, all) => all.findIndex(item => item.url === source.url) === index).slice(0, 5);
     if (!sources.length) return res.status(502).json({ error: 'Không nhận được nguồn web có thể kiểm chứng. Hãy thử chủ đề khác.' });
     return res.status(200).json({ ...validated.reading, level: request.level, sources, sourceNote: 'Bài đọc do LinaAI biên soạn mới dựa trên các nguồn web được liệt kê; không sao chép nguyên văn.' });
   } catch (error) {
