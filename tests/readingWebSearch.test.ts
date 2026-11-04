@@ -20,7 +20,9 @@ const valid = validateGeneratedReading({
     { chinese: '我们一起学习。', pinyin: 'Wǒmen yìqǐ xuéxí.', vietnamese: 'Chúng tôi cùng học.' }
   ],
   focusWords: ['学习', '朋友', '不存在'],
-  questions: [{ question: 'Hai người làm gì?', options: ['Học', 'Ngủ'], answer: 0, explanation: 'Bài đọc nói họ cùng học.' }]
+  questions: [{ question: 'Hai người làm gì?', options: ['Học', 'Ngủ'], answer: 0, explanation: 'Bài đọc nói họ cùng học.' }],
+  listeningQuestions: [{ question: 'Người kể thích làm gì?', options: ['Học', 'Ngủ'], answer: 0, explanation: 'Nghe câu đầu.' }],
+  memoryQuestions: [{ question: '学习 nghĩa là gì?', options: ['Học tập', 'Đi chơi'], answer: 0, explanation: '学习 là học tập.' }]
 }, vocabulary);
 assert.equal(valid.error, undefined);
 assert.deepEqual(valid.reading.focusWords, ['学习', '朋友']);
@@ -38,5 +40,5 @@ const invalidQuestion = validateGeneratedReading({
   ],
   focusWords: ['学习'], questions: [{ question: 'Q?', options: ['A','B'], answer: 8, explanation: 'E' }]
 }, vocabulary);
-assert.match(invalidQuestion.error, /câu hỏi kiểm tra hợp lệ/);
+assert.match(invalidQuestion.error, /đủ câu hỏi đọc hiểu, nghe hiểu và nhớ từ/);
 console.log('Lina web-grounded reading validation tests passed.');
