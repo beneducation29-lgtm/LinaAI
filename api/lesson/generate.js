@@ -15,6 +15,8 @@ export function validateReadingImage(payload) {
 }
 
 function normalizeReadingQuote(value) { return String(value || '').normalize('NFKC').replace(/[\s\p{P}\p{S}]/gu, ''); }
+
+async function handleReadingEnrichment(req, res, payload) {
   const user = await getUser(parseCookies(req).lina_access);
   if (!user) return res.status(401).json({ error: 'Vui lòng đăng nhập để phân tích bài đọc.' });
   const sourceText = typeof payload?.text === 'string' ? payload.text.trim() : '';
