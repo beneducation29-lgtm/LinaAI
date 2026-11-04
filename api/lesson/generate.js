@@ -14,7 +14,7 @@ export function validateReadingImage(payload) {
   return { mimeType, data, bytes };
 }
 
-function normalizeReadingQuote(value) { return String(value || '').normalize('NFKC').replace(/[\\s\\p{P}\\p{S}]/gu, ''); }\n\nasync function handleReadingEnrichment(req, res, payload) {
+function normalizeReadingQuote(value) { return String(value || '').normalize('NFKC').replace(/[\s\p{P}\p{S}]/gu, ''); }
   const user = await getUser(parseCookies(req).lina_access);
   if (!user) return res.status(401).json({ error: 'Vui lòng đăng nhập để phân tích bài đọc.' });
   const sourceText = typeof payload?.text === 'string' ? payload.text.trim() : '';
