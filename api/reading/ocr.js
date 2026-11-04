@@ -1,6 +1,6 @@
 import { getUser, parseCookies, json } from '../auth/_utils.js';
 
-const MAX_IMAGE_BYTES = 6 * 1024 * 1024;
+const MAX_IMAGE_BYTES = 700 * 1024;
 const ALLOWED_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const MODEL = process.env.GEMINI_READING_MODEL || process.env.GEMINI_MODEL || 'gemini-2.5-flash';
 
