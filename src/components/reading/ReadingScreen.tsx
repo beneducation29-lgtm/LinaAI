@@ -154,6 +154,7 @@ export const ReadingScreen: React.FC<Props> = ({ ownerId, vocabularies, onSaveVo
   const [activeId, setActiveId] = React.useState(GRADED_READINGS[0].id);
   const [showPinyin, setShowPinyin] = React.useState(true);
   const [showVietnamese, setShowVietnamese] = React.useState(true);
+  const [showChinese, setShowChinese] = React.useState(true);
   const [selectedTerm, setSelectedTerm] = React.useState<string | null>(null);
   const [answers, setAnswers] = React.useState<Record<number, number>>({});
   const [submitted, setSubmitted] = React.useState(false);
@@ -251,11 +252,12 @@ export const ReadingScreen: React.FC<Props> = ({ ownerId, vocabularies, onSaveVo
             </div>
             <div className="mt-5 flex flex-wrap gap-4 border-y border-stone-100 py-3 text-xs dark:border-stone-800">
               <button type="button" onClick={()=>setShowPinyin(value=>!value)} aria-pressed={showPinyin} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-emerald-200 px-3 font-bold text-emerald-800 transition hover:bg-emerald-50 dark:border-emerald-900 dark:text-emerald-300 dark:hover:bg-emerald-950/40">{showPinyin?<EyeOff className="h-4 w-4"/>:<Eye className="h-4 w-4"/>}{showPinyin?'Ẩn Pinyin · tự kiểm tra':'Hiện lại Pinyin'}</button>
+              <button type="button" onClick={()=>setShowChinese(value=>!value)} aria-pressed={showChinese} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-sky-200 px-3 font-bold text-sky-800 transition hover:bg-sky-50 dark:border-sky-900 dark:text-sky-300 dark:hover:bg-sky-950/40">{showChinese?<EyeOff className="h-4 w-4"/>:<Eye className="h-4 w-4"/>}{showChinese?'Ẩn chữ Hán · luyện nghe':'Hiện lại chữ Hán'}</button>
               <label className="flex min-h-10 items-center gap-2"><input type="checkbox" checked={showVietnamese} onChange={e=>setShowVietnamese(e.target.checked)}/> Hiện tiếng Việt</label>
             </div>
             <article className="mt-4 rounded-2xl border border-stone-200 bg-[#fffefb] p-4 sm:p-6 dark:border-stone-800 dark:bg-stone-950/60">
               <div className="mb-4 flex items-center justify-between gap-3"><span className="text-[10px] font-bold uppercase tracking-[.16em] text-stone-400">Bài đọc · đọc liền mạch</span><span className="text-[10px] text-stone-400">Chạm từ gạch chân để tra nghĩa</span></div>
-              <p className="font-cjk text-xl leading-[3.4] text-stone-900 dark:text-stone-100 sm:text-2xl sm:leading-[3.6]">
+              {showChinese ? <p className="font-cjk text-xl leading-[3.4] text-stone-900 dark:text-stone-100 sm:text-2xl sm:leading-[3.6]">
                 {active.sentences.map((sentence, sentenceIndex) => {
                   const aligned = alignPinyinToHanzi(sentence.chinese, sentence.pinyin);
                   let hanziIndex = 0;
@@ -271,9 +273,9 @@ export const ReadingScreen: React.FC<Props> = ({ ownerId, vocabularies, onSaveVo
                   };
                   return <React.Fragment key={sentenceIndex}>{tokenizeReadingSentence(sentence.chinese, active.focusWords).map(renderToken)}</React.Fragment>;
                 })}
-              </p>
-              {showPinyin && active.sentences.some(sentence => !alignPinyinToHanzi(sentence.chinese, sentence.pinyin)) && <p className="mt-3 text-xs text-amber-700 dark:text-amber-300">Một số câu chưa thể căn chỉnh Pinyin chính xác theo từng chữ; Lina vẫn hiển thị Pinyin nguyên câu bên dưới để tránh gắn sai âm.</p>}
-              {showPinyin && active.sentences.some(sentence => !alignPinyinToHanzi(sentence.chinese, sentence.pinyin)) && <div className="mt-2 space-y-1 text-xs leading-6 text-emerald-800 dark:text-emerald-300">{active.sentences.filter(sentence => !alignPinyinToHanzi(sentence.chinese, sentence.pinyin)).map((sentence, index) => <p key={index}>{sentence.pinyin}</p>)}</div>}
+              </p> : <div className="rounded-xl border border-dashed border-sky-300 bg-sky-50/70 px-4 py-8 text-center dark:border-sky-900 dark:bg-sky-950/20"><Headphones className="mx-auto h-6 w-6 text-sky-700 dark:text-sky-300"/><p className="mt-2 text-sm font-bold text-sky-900 dark:text-sky-100">Chế độ nghe không nhìn chữ</p><p className="mt-1 text-xs leading-6 text-sky-800 dark:text-sky-200">Bật giọng đọc, nghe và thử ghi nhớ nội dung. Khi sẵn sàng, chọn “Hiện lại chữ Hán” để tự đối chiếu. Pinyin cũng được ẩn trong chế độ này.</p></div>}
+              {showChinese && showPinyin && active.sentences.some(sentence => !alignPinyinToHanzi(sentence.chinese, sentence.pinyin)) && <p className="mt-3 text-xs text-amber-700 dark:text-amber-300">Một số câu chưa thể căn chỉnh Pinyin chính xác theo từng chữ; Lina vẫn hiển thị Pinyin nguyên câu bên dưới để tránh gắn sai âm.</p>}
+              {showChinese && showPinyin && active.sentences.some(sentence => !alignPinyinToHanzi(sentence.chinese, sentence.pinyin)) && <div className="mt-2 space-y-1 text-xs leading-6 text-emerald-800 dark:text-emerald-300">{active.sentences.filter(sentence => !alignPinyinToHanzi(sentence.chinese, sentence.pinyin)).map((sentence, index) => <p key={index}>{sentence.pinyin}</p>)}</div>}
               {showVietnamese && <div className="mt-5 space-y-3 border-t border-stone-200 pt-4 dark:border-stone-800">{active.sentences.map((sentence, index) => <div key={index} className="flex items-start gap-3"><span className="mt-0.5 shrink-0 text-[10px] font-bold text-stone-400">{index + 1}.</span><p className="text-sm leading-7 text-stone-600 dark:text-stone-300">{sentence.vietnamese}</p><button onClick={() => speakChinese(sentence.chinese)} aria-label={`Nghe câu ${index + 1}`} className="ml-auto shrink-0 rounded-lg p-2 text-emerald-800 hover:bg-emerald-50 dark:text-emerald-300"><Volume2 className="h-4 w-4"/></button></div>)}</div>}
             </article>
             {selectedTerm && <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4 dark:border-emerald-900 dark:bg-emerald-950/20" aria-live="polite">
