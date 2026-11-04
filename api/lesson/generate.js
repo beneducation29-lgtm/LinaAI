@@ -1,3 +1,41 @@
+import { getUser, parseCookies } from '../auth/_utils.js';
+
+const MAX_READING_IMAGE_BYTES = 700 * 1024;
+const READING_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+const READING_MODEL = process.env.GEMINI_READING_MODEL || process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+
+export function validateReadingImage(payload) {
+  const mimeType = typeof payload?.mimeType === 'string' ? payload.mimeType.toLowerCase() : '';
+  const data = typeof payload?.data === 'string' ? payload.data : '';
+  if (!READING_IMAGE_TYPES.has(mimeType)) return { error: 'Chỉ hỗ trợ ảnh JPG, PNG hoặc WEBP.' };
+  if (!data || data.length > Math.ceil(MAX_READING_IMAGE_BYTES * 4 / 3) + 8 || !/^[A-Za-z0-9+/]+={0,2}$/.test(data)) return { error: 'Dữ liệu ảnh không hợp lệ hoặc vượt quá giới hạn 700 KB.' };
+  const bytes = Math.floor(data.length * 3 / 4) - (data.endsWith('==') ? 2 : data.endsWith('=') ? 1 : 0);
+  if (!bytes || bytes > MAX_READING_IMAGE_BYTES) return { error: 'Ảnh phải có dung lượng từ 1 byte đến 700 KB sau khi tối ưu.' };
+  return { mimeType, data, bytes };
+}
+
+async function handleReadingOcr(req, res, payload) {
+  const user = await getUser(parseCookies(req).lina_access);
+  if (!user) return res.status(401).json({ error: 'Vui lòng đăng nhập để sử dụng Lina Reading.' });
+  const image = validateReadingImage(payload);
+  if (image.error) return res.status(400).json({ error: image.error });
+  const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+  if (!apiKey) return res.status(503).json({ error: 'Tính năng nhận diện ảnh chưa được cấu hình khóa AI ở phía máy chủ.' });
+  const prompt = `Bạn là bộ OCR chuyên nhận diện tài liệu học tiếng Trung. Hãy chép lại CHÍNH XÁC những gì nhìn thấy trong ảnh.\nQuy tắc bắt buộc:\n- Ưu tiên chữ Hán giản thể/phồn thể đúng như ảnh; giữ nguyên thứ tự dòng, đoạn, dấu câu và tiêu đề.\n- Không dịch, không tự thêm pinyin, không sửa văn phong, không viết tiếp phần bị khuất.\n- Không đoán chữ mờ. Nếu không đọc chắc, ghi [không rõ] đúng tại vị trí đó.\n- Bỏ qua chú giải tiếng Việt/pinyin viết tay bên cạnh nếu không thuộc nội dung tiếng Trung chính.\n- Trả về JSON duy nhất: {"text":"nội dung nhận diện","notes":["ghi chú ngắn về vùng khó đọc nếu có"]}. Không markdown.`;
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${READING_MODEL}:generateContent?key=${encodeURIComponent(apiKey)}`;
+  const response = await fetch(endpoint, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: AbortSignal.timeout(30000),
+    body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: prompt }, { inlineData: { mimeType: image.mimeType, data: image.data } }] }], generationConfig: { responseMimeType: 'application/json', responseSchema: { type: 'OBJECT', properties: { text: { type: 'STRING' }, notes: { type: 'ARRAY', items: { type: 'STRING' } } }, required: ['text', 'notes'] }, temperature: 0.1, maxOutputTokens: 5000 } })
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) { console.error('[LinaReading][GEMINI_ERROR]', response.status, result?.error?.status || 'provider_error'); return res.status(502).json({ error: 'AI chưa thể đọc ảnh lúc này. Vui lòng thử lại với ảnh rõ và sáng hơn.' }); }
+  const raw = result?.candidates?.[0]?.content?.parts?.map(part => part.text || '').join('').trim() || '';
+  let parsed = null;
+  try { parsed = JSON.parse(raw.replace(/^\\s*```(?:json)?\\s*/i, '').replace(/\\s*```\\s*$/, '')); } catch { const start=raw.indexOf('{'), end=raw.lastIndexOf('}'); if(start>=0&&end>start){try{parsed=JSON.parse(raw.slice(start,end+1));}catch{}} }
+  const text = typeof parsed?.text === 'string' ? parsed.text.trim().slice(0, 30000) : '';
+  if (!text) return res.status(502).json({ error: 'Không nhận diện được nội dung. Hãy thử ảnh rõ hơn hoặc nhập văn bản thủ công.' });
+  return res.status(200).json({ text, notes: Array.isArray(parsed.notes) ? parsed.notes.filter(x => typeof x === 'string').slice(0, 8) : [], model: READING_MODEL });
+}
 const MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
 
 const jsonSchema = {
@@ -31,6 +69,8 @@ ${JSON.stringify(jsonSchema)}
 
 export default async function handler(req,res){
   if(req.method !== 'POST') return res.status(405).json({error:'Method not allowed'});
+  const incoming=typeof req.body==='string'?JSON.parse(req.body):req.body||{};
+  if(incoming.task==='reading_ocr') return handleReadingOcr(req,res,incoming);
   const apiKey=process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.VITE_GEMINI_API_KEY;
   if(!apiKey) return res.status(500).json({error:'Gemini API key is not configured on the server.'});
   try{
