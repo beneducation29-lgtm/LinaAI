@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import { GRADED_READINGS, HSK_LEVELS } from '../src/data/gradedReadings';
 
-assert.ok(GRADED_READINGS.length >= 20, 'The reading library should keep expanding with varied topics.');
+assert.ok(GRADED_READINGS.length >= 26, 'The reading library should keep expanding with varied topics.');
+assert.equal(new Set(GRADED_READINGS.map(item => item.id)).size, GRADED_READINGS.length, 'Reading IDs must be unique.');
+assert.ok(new Set(GRADED_READINGS.map(item => item.topic)).size >= 8, 'The library should cover a broad range of everyday and knowledge topics.');
 for (const level of HSK_LEVELS) {
   assert.ok(GRADED_READINGS.filter(item => item.level === level).length >= 2, '' + level + ' should retain at least two original readings.');
 }
