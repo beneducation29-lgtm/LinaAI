@@ -3,10 +3,10 @@ import { GRADED_READINGS, HSK_LEVELS } from '../src/data/gradedReadings';
 
 assert.equal(GRADED_READINGS.length, 12, 'The starter library should contain two readings per HSK level.');
 for (const level of HSK_LEVELS) {
-  assert.equal(GRADED_READINGS.filter(item => item.level === level).length, 2, \`\${level} should have two original readings.\`);
+  assert.equal(GRADED_READINGS.filter(item => item.level === level).length, 2, '' + level + ' should have two original readings.');
 }
 for (const reading of GRADED_READINGS) {
-  assert.ok(reading.sentences.length >= 3, \`\${reading.id} should contain multiple aligned sentences.\`);
+  assert.ok(reading.sentences.length >= 3, '' + reading.id + ' should contain multiple aligned sentences.');
   for (const sentence of reading.sentences) {
     assert.match(sentence.chinese, /[\u3400-\u9fff]/u, 'Chinese sentence must contain Han characters.');
     assert.ok(sentence.pinyin.trim().length > 0, 'Pinyin must be present.');
