@@ -88,7 +88,7 @@ export const ReadingScreen: React.FC<Props> = ({ ownerId, vocabularies, onSaveVo
 
   const topics = React.useMemo(() => ['Tất cả chủ đề', ...Array.from(new Set(GRADED_READINGS.map(item => item.topic)))], []);
   const filtered = React.useMemo(() => GRADED_READINGS.filter(item => {
-    const matchesLevel = level === '全部' || level === '全部' || item.level === level;
+    const matchesLevel = level === '全部' || item.level === level;
     const matchesTopic = topic === 'Tất cả chủ đề' || item.topic === topic;
     const needle = search.trim().toLocaleLowerCase();
     const matchesSearch = !needle || [item.title, item.titleZh, item.summary, item.topic, ...item.focusWords].join(' ').toLocaleLowerCase().includes(needle);
@@ -96,6 +96,14 @@ export const ReadingScreen: React.FC<Props> = ({ ownerId, vocabularies, onSaveVo
   }), [level, topic, search]);
 
   const active = GRADED_READINGS.find(item => item.id === activeId) || filtered[0] || GRADED_READINGS[0];
+  React.useEffect(() => {
+    if (filtered.length > 0 && !filtered.some(item => item.id === activeId)) {
+      setActiveId(filtered[0].id);
+      setAnswers({});
+      setSubmitted(false);
+      setSelectedTerm(null);
+    }
+  }, [filtered, activeId]);
   const vocabByHanzi = React.useMemo(() => {
     const map = new Map<string, Vocabulary>();
     for (const item of vocabularies) map.set(item.hanzi, item);
