@@ -18,7 +18,7 @@ function normalizeReadingQuote(value) { return String(value || '').normalize('NF
 
 
 export function normalizeReadingSearchRequest(payload) {
-  const query = typeof payload?.query === 'string' ? payload.query.trim().slice(0, 180) : '';
+  const query = typeof payload?.query === 'string' ? payload.query.replace(/[\x00-\x1f\x7f]/gi, ' ').replace(/\s+/g, ' ').trim().slice(0, 180) : '';
   const level = typeof payload?.level === 'string' ? payload.level.trim() : '';
   const allowedLevels = new Set(['HSK 1', 'HSK 2', 'HSK 3', 'HSK 4', 'HSK 5', 'HSK 6']);
   if (!query) return { error: 'Hãy nhập chủ đề hoặc nội dung muốn tìm đọc.' };
