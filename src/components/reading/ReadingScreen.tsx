@@ -54,7 +54,7 @@ zi za zai zan zang zao ze zei zen zeng zi zong zou zu zuan zui zun zuo
 ci ca cai can cang cao ce cen ceng ci cong cou cu cuan cui cun cuo
 si sa sai san sang sao se sen seng si song sou su suan sui sun suo
 y ya yan yang yao ye yi yin ying yo yong you yu yuan yue yun
-w wa wai wan wang wei wen weng wo wu``.split(/\s+/));
+w wa wai wan wang wei wen weng wo wu`.split(/\s+/));
 
 const PINYIN_TONE_MAP: Record<string, string> = {ā:'a',á:'a',ǎ:'a',à:'a',ē:'e',é:'e',ě:'e',è:'e',ī:'i',í:'i',ǐ:'i',ì:'i',ō:'o',ó:'o',ǒ:'o',ò:'o',ū:'u',ú:'u',ǔ:'u',ù:'u',ǖ:'v',ǘ:'v',ǚ:'v',ǜ:'v',ü:'v',ń:'n',ň:'n',ḿ:'m'};
 
