@@ -1,10 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { buildKnowledgeProfile, generateDailyPlan } from '../../services/personalization';
 import { ProgressCard } from './ProgressCard';
-import { Home, BookOpen, BookOpenText, Headphones, Brain, Mic, Sparkles, ArrowRight } from 'lucide-react';
+import { LayerToggles } from '../common/LayerToggles';
+import { ToneTrainingModal } from '../voice/ToneTrainingModal';
+import { BookOpen, BookOpenText, Headphones, Brain, Sparkles, ArrowRight, Music } from 'lucide-react';
 
 export const HomeDashboard: React.FC = () => {
+  const [showToneModal, setShowToneModal] = useState(false);
   const { user, setCurrentTab, currentLesson, lessonSectionIndex, aiMemory, learnerProfile, getDueReviewCount, setDailyGoalMinutes, structuredProgress, reviewSchedules } = useApp();
   const knowledge = buildKnowledgeProfile(learnerProfile, aiMemory, reviewSchedules, structuredProgress);
   const dailyPlan = generateDailyPlan(learnerProfile, aiMemory, getDueReviewCount(), knowledge);
@@ -30,6 +33,8 @@ export const HomeDashboard: React.FC = () => {
           {user.currentHsk} <span className="mx-1 text-amber-500">·</span> 🔥 {user.streakDays} ngày
         </div>
       </header>
+
+      <LayerToggles compact className="w-full sm:w-fit" />
 
       <section className="rounded-3xl border border-amber-200/80 bg-amber-50/80 p-4 dark:border-amber-900/40 dark:bg-amber-950/20 sm:p-5">
         <div className="flex items-center gap-2 text-sm font-bold text-stone-900 dark:text-stone-100">
@@ -66,7 +71,10 @@ export const HomeDashboard: React.FC = () => {
       <section>
         <div className="mb-3 flex items-end justify-between gap-3">
           <div><h2 className="text-base font-bold text-stone-900 dark:text-stone-100">Luyện tập</h2><p className="mt-0.5 text-xs text-stone-500 dark:text-stone-400">Chọn hoạt động bạn muốn thực hiện.</p></div>
-          <button type="button" onClick={() => setCurrentTab('speak')} className="text-xs font-semibold text-amber-700 dark:text-amber-400">Nói với Lina</button>
+          <div className="flex items-center gap-3">
+            <button type="button" onClick={() => setShowToneModal(true)} className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-700 dark:text-amber-400"><Music className="h-3.5 w-3.5" /> Luyện thanh điệu</button>
+            <button type="button" onClick={() => setCurrentTab('speak')} className="text-xs font-semibold text-amber-700 dark:text-amber-400">Nói với Lina</button>
+          </div>
         </div>
         <div className="grid gap-3 sm:grid-cols-3">
           {shortcuts.map(({ tab, label, description, icon: Icon }) => (
@@ -79,6 +87,7 @@ export const HomeDashboard: React.FC = () => {
       </section>
 
       <ProgressCard currentMinutes={user.todayMinutesSpent} targetMinutes={user.dailyGoalMinutes} streakDays={user.streakDays} onSelectGoal={setDailyGoalMinutes} />
+      <ToneTrainingModal isOpen={showToneModal} onClose={() => setShowToneModal(false)} />
     </div>
   );
 };
