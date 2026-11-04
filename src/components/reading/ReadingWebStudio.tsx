@@ -29,7 +29,7 @@ export const ReadingWebStudio: React.FC<Props> = ({ vocabularies, onSaveVocabula
   const [answers, setAnswers] = React.useState<Record<number, number>>({});
   const [submitted, setSubmitted] = React.useState(false);
 
-  const vocabularyByHanzi = React.useMemo(() => new Map(vocabularies.map(item => [item.hanzi, item])), [vocabularies]);
+  const vocabularyByHanzi = React.useMemo(() => new Map<string, Vocabulary>(vocabularies.map(item => [item.hanzi, item] as const)), [vocabularies]);
   const availableCount = vocabularies.filter(item => item.hskLevel === level).length;
 
   const searchAndCreate = async (event: React.FormEvent) => {
