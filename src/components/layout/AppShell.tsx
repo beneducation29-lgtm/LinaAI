@@ -22,7 +22,7 @@ const AdminCMS = React.lazy(() =>
 );
 
 export const AppShell: React.FC = () => {
-  const { currentTab, setCurrentTab, user, preferences, toggleTheme, showOnboarding, authUser, authScopeReady, loginAccount, signupAccount } = useApp();
+  const { currentTab, setCurrentTab, user, preferences, toggleTheme, showOnboarding, authUser, authScopeReady, loginAccount, signupAccount, allVocabularies, toggleSaveVocabulary, isVocabularySaved } = useApp();
   const [accountMode, setAccountMode] = React.useState<'login'|'signup'>('login');
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
@@ -189,7 +189,7 @@ export const AppShell: React.FC = () => {
       case 'listening':
         return <ListeningScreen />;
       case 'reading':
-        return authUser ? <ReadingScreen ownerId={authUser.id} vocabularies={useApp().allVocabularies} onSaveVocabulary={useApp().toggleSaveVocabulary} isVocabularySaved={useApp().isVocabularySaved} /> : <HomeDashboard />;
+        return authUser ? <ReadingScreen ownerId={authUser.id} vocabularies={allVocabularies} onSaveVocabulary={toggleSaveVocabulary} isVocabularySaved={isVocabularySaved} /> : <HomeDashboard />;
       case 'review':
         return <ReviewScreen />;
       case 'profile':
