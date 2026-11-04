@@ -44,11 +44,14 @@ export const ReadingScreen: React.FC<Props> = ({ ownerId }) => {
   const [error, setError] = React.useState('');
   const [notice, setNotice] = React.useState('');
   const [notes, setNotes] = React.useState<string[]>([]);
+  const [analysis, setAnalysis] = React.useState<any>(null);
+  const [analyzing, setAnalyzing] = React.useState(false);
+  const [selectedWord, setSelectedWord] = React.useState<any>(null);
   const fileRef = React.useRef<HTMLInputElement>(null);
 
   React.useEffect(() => {
     setDocuments(listReadingDocuments(ownerId));
-    setActiveId(undefined); setTitle(''); setText(''); setSourceName('');
+    setActiveId(undefined); setTitle(''); setText(''); setSourceName(''); setAnalysis(null); setSelectedWord(null);
   }, [ownerId]);
 
   React.useEffect(() => () => { if (previewUrl) URL.revokeObjectURL(previewUrl); }, [previewUrl]);
@@ -70,7 +73,7 @@ export const ReadingScreen: React.FC<Props> = ({ ownerId }) => {
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload.error || 'Không thể nhận diện ảnh.');
-      setText(typeof payload.text === 'string' ? payload.text : '');
+      setText(typeof payload.text === 'string' ? payload.text : ''); setAnalysis(null);
       setNotes(Array.isArray(payload.notes) ? payload.notes : []);
       setNotice('Đã nhận diện xong. Hãy rà soát văn bản trước khi lưu vào thư viện.');
     } catch (e) {
@@ -78,6 +81,13 @@ export const ReadingScreen: React.FC<Props> = ({ ownerId }) => {
     } finally { setBusy(false); }
   };
 
+  const analyze = async () => {
+    if (!text.trim()) { setError('Hãy nhập nội dung tiếng Trung trước khi phân tích.'); return; }
+    setAnalyzing(true); setError(''); setNotice('Lina đang tạo Pinyin, bản dịch và phân tích bài đọc…');
+    try { const response=await fetch('/api/lesson/generate',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({task:'reading_enrich',text:text.trim()})}); const payload=await response.json().catch(()=>({})); if(!response.ok) throw new Error(payload.error||'Không thể phân tích bài đọc.'); setAnalysis({sentences:payload.sentences||[],grammar:payload.grammar||[]}); setNotice('Đã hoàn thành phân tích. Hãy kiểm tra nội dung trước khi dùng làm tài liệu khóa học.'); }
+    catch(e) { setError(e instanceof Error?e.message:'Có lỗi khi phân tích bài đọc.'); } finally { setAnalyzing(false); }
+  };
+  const speak = (value:string) => { if (!('speechSynthesis' in window)) { setError('Trình duyệt chưa hỗ trợ đọc văn bản.'); return; } window.speechSynthesis.cancel(); const utterance=new SpeechSynthesisUtterance(value); utterance.lang='zh-CN'; utterance.rate=0.85; window.speechSynthesis.speak(utterance); };
   const save = () => {
     if (!text.trim()) { setError('Chưa có nội dung để lưu.'); return; }
     try {
@@ -89,7 +99,7 @@ export const ReadingScreen: React.FC<Props> = ({ ownerId }) => {
 
   const openDocument = (doc: ReadingDocument) => {
     setActiveId(doc.id); setTitle(doc.title); setText(doc.text); setSourceName(doc.sourceName || '');
-    setError(''); setNotice('Đang xem bài đọc đã lưu.'); setNotes([]);
+    setError(''); setNotice('Đang xem bài đọc đã lưu.'); setNotes([]); setAnalysis(null); setSelectedWord(null);
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setPreviewUrl('');
   };
@@ -129,10 +139,24 @@ export const ReadingScreen: React.FC<Props> = ({ ownerId }) => {
         <label className="block text-xs font-bold text-stone-600 dark:text-stone-300">Tên bài đọc<input value={title} onChange={e=>setTitle(e.target.value)} maxLength={120} placeholder="Ví dụ: Gấu con học về hạnh phúc" className="mt-2 min-h-11 w-full rounded-xl border border-stone-200 bg-stone-50 px-3 text-sm text-stone-900 outline-none focus:border-emerald-600 dark:border-stone-700 dark:bg-stone-950 dark:text-stone-100"/></label>
         <label className="block text-xs font-bold text-stone-600 dark:text-stone-300">Nội dung tiếng Trung – có thể chỉnh sửa<textarea value={text} onChange={e=>setText(e.target.value)} maxLength={30000} rows={12} placeholder="Chữ Hán nhận diện từ ảnh sẽ xuất hiện ở đây. Bạn cũng có thể nhập hoặc dán văn bản tiếng Trung…" className="mt-2 w-full resize-y rounded-2xl border border-stone-200 bg-[#fffefb] p-4 font-cjk text-base leading-8 text-stone-900 outline-none focus:border-emerald-600 dark:border-stone-700 dark:bg-stone-950 dark:text-stone-100"/></label>
         <div className="flex flex-wrap items-center justify-between gap-3"><span className="text-[11px] text-stone-400">{text.length.toLocaleString('vi-VN')}/30.000 ký tự {sourceName ? `· ${sourceName}` : ''}</span><div className="flex flex-wrap gap-2"><button type="button" onClick={()=>{setText('');setActiveId(undefined);setNotes([]);}} className="min-h-10 rounded-xl border border-stone-200 px-3 text-xs font-bold text-stone-600 dark:border-stone-700 dark:text-stone-300"><X className="mr-1 inline h-3.5 w-3.5"/> Xóa nội dung</button><button type="button" onClick={save} disabled={!text.trim()||busy} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-emerald-800 px-4 text-xs font-extrabold text-white hover:bg-emerald-900 disabled:opacity-40"><Save className="h-4 w-4"/> Lưu bài đọc</button></div></div>
+        <div className="flex flex-wrap gap-2 border-t border-stone-100 pt-4 dark:border-stone-800">
+          <button type="button" onClick={()=>void analyze()} disabled={!text.trim()||busy||analyzing} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#244c3b] px-4 text-xs font-extrabold text-white disabled:opacity-50"><Sparkles className="h-4 w-4"/>{analyzing?"Lina đang phân tích…":"Phân tích Pinyin & dịch"}</button>
+          {analysis && <button type="button" onClick={()=>speak(analysis.sentences.map((s:any)=>s.chinese).join(""))} className="min-h-11 rounded-xl border border-emerald-200 px-4 text-xs font-bold text-emerald-800">▶ Nghe toàn bài</button>}
+        </div>
+        {analysis && <section className="space-y-4 rounded-2xl border border-emerald-100 bg-[#fbfdf9] p-4 dark:border-emerald-900 dark:bg-stone-950/60">
+          <div><h3 className="font-extrabold text-stone-900 dark:text-stone-100">Bài đọc song ngữ</h3><p className="mt-1 text-xs text-stone-500">Chữ Hán · Pinyin · Nghĩa tiếng Việt. Chạm từ vựng để xem giải thích.</p></div>
+          {analysis.sentences.map((sentence:any,index:number)=><article key={index} className="rounded-xl border border-stone-200 bg-white p-3 dark:border-stone-800 dark:bg-stone-900">
+            <div className="flex items-center justify-between"><span className="text-[10px] font-bold uppercase text-stone-400">Câu {index+1}</span><button type="button" onClick={()=>speak(sentence.chinese)} className="rounded-lg border border-stone-200 px-2.5 py-1 text-xs font-bold text-emerald-800">▶ Nghe câu</button></div>
+            <p className="mt-2 font-cjk text-lg leading-8 text-stone-900 dark:text-stone-100">{sentence.chinese}</p><p className="mt-1 text-sm leading-6 text-emerald-800 dark:text-emerald-300">{sentence.pinyin}</p><p className="mt-1 text-sm leading-6 text-stone-600 dark:text-stone-300">{sentence.vietnamese}</p>
+            {sentence.vocabulary?.length>0&&<div className="mt-3 flex flex-wrap gap-2">{sentence.vocabulary.map((word:any,i:number)=><button type="button" key={i} onClick={()=>setSelectedWord(word)} className="rounded-full border border-stone-200 px-3 py-1.5 text-xs font-semibold dark:border-stone-700">{word.word}</button>)}</div>}
+          </article>)}
+          {selectedWord&&<div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 dark:border-emerald-900 dark:bg-emerald-950/30"><div className="flex items-center justify-between"><strong className="font-cjk text-lg">{selectedWord.word}</strong><button type="button" onClick={()=>speak(selectedWord.word)} className="text-xs font-bold text-emerald-800">▶ Phát âm</button></div><p className="mt-1 text-sm text-emerald-800">{selectedWord.pinyin}</p><p className="mt-1 text-sm">{selectedWord.meaning}</p><p className="mt-1 text-xs text-stone-500">{selectedWord.note}</p></div>}
+          {analysis.grammar?.length>0&&<div className="space-y-2"><h4 className="font-extrabold text-sm">Ngữ pháp trong bài</h4>{analysis.grammar.map((g:any,i:number)=><div key={i} className="rounded-xl bg-stone-100 p-3 dark:bg-stone-800"><p className="font-bold text-sm">{g.pattern}</p><p className="mt-1 text-sm leading-6">{g.explanation}</p><p className="mt-1 font-cjk text-sm">{g.exampleChinese}</p></div>)}</div>}
+        </section>}
         {notes.length>0&&<div className="rounded-xl bg-amber-50 p-3 text-xs leading-5 text-amber-900 dark:bg-amber-950/30 dark:text-amber-200"><div className="mb-1 flex items-center gap-2 font-extrabold"><Sparkles className="h-4 w-4"/> Vùng cần kiểm tra</div>{notes.map((note,i)=><p key={i}>• {note}</p>)}</div>}
         {!previewUrl&&!text&&!busy&&<button type="button" onClick={()=>fileRef.current?.click()} className="flex min-h-24 w-full flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-emerald-300 bg-emerald-50/40 text-sm font-bold text-emerald-800 hover:bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/10 dark:text-emerald-300"><Upload className="h-5 w-5"/> Chọn ảnh để bắt đầu</button>}
       </section>
     </div>
-    <p className="text-[11px] leading-5 text-stone-500">Giai đoạn 1: nhận diện và lưu bản văn bản gốc. Tài liệu hiện được lưu trong bộ nhớ trình duyệt theo tài khoản và thiết bị; chưa đồng bộ đám mây, chưa có phân quyền khóa học hoặc thanh toán. Không tải lên tài liệu có bản quyền nếu bạn không có quyền sử dụng.</p>
+    <p className="text-[11px] leading-5 text-stone-500">Giai đoạn 2: tạo Pinyin, dịch, phân tích từ vựng và ngữ pháp bằng AI. Tài liệu hiện được lưu trong bộ nhớ trình duyệt theo tài khoản và thiết bị; chưa đồng bộ đám mây, chưa có phân quyền khóa học hoặc thanh toán. Không tải lên tài liệu có bản quyền nếu bạn không có quyền sử dụng.</p>
   </div>;
 };
