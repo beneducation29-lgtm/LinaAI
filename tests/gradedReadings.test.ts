@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import { GRADED_READINGS, HSK_LEVELS } from '../src/data/gradedReadings';
 
-assert.equal(GRADED_READINGS.length, 12, 'The starter library should contain two readings per HSK level.');
+assert.ok(GRADED_READINGS.length >= 20, 'The reading library should keep expanding with varied topics.');
 for (const level of HSK_LEVELS) {
-  assert.equal(GRADED_READINGS.filter(item => item.level === level).length, 2, '' + level + ' should have two original readings.');
+  assert.ok(GRADED_READINGS.filter(item => item.level === level).length >= 2, '' + level + ' should retain at least two original readings.');
 }
 for (const reading of GRADED_READINGS) {
   assert.ok(reading.sentences.length >= 3, '' + reading.id + ' should contain multiple aligned sentences.');
