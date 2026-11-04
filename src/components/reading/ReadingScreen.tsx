@@ -1,4 +1,5 @@
 import React from 'react';
+import { ReadingWebStudio } from './ReadingWebStudio';
 import { BookOpen, Bookmark, CheckCircle2, ChevronDown, ChevronUp, Eye, EyeOff, Headphones, Library, Search, Volume2 } from 'lucide-react';
 import type { HSKLevel, Vocabulary } from '../../types';
 import { HSK_LEVELS, GRADED_READINGS, type GradedReading } from '../../data/gradedReadings';
@@ -245,6 +246,8 @@ export const ReadingScreen: React.FC<Props> = ({ ownerId, vocabularies, onSaveVo
       </div>
       <div className="mt-5 flex flex-wrap gap-2 text-[11px] font-semibold text-emerald-50/90"><span className="rounded-full border border-white/20 px-3 py-1.5">HSK 1–6</span><span className="rounded-full border border-white/20 px-3 py-1.5">Song ngữ theo câu</span><span className="rounded-full border border-white/20 px-3 py-1.5">Lưu tiến độ theo tài khoản</span><span className="rounded-full border border-white/20 px-3 py-1.5">Từ vựng liên kết ôn tập</span></div>
     </section>
+
+    <ReadingWebStudio vocabularies={vocabularies} onSaveVocabulary={onSaveVocabulary} isVocabularySaved={isVocabularySaved} />
 
     <section className="grid gap-3 rounded-2xl border border-stone-200 bg-white p-4 dark:border-stone-800 dark:bg-stone-900 sm:grid-cols-2 xl:grid-cols-[minmax(220px,1fr)_170px_190px_190px]">
       <label className="relative block"><span className="sr-only">Tìm bài đọc hoặc từ vựng</span><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400"/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Tìm chủ đề, tiêu đề hoặc từ vựng…" className="min-h-11 w-full rounded-xl border border-stone-200 bg-stone-50 pl-9 pr-3 text-sm outline-none focus:border-emerald-600 dark:border-stone-700 dark:bg-stone-950"/></label>
