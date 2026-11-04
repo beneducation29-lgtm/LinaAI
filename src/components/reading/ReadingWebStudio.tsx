@@ -1,8 +1,14 @@
 import React from 'react';
-import { ExternalLink, Globe2, Loader2, Search, BookmarkPlus, BookOpenText } from 'lucide-react';
+import { ExternalLink, Globe2, Loader2, Search, BookmarkPlus, BookOpenText, Headphones, Eye, EyeOff } from 'lucide-react';
 import type { HSKLevel, Vocabulary } from '../../types';
 import { HSK_LEVELS } from '../../data/gradedReadings';
 
+interface Question {
+  question: string;
+  options: string[];
+  answer: number;
+  explanation: string;
+}
 interface Props {
   vocabularies: Vocabulary[];
   onSaveVocabulary: (id: string) => void;
@@ -15,10 +21,31 @@ interface GeneratedReading {
   level: HSKLevel;
   sentences: Array<{ chinese: string; pinyin: string; vietnamese: string }>;
   focusWords: string[];
-  questions: Array<{ question: string; options: string[]; answer: number; explanation: string }>;
+  questions: Question[];
+  listeningQuestions: Question[];
+  memoryQuestions: Question[];
   sources: Array<{ title: string; url: string }>;
   sourceNote: string;
 }
+interface QuestionSetProps {
+  title: string;
+  questions: Question[];
+  answers: Record<number, number>;
+  submitted: boolean;
+  onAnswer: (questionIndex: number, optionIndex: number) => void;
+  onSubmit: () => void;
+}
+const QuestionSet: React.FC<QuestionSetProps> = ({ title, questions, answers, submitted, onAnswer, onSubmit }) => (
+  <section className="space-y-3">
+    <h4 className="text-sm font-extrabold text-stone-800 dark:text-stone-100">{title}</h4>
+    {questions.map((question,index)=><div key={index} className="rounded-xl bg-stone-50 p-3 dark:bg-stone-900">
+      <p className="text-sm font-bold text-stone-800 dark:text-stone-100">{index+1}. {question.question}</p>
+      <div className="mt-2 grid gap-2 sm:grid-cols-2">{question.options.map((option,optionIndex)=><label key={optionIndex} className="flex min-h-10 cursor-pointer items-center gap-2 rounded-lg border border-stone-200 bg-white px-3 text-sm dark:border-stone-700 dark:bg-stone-950"><input type="radio" name={title+'-'+index} checked={answers[index]===optionIndex} disabled={submitted} onChange={()=>onAnswer(index,optionIndex)}/>{option}</label>)}</div>
+      {submitted&&<p className={'mt-2 text-xs leading-5 '+(answers[index]===question.answer?'text-emerald-700 dark:text-emerald-300':'text-amber-700 dark:text-amber-300')}>{answers[index]===question.answer?'Chính xác. ':'Đáp án đúng: '+question.options[question.answer]+'. '}{question.explanation}</p>}
+    </div>)}
+    <div className="flex flex-wrap items-center gap-3"><button type="button" disabled={submitted||Object.keys(answers).length!==questions.length} onClick={onSubmit} className="min-h-11 rounded-xl bg-stone-900 px-4 text-sm font-bold text-white disabled:opacity-50 dark:bg-stone-100 dark:text-stone-900">{submitted?'Đã hoàn thành':'Nộp bài'}</button>{submitted&&<span className="text-xs font-bold text-stone-600 dark:text-stone-300">Kết quả: {questions.filter((question,index)=>answers[index]===question.answer).length}/{questions.length}</span>}</div>
+  </section>
+);
 
 export const ReadingWebStudio: React.FC<Props> = ({ vocabularies, onSaveVocabulary, isVocabularySaved }) => {
   const [query, setQuery] = React.useState('');
@@ -26,8 +53,14 @@ export const ReadingWebStudio: React.FC<Props> = ({ vocabularies, onSaveVocabula
   const [reading, setReading] = React.useState<GeneratedReading | null>(null);
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState('');
-  const [answers, setAnswers] = React.useState<Record<number, number>>({});
-  const [submitted, setSubmitted] = React.useState(false);
+  const [readingAnswers, setReadingAnswers] = React.useState<Record<number, number>>({});
+  const [listeningAnswers, setListeningAnswers] = React.useState<Record<number, number>>({});
+  const [memoryAnswers, setMemoryAnswers] = React.useState<Record<number, number>>({});
+  const [readingSubmitted, setReadingSubmitted] = React.useState(false);
+  const [listeningSubmitted, setListeningSubmitted] = React.useState(false);
+  const [memorySubmitted, setMemorySubmitted] = React.useState(false);
+  const [showTranscript, setShowTranscript] = React.useState(true);
+  const [revealedWords, setRevealedWords] = React.useState<string[]>([]);
 
   const vocabularyByHanzi = React.useMemo(() => new Map<string, Vocabulary>(vocabularies.map(item => [item.hanzi, item] as const)), [vocabularies]);
   const availableCount = vocabularies.filter(item => item.hskLevel === level).length;
@@ -38,8 +71,14 @@ export const ReadingWebStudio: React.FC<Props> = ({ vocabularies, onSaveVocabula
     setBusy(true);
     setError('');
     setReading(null);
-    setAnswers({});
-    setSubmitted(false);
+    setReadingAnswers({});
+    setListeningAnswers({});
+    setMemoryAnswers({});
+    setReadingSubmitted(false);
+    setListeningSubmitted(false);
+    setMemorySubmitted(false);
+    setShowTranscript(true);
+    setRevealedWords([]);
     try {
       const response = await fetch('/api/lesson/generate', {
         method: 'POST',
@@ -67,6 +106,21 @@ export const ReadingWebStudio: React.FC<Props> = ({ vocabularies, onSaveVocabula
     }
   };
 
+  const playListening = () => {
+    if (!reading) return;
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+      setError('Trình duyệt chưa hỗ trợ phát âm thanh tiếng Trung.');
+      return;
+    }
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(reading.sentences.map(sentence => sentence.chinese).join(''));
+    utterance.lang = 'zh-CN';
+    utterance.rate = 0.82;
+    window.speechSynthesis.speak(utterance);
+    setShowTranscript(false);
+    setError('');
+  };
+
   return <section className="space-y-4 rounded-3xl border border-sky-200 bg-gradient-to-br from-sky-50 to-white p-4 shadow-sm dark:border-sky-950 dark:from-sky-950/30 dark:to-stone-900 sm:p-6">
     <div className="flex flex-wrap items-start gap-3">
       <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-sky-100 text-sky-800 dark:bg-sky-900 dark:text-sky-200"><Globe2 className="h-5 w-5"/></div>
@@ -81,10 +135,13 @@ export const ReadingWebStudio: React.FC<Props> = ({ vocabularies, onSaveVocabula
     {error&&<div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-200">{error}</div>}
     {reading&&<div className="space-y-5 rounded-2xl border border-stone-200 bg-white p-4 dark:border-stone-700 dark:bg-stone-950 sm:p-6">
       <header className="border-b border-stone-100 pb-4 dark:border-stone-800"><div className="flex flex-wrap items-center gap-2"><span className="rounded-full bg-sky-100 px-2.5 py-1 text-[10px] font-extrabold text-sky-800 dark:bg-sky-900 dark:text-sky-200">{reading.level}</span><span className="text-xs text-stone-500">Bài đọc tham khảo web · Nội dung biên soạn mới</span></div><h3 className="mt-2 text-xl font-black text-stone-900 dark:text-stone-100">{reading.title}</h3><p className="mt-1 text-lg font-semibold text-sky-800 dark:text-sky-300">{reading.titleZh}</p><p className="mt-2 text-sm leading-6 text-stone-600 dark:text-stone-300">{reading.summary}</p></header>
-      <div className="space-y-4">{reading.sentences.map((sentence,index)=><article key={index} className="border-b border-stone-100 pb-4 last:border-0 dark:border-stone-800"><p className="font-cjk text-xl leading-relaxed text-stone-900 dark:text-stone-100">{sentence.chinese}</p><p className="mt-1 text-sm font-medium leading-6 text-sky-800 dark:text-sky-300">{sentence.pinyin}</p><p className="mt-1 text-sm leading-6 text-stone-600 dark:text-stone-300">{sentence.vietnamese}</p></article>)}</div>
-      <section><h4 className="mb-2 text-sm font-extrabold text-stone-800 dark:text-stone-100">Từ vựng trong kho LinaAI</h4><div className="flex flex-wrap gap-2">{reading.focusWords.map(word=>{const item=vocabularyByHanzi.get(word);return <div key={word} className="flex items-center gap-2 rounded-xl border border-stone-200 bg-stone-50 px-3 py-2 dark:border-stone-700 dark:bg-stone-900"><span><span className="font-cjk font-bold text-stone-900 dark:text-stone-100">{word}</span>{item&&<span className="ml-2 text-xs text-stone-500">{item.pinyin} · {item.vietnamese}</span>}</span>{item&&!isVocabularySaved(item.id)&&<button type="button" onClick={()=>onSaveVocabulary(item.id)} aria-label={'Lưu từ '+word} title="Lưu vào ôn tập" className="rounded-lg p-1 text-sky-700 hover:bg-sky-100 dark:text-sky-300 dark:hover:bg-sky-900"><BookmarkPlus className="h-4 w-4"/></button>}{item&&isVocabularySaved(item.id)&&<span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300">Đã lưu</span>}</div>;})}</div></section>
-      <section className="space-y-3"><h4 className="text-sm font-extrabold text-stone-800 dark:text-stone-100">Kiểm tra đọc hiểu</h4>{reading.questions.map((question,index)=><div key={index} className="rounded-xl bg-stone-50 p-3 dark:bg-stone-900"><p className="text-sm font-bold text-stone-800 dark:text-stone-100">{index+1}. {question.question}</p><div className="mt-2 grid gap-2 sm:grid-cols-2">{question.options.map((option,optionIndex)=><label key={optionIndex} className="flex min-h-10 cursor-pointer items-center gap-2 rounded-lg border border-stone-200 bg-white px-3 text-sm dark:border-stone-700 dark:bg-stone-950"><input type="radio" name={'web-reading-'+index} checked={answers[index]===optionIndex} disabled={submitted} onChange={()=>setAnswers(current=>({...current,[index]:optionIndex}))}/>{option}</label>)}</div>{submitted&&<p className={'mt-2 text-xs leading-5 '+(answers[index]===question.answer?'text-emerald-700 dark:text-emerald-300':'text-amber-700 dark:text-amber-300')}>{answers[index]===question.answer?'Chính xác. ':'Đáp án đúng: '+question.options[question.answer]+'. '}{question.explanation}</p>}</div>)}
-      <button type="button" disabled={submitted||Object.keys(answers).length!==reading.questions.length} onClick={()=>setSubmitted(true)} className="min-h-11 rounded-xl bg-stone-900 px-4 text-sm font-bold text-white disabled:opacity-50 dark:bg-stone-100 dark:text-stone-900">{submitted?'Đã hoàn thành kiểm tra':'Nộp bài kiểm tra'}</button></section>
+      <section className="space-y-3"><div className="flex flex-wrap items-center justify-between gap-2"><h4 className="text-sm font-extrabold text-stone-800 dark:text-stone-100">Bài đọc song ngữ</h4><div className="flex flex-wrap gap-2"><button type="button" onClick={playListening} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-sky-700 px-3 text-xs font-bold text-white"><Headphones className="h-4 w-4"/> Nghe không nhìn chữ</button><button type="button" onClick={()=>setShowTranscript(value=>!value)} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-stone-200 px-3 text-xs font-bold text-stone-700 dark:border-stone-700 dark:text-stone-200">{showTranscript?<EyeOff className="h-4 w-4"/>:<Eye className="h-4 w-4"/>}{showTranscript?'Ẩn bài đọc':'Hiện bài đọc'}</button></div></div>
+        {showTranscript?<div className="space-y-4">{reading.sentences.map((sentence,index)=><article key={index} className="border-b border-stone-100 pb-4 last:border-0 dark:border-stone-800"><p className="font-cjk text-xl leading-relaxed text-stone-900 dark:text-stone-100">{sentence.chinese}</p><p className="mt-1 text-sm font-medium leading-6 text-sky-800 dark:text-sky-300">{sentence.pinyin}</p><p className="mt-1 text-sm leading-6 text-stone-600 dark:text-stone-300">{sentence.vietnamese}</p></article>)}</div>:<div className="rounded-xl border border-dashed border-sky-300 bg-sky-50/70 px-4 py-7 text-center text-sm text-sky-900 dark:border-sky-900 dark:bg-sky-950/20 dark:text-sky-100">Bài đọc đang được ẩn để bạn luyện nghe. Hãy nghe lại rồi trả lời phần nghe hiểu bên dưới.</div>}
+      </section>
+      <section><h4 className="mb-2 text-sm font-extrabold text-stone-800 dark:text-stone-100">Ôn nhớ từ vựng</h4><div className="flex flex-wrap gap-2">{reading.focusWords.map(word=>{const item=vocabularyByHanzi.get(word);const revealed=revealedWords.includes(word);return <div key={word} className="flex items-center gap-2 rounded-xl border border-stone-200 bg-stone-50 px-3 py-2 dark:border-stone-700 dark:bg-stone-900"><span><span className="font-cjk font-bold text-stone-900 dark:text-stone-100">{word}</span>{item&&revealed&&<span className="ml-2 text-xs text-stone-500">{item.pinyin} · {item.vietnamese}</span>}</span>{item&&!revealed&&<button type="button" onClick={()=>setRevealedWords(current=>[...current,word])} aria-label={'Hiện nghĩa từ '+word} title="Tự nhớ nghĩa rồi chạm để xem" className="rounded-lg p-1 text-sky-700 hover:bg-sky-100 dark:text-sky-300 dark:hover:bg-sky-900"><Eye className="h-4 w-4"/></button>}{item&&revealed&&<button type="button" onClick={()=>setRevealedWords(current=>current.filter(value=>value!==word))} aria-label={'Ẩn nghĩa từ '+word} className="rounded-lg p-1 text-stone-500 hover:bg-stone-200 dark:hover:bg-stone-800"><EyeOff className="h-4 w-4"/></button>}{item&&!isVocabularySaved(item.id)&&<button type="button" onClick={()=>onSaveVocabulary(item.id)} aria-label={'Lưu từ '+word} title="Lưu vào ôn tập" className="rounded-lg p-1 text-sky-700 hover:bg-sky-100 dark:text-sky-300 dark:hover:bg-sky-900"><BookmarkPlus className="h-4 w-4"/></button>}{item&&isVocabularySaved(item.id)&&<span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300">Đã lưu</span>}</div>;})}</div></section>
+      <QuestionSet title="Đọc hiểu · Đọc và chọn đáp án" questions={reading.questions} answers={readingAnswers} submitted={readingSubmitted} onAnswer={(index,option)=>setReadingAnswers(current=>({...current,[index]:option}))} onSubmit={()=>setReadingSubmitted(true)}/>
+      <section className="space-y-3 rounded-xl border border-sky-100 bg-sky-50/60 p-3 dark:border-sky-950 dark:bg-sky-950/20"><div className="flex flex-wrap items-center justify-between gap-2"><div><h4 className="text-sm font-extrabold text-sky-900 dark:text-sky-100">Nghe hiểu · Nghe rồi chọn đáp án</h4><p className="mt-1 text-xs text-sky-800 dark:text-sky-200">Ẩn chữ Hán trước khi nghe để không dựa vào mặt chữ.</p></div><button type="button" onClick={playListening} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-sky-700 px-3 text-xs font-bold text-white"><Headphones className="h-4 w-4"/> Phát âm thanh</button></div><QuestionSet title="Câu hỏi nghe hiểu" questions={reading.listeningQuestions} answers={listeningAnswers} submitted={listeningSubmitted} onAnswer={(index,option)=>setListeningAnswers(current=>({...current,[index]:option}))} onSubmit={()=>setListeningSubmitted(true)}/></section>
+      <QuestionSet title="Ghi nhớ · Kiểm tra nhớ từ và ý chính" questions={reading.memoryQuestions} answers={memoryAnswers} submitted={memorySubmitted} onAnswer={(index,option)=>setMemoryAnswers(current=>({...current,[index]:option}))} onSubmit={()=>setMemorySubmitted(true)}/>
       <section className="rounded-xl border border-sky-100 bg-sky-50/70 p-3 dark:border-sky-950 dark:bg-sky-950/20"><h4 className="flex items-center gap-2 text-sm font-extrabold text-sky-900 dark:text-sky-100"><BookOpenText className="h-4 w-4"/> Nguồn tham khảo</h4><ul className="mt-2 space-y-2">{reading.sources.map(source=><li key={source.url}><a href={source.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-start gap-2 text-sm font-medium text-sky-800 underline decoration-sky-300 underline-offset-2 hover:text-sky-950 dark:text-sky-300"><ExternalLink className="mt-0.5 h-3.5 w-3.5 shrink-0"/><span className="break-all">{source.title}</span></a></li>)}</ul><p className="mt-3 text-xs leading-5 text-stone-500 dark:text-stone-400">{reading.sourceNote}</p></section>
     </div>}
   </section>;
