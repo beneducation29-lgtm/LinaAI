@@ -3,7 +3,6 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import { GoogleGenAI, Type } from '@google/genai';
-import readingOcrHandler from './api/reading/ocr.js';
 import { sanitizeTutorPayload, looksLikePromptInjection } from './src/services/inputGuards';
 import { getEntitlements } from './src/services/entitlementService';
 import { buildAIUsageRecord, estimateTokenCost } from './src/services/usageService';
@@ -27,8 +26,6 @@ const PORT = Number(process.env.PORT) || 3000;
 const SUPABASE_SERVER_KEY = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
 app.use(express.json({ limit: '1mb', verify: (req, _res, buf) => { (req as any).rawBody = buf.toString('utf8'); } }));
-
-app.post('/api/reading/ocr', (req: Request, res: Response) => { void readingOcrHandler(req, res); });
 
 // Prompt 21 security boundary: same-origin state changes + lightweight abuse controls.
 const isStateChanging=(req:Request)=>['POST','PUT','PATCH','DELETE'].includes(req.method);
