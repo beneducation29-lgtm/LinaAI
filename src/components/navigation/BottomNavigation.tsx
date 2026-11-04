@@ -1,5 +1,5 @@
 import React from 'react';
-import { useApp } from '../../context/AppContext';
+import { useApp, TabType } from '../../context/AppContext';
 import { Home, BookOpen, Mic, User, MoreHorizontal, Headphones, BookOpenText, Brain } from 'lucide-react';
 
 export const BottomNavigation: React.FC = () => {
@@ -17,7 +17,7 @@ export const BottomNavigation: React.FC = () => {
     { tab: 'reading' as const, label: 'Đọc thông minh', icon: BookOpenText },
     { tab: 'review' as const, label: 'Ôn tập', icon: Brain },
   ];
-  const choose = (tab: typeof moreItems[number]['tab']) => { setCurrentTab(tab); setShowMore(false); };
+  const choose = (tab: TabType) => { setCurrentTab(tab); setShowMore(false); };
   const isMoreActive = moreItems.some(item => item.tab === currentTab);
 
   return (
@@ -30,7 +30,7 @@ export const BottomNavigation: React.FC = () => {
       <div className="grid min-h-16 grid-cols-5 items-center px-2">
         {mainItems.map(({ tab, label, icon: Icon }) => {
           const active = tab === 'more' ? isMoreActive || showMore : currentTab === tab;
-          return <button key={tab} type="button" onClick={() => tab === 'more' ? setShowMore(value => !value) : choose(tab as typeof moreItems[number]['tab'])}
+          return <button key={tab} type="button" onClick={() => { if (tab === 'more') setShowMore(value => !value); else choose(tab); }}
             aria-label={tab === 'more' ? 'Mở thêm hoạt động' : label} aria-expanded={tab === 'more' ? showMore : undefined}
             className="flex min-h-14 flex-col items-center justify-center gap-1 text-center">
             <span className={'grid h-8 w-10 place-items-center rounded-xl ' + (active ? 'text-amber-700 dark:text-amber-400' : 'text-stone-400 dark:text-stone-500')}>
