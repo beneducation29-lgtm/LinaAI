@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { READING_STORY_SERIES } from '../src/data/readingStorySeries';
+import { summarizeReadingProgress } from '../src/services/readingProgress';
 
 const seriesIds = new Set<string>();
 const chapterIds = new Set<string>();
@@ -44,5 +45,20 @@ assert.equal(
 for (const hanzi of ['今天', '早上', '六点', '起床', '妈妈', '一起', '吃早饭', '牛奶', '七点半', '学校', '汉语']) {
   assert.ok(morningChapter.vocabulary.some(word => word.hanzi === hanzi), hanzi + ' should have a clickable Pinyin and Vietnamese glossary entry');
 }
+
+const secondHsk1Chapter = morningStory?.chapters.find(chapter => chapter.id !== morningChapter?.id);
+assert.ok(secondHsk1Chapter, 'a second HSK 1 chapter should be available for progress aggregation');
+const progressSummary = summarizeReadingProgress(READING_STORY_SERIES, {
+  [morningChapter!.id]: { completedAt: '2026-11-05T00:00:00.000Z', correct: 2, total: 2 },
+  [secondHsk1Chapter!.id]: { completedAt: '2026-11-05T01:00:00.000Z', correct: 1, total: 2 },
+});
+assert.equal(progressSummary.completedChapters, 2, 'overall progress should count completed chapters');
+assert.equal(progressSummary.totalChapters, chapterIds.size, 'overall progress should count the complete library');
+assert.equal(progressSummary.completedQuestions, 3, 'overall progress should sum correct answers');
+assert.equal(progressSummary.totalQuestions, 4, 'overall progress should sum submitted questions');
+assert.equal(progressSummary.accuracy, 75, 'reading accuracy should be calculated from submitted questions');
+assert.equal(progressSummary.byLevel.find(item => item.level === 'HSK 1')?.completedChapters, 2, 'HSK level progress should be isolated by level');
+assert.equal(progressSummary.byLevel.find(item => item.level === 'HSK 2')?.completedChapters, 0, 'unstarted levels should remain at zero');
+assert.equal(summarizeReadingProgress(READING_STORY_SERIES, {}).accuracy, 0, 'empty progress should not produce NaN or a false accuracy');
 
 console.log('Reading story series validation passed.');
