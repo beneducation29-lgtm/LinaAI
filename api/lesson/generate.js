@@ -164,8 +164,8 @@ async function handleReadingEnrichment(req, res, payload) {
 
 
 export function normalizeReadingTextRequest(payload) {
-  const text = typeof payload?.text === 'string' ? payload.text.replace(/\\u0000/g, '').trim() : '';
-  if (!text || text.length > 12000 || !/[\\u3400-\\u9fff]/u.test(text)) return { error: 'Hãy nhập câu chuyện tiếng Trung có chữ Hán, tối đa 12.000 ký tự.' };
+  const text = typeof payload?.text === 'string' ? payload.text.replace(/\u0000/g, '').trim() : '';
+  if (!text || text.length > 12000 || !/[\u3400-\u9fff]/u.test(text)) return { error: 'Hãy nhập câu chuyện tiếng Trung có chữ Hán, tối đa 12.000 ký tự.' };
   const knownVocabulary = Array.isArray(payload?.knownVocabulary) ? payload.knownVocabulary.slice(0, 150).map(item => ({
     hanzi: String(item?.hanzi || '').trim().slice(0, 40),
     pinyin: String(item?.pinyin || '').trim().slice(0, 80),
@@ -187,11 +187,11 @@ export function validateReadingTextAnalysis(value, sourceText, knownVocabulary =
     if (!Array.isArray(raw.tokens) || !raw.tokens.length || raw.tokens.length > 120) return { error: 'AI chưa căn chỉnh được Pinyin theo từng cụm từ.' };
     const tokens = raw.tokens.map(token => {
       const text = String(token?.text || '').slice(0, 80);
-      const hasHanzi = /[\\u3400-\\u9fff]/u.test(text);
+      const hasHanzi = /[\u3400-\u9fff]/u.test(text);
       const isKnown = known.has(text);
       return { text, pinyin: String(token?.pinyin || '').slice(0, 120), meaning: String(token?.meaning || '').slice(0, 200), isNew: Boolean(token?.isNew) && !isKnown };
     });
-    if (tokens.some(token => !token.text || (/[\\u3400-\\u9fff]/u.test(token.text) && (!token.pinyin || !token.meaning)))) return { error: 'Một số cụm từ còn thiếu Pinyin hoặc nghĩa tiếng Việt.' };
+    if (tokens.some(token => !token.text || (/[\u3400-\u9fff]/u.test(token.text) && (!token.pinyin || !token.meaning)))) return { error: 'Một số cụm từ còn thiếu Pinyin hoặc nghĩa tiếng Việt.' };
     if (tokens.map(token => token.text).join('') !== chinese) return { error: 'Phần căn chỉnh từ không khớp nguyên văn câu tiếng Trung.' };
     sentences.push({ chinese, pinyin, vietnamese, tokens });
   }
@@ -200,7 +200,7 @@ export function validateReadingTextAnalysis(value, sourceText, knownVocabulary =
     explanation: String(item?.explanation || '').slice(0, 600),
     exampleChinese: String(item?.exampleChinese || '').slice(0, 300)
   })).filter(item => item.pattern && item.explanation && (!item.exampleChinese || normalizedSource.includes(normalizeReadingQuote(item.exampleChinese)))) : [];
-  const vocabulary = [...new Map(sentences.flatMap(sentence => sentence.tokens.filter(token => token.isNew).map(token => [token.text, token])).filter(([word]) => /[\\u3400-\\u9fff]/u.test(word))).values()].slice(0, 100);
+  const vocabulary = [...new Map(sentences.flatMap(sentence => sentence.tokens.filter(token => token.isNew).map(token => [token.text, token])).filter(([word]) => /[\u3400-\u9fff]/u.test(word))).values()].slice(0, 100);
   return { analysis: { sentences, grammar, vocabulary } };
 }
 
