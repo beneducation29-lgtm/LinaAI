@@ -1,6 +1,7 @@
 import React from 'react';
 import { ExternalLink, Globe2, Loader2, Search, BookmarkPlus, BookOpenText, Headphones, Eye, EyeOff } from 'lucide-react';
 import type { HSKLevel, Vocabulary } from '../../types';
+import { ReadingTextAnalyzer } from './ReadingTextAnalyzer';
 import { HSK_LEVELS } from '../../data/gradedReadings';
 
 interface Question {
@@ -121,7 +122,9 @@ export const ReadingWebStudio: React.FC<Props> = ({ vocabularies, onSaveVocabula
     setError('');
   };
 
-  return <section className="space-y-4 rounded-3xl border border-sky-200 bg-gradient-to-br from-sky-50 to-white p-4 shadow-sm dark:border-sky-950 dark:from-sky-950/30 dark:to-stone-900 sm:p-6">
+  return <>
+    <ReadingTextAnalyzer vocabularies={vocabularies} />
+    <section className="space-y-4 rounded-3xl border border-sky-200 bg-gradient-to-br from-sky-50 to-white p-4 shadow-sm dark:border-sky-950 dark:from-sky-950/30 dark:to-stone-900 sm:p-6">
     <div className="flex flex-wrap items-start gap-3">
       <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-sky-100 text-sky-800 dark:bg-sky-900 dark:text-sky-200"><Globe2 className="h-5 w-5"/></div>
       <div className="min-w-0 flex-1"><p className="text-xs font-extrabold uppercase tracking-[.14em] text-sky-700 dark:text-sky-300">Lina Web Reading</p><h2 className="mt-1 text-lg font-black text-stone-900 dark:text-stone-100">Tìm nguồn web, tạo bài đọc theo vốn từ của bạn</h2><p className="mt-1 max-w-3xl text-sm leading-6 text-stone-600 dark:text-stone-300">Lina tìm các trang web liên quan, tham khảo nội dung rồi biên soạn bài mới theo HSK. Mỗi câu có chữ Hán giản thể, Pinyin và tiếng Việt; nguồn tham khảo được đính kèm để bạn kiểm tra.</p></div>
@@ -144,5 +147,6 @@ export const ReadingWebStudio: React.FC<Props> = ({ vocabularies, onSaveVocabula
       <QuestionSet title="Ghi nhớ · Kiểm tra nhớ từ và ý chính" questions={reading.memoryQuestions} answers={memoryAnswers} submitted={memorySubmitted} onAnswer={(index,option)=>setMemoryAnswers(current=>({...current,[index]:option}))} onSubmit={()=>setMemorySubmitted(true)}/>
       <section className="rounded-xl border border-sky-100 bg-sky-50/70 p-3 dark:border-sky-950 dark:bg-sky-950/20"><h4 className="flex items-center gap-2 text-sm font-extrabold text-sky-900 dark:text-sky-100"><BookOpenText className="h-4 w-4"/> Nguồn tham khảo</h4><ul className="mt-2 space-y-2">{reading.sources.map(source=><li key={source.url}><a href={source.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-start gap-2 text-sm font-medium text-sky-800 underline decoration-sky-300 underline-offset-2 hover:text-sky-950 dark:text-sky-300"><ExternalLink className="mt-0.5 h-3.5 w-3.5 shrink-0"/><span className="break-all">{source.title}</span></a></li>)}</ul><p className="mt-3 text-xs leading-5 text-stone-500 dark:text-stone-400">{reading.sourceNote}</p></section>
     </div>}
-  </section>;
+    </section>
+  </>;
 };
