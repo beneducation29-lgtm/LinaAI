@@ -243,7 +243,7 @@ export const READING_STORY_SERIES: ReadingStorySeries[] = [
           { question: '他们今天学习什么？', options: ['英语', '中文', '数学'], answer: 1, explanation: '第一句说今天学习中文。' },
           { question: '下课以后，“我”怎么样？', options: ['很高兴', '很累', '很忙'], answer: 0, explanation: '最后一句说我很高兴。' }
         ]
-      ,
+      },
       { id: 'hsk1-school-day-03', title: 'Buổi sáng của tôi', titleZh: '我的早上',
         sentences: [
           { chinese: '今天早上，我六点起床。', pinyin: 'Jīntiān zǎoshang, wǒ liù diǎn qǐchuáng.', vietnamese: 'Sáng nay, tôi thức dậy lúc sáu giờ.' },
@@ -274,7 +274,6 @@ export const READING_STORY_SERIES: ReadingStorySeries[] = [
           { question: '“我”早上和谁一起吃早饭？', options: ['爸爸', '妈妈', '朋友'], answer: 1, explanation: '第二句说：“我和妈妈一起吃早饭。”' }
         ]
       }
-    ]
     ]
   },
   {
