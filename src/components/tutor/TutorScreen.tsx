@@ -133,6 +133,7 @@ export const TutorScreen: React.FC = () => {
   const spokenFinalRef = useRef('');
   const spokenInterimRef = useRef('');
   const spokenSendInFlightRef = useRef(false);
+  const speechSessionRef = useRef(0);
   const speakingRetryRef = useRef<{ target: string; attempt: number } | null>(null);
   const roleplayEngine = useMemo(() => createRoleplayEngine(), []);
 
@@ -198,6 +199,8 @@ export const TutorScreen: React.FC = () => {
   }, [showHintsModal]);
 
   useEffect(() => () => {
+    speechSessionRef.current += 1;
+    speechService.stopListening();
     realtimeConversationController.interrupt();
     if (autoSendTimerRef.current) clearTimeout(autoSendTimerRef.current);
   }, []);
@@ -242,6 +245,9 @@ export const TutorScreen: React.FC = () => {
    */
   const handleSendMessage = async (textToSend: string, forceRoleplay = false, isSpoken = false) => {
     if (!textToSend.trim()) return;
+    speechSessionRef.current += 1;
+    if (autoSendTimerRef.current) { clearTimeout(autoSendTimerRef.current); autoSendTimerRef.current = null; }
+    spokenSendInFlightRef.current = false;
 
     // Prevent an explanation for an older message from appearing after a new turn starts.
     explanationRequestIdRef.current += 1;
@@ -419,6 +425,7 @@ export const TutorScreen: React.FC = () => {
    */
   const startRecording = () => {
     if (micState === 'LISTENING' || micState === 'REQUESTING') return;
+    const sessionId = ++speechSessionRef.current;
 
     setErrorMessage(null);
     realtimeConversationController.interrupt();
@@ -441,10 +448,12 @@ export const TutorScreen: React.FC = () => {
     speechService.startListening({
       lang: voiceSettings.speechLanguage,
       onStart: () => {
+        if (sessionId !== speechSessionRef.current) return;
         setMicState('LISTENING');
         avatarService.setState('LISTENING');
       },
       onResult: (res) => {
+        if (sessionId !== speechSessionRef.current || spokenSendInFlightRef.current) return;
         const chunk = res.transcript.trim();
         if (!chunk) return;
 
@@ -489,11 +498,14 @@ export const TutorScreen: React.FC = () => {
         }
       },
       onError: (friendlyMsg) => {
+        if (sessionId !== speechSessionRef.current) return;
+        if (autoSendTimerRef.current) { clearTimeout(autoSendTimerRef.current); autoSendTimerRef.current = null; }
         setMicState('ERROR');
         avatarService.setState('ERROR');
         setErrorMessage(friendlyMsg);
       },
       onEnd: () => {
+        if (sessionId !== speechSessionRef.current) return;
         setMicState((prev) => (prev === 'LISTENING' || prev === 'REQUESTING' ? 'IDLE' : prev));
       }
     });
@@ -504,40 +516,29 @@ export const TutorScreen: React.FC = () => {
    */
   const stopRecording = () => {
     if (micState === 'LISTENING') {
+      const sessionId = speechSessionRef.current;
       speechService.stopListening();
       if (autoSendTimerRef.current) clearTimeout(autoSendTimerRef.current);
       setMicState('IDLE');
-      avatarService.setState('THINKING');
-
-      const recognized = [spokenFinalRef.current, spokenInterimRef.current]
-        .filter(Boolean)
-        .join(' ')
-        .replace(/\s+/g, ' ')
-        .trim();
-
-      if (recognized) {
-        setLiveTranscript(recognized);
-        setRecognizedReview({
-          hanzi: recognized,
-          pinyin: getQuickPinyin(recognized),
-          vietnamese: getQuickVietnamese(recognized)
-        });
-        if ((voiceSettings.autoSendRecognizedSpeech ?? true) && !spokenSendInFlightRef.current) {
-          // Give Web Speech a brief moment to emit its final result after stop().
-          autoSendTimerRef.current = setTimeout(() => {
-            autoSendTimerRef.current = null;
-            if (spokenSendInFlightRef.current) return;
-            const fullText = [spokenFinalRef.current, spokenInterimRef.current]
-              .filter(Boolean)
-              .join(' ')
-              .replace(/\s+/g, ' ')
-              .trim();
-            if (!fullText) return;
-            spokenSendInFlightRef.current = true;
-            void handleSendMessage(fullText, false, true);
-          }, 180);
+      avatarService.setState('IDLE');
+      // Web Speech may deliver its final transcript asynchronously after stop().
+      // Wait briefly, then read the refs (not the stale React render snapshot).
+      autoSendTimerRef.current = setTimeout(() => {
+        autoSendTimerRef.current = null;
+        if (sessionId !== speechSessionRef.current || spokenSendInFlightRef.current) return;
+        const fullText = [spokenFinalRef.current, spokenInterimRef.current]
+          .filter(Boolean).join(' ').replace(/\\s+/g, ' ').trim();
+        if (!fullText) {
+          setErrorMessage('Mình chưa nhận được câu nói rõ ràng. Bạn thử nói lại chậm hơn nhé.');
+          return;
         }
-      }
+        setLiveTranscript(fullText);
+        setRecognizedReview({ hanzi: fullText, pinyin: getQuickPinyin(fullText), vietnamese: getQuickVietnamese(fullText) });
+        if (voiceSettings.autoSendRecognizedSpeech ?? true) {
+          spokenSendInFlightRef.current = true;
+          void handleSendMessage(fullText, false, true);
+        }
+      }, 550);
     }
   };
 
@@ -603,6 +604,7 @@ export const TutorScreen: React.FC = () => {
   const handleEndRoleplay = () => setShowRoleplaySummary(true);
 
   const selectPracticeTab = (tab: 'listening' | 'speaking' | 'conversation' | 'review') => {
+    speechSessionRef.current += 1;
     if (micState === 'LISTENING' || micState === 'REQUESTING') speechService.stopListening();
     realtimeConversationController.interrupt();
     if (autoSendTimerRef.current) {
@@ -610,7 +612,12 @@ export const TutorScreen: React.FC = () => {
       autoSendTimerRef.current = null;
     }
     spokenSendInFlightRef.current = false;
+    spokenFinalRef.current = '';
+    spokenInterimRef.current = '';
+    setLiveTranscript('');
+    setRecognizedReview(null);
     setMicState('IDLE');
+    avatarService.setState('IDLE');
     setActivePracticeTab(tab);
     if (tab === 'speaking') setTutorMode('teacher');
     if (tab === 'conversation') setTutorMode('conversation');
