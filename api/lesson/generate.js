@@ -1,4 +1,4 @@
-import { getUser, parseCookies } from '../auth/_utils.js';
+import { getAuthenticatedUser } from '../auth/_utils.js';
 
 const MAX_READING_IMAGE_BYTES = 700 * 1024;
 const READING_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
@@ -64,7 +64,7 @@ export function validateGeneratedReading(value, vocabulary) {
 }
 
 async function handleReadingSearch(req, res, payload) {
-  const user = await getUser(parseCookies(req).lina_access);
+  const user = await getAuthenticatedUser(req, res);
   if (!user) return res.status(401).json({ error: 'Vui lòng đăng nhập để tìm và tạo bài đọc.' });
   const request = normalizeReadingSearchRequest(payload);
   if (request.error) return res.status(400).json({ error: request.error });
@@ -135,7 +135,7 @@ Trả về đúng JSON theo response schema; không thêm markdown hay văn bả
 }
 
 async function handleReadingEnrichment(req, res, payload) {
-  const user = await getUser(parseCookies(req).lina_access);
+  const user = await getAuthenticatedUser(req, res);
   if (!user) return res.status(401).json({ error: 'Vui lòng đăng nhập để phân tích bài đọc.' });
   const sourceText = typeof payload?.text === 'string' ? payload.text.trim() : '';
   if (!sourceText || sourceText.length > 12000) return res.status(400).json({ error: 'Nội dung phải có từ 1 đến 12.000 ký tự để phân tích.' });
@@ -205,7 +205,7 @@ export function validateReadingTextAnalysis(value, sourceText, knownVocabulary =
 }
 
 async function handleReadingTextAnalysis(req, res, payload) {
-  const user = await getUser(parseCookies(req).lina_access);
+  const user = await getAuthenticatedUser(req, res);
   if (!user) return res.status(401).json({ error: 'Vui lòng đăng nhập để phân tích câu chuyện.' });
   const request = normalizeReadingTextRequest(payload);
   if (request.error) return res.status(400).json({ error: request.error });
@@ -257,7 +257,7 @@ Trả về JSON theo đúng schema.`;
 }
 
 async function handleReadingOcr(req, res, payload) {
-  const user = await getUser(parseCookies(req).lina_access);
+  const user = await getAuthenticatedUser(req, res);
   if (!user) return res.status(401).json({ error: 'Vui lòng đăng nhập để sử dụng Lina Reading.' });
   const image = validateReadingImage(payload);
   if (image.error) return res.status(400).json({ error: image.error });

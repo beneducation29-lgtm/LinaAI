@@ -1,4 +1,5 @@
-const SUPABASE_URL = process.env.SUPABASE_URL || '';
+const SUPABASE_URL_RAW = String(process.env.SUPABASE_URL || '');
+const SUPABASE_URL = SUPABASE_URL_RAW.endsWith('/') ? SUPABASE_URL_RAW.slice(0, -1) : SUPABASE_URL_RAW;
 const SUPABASE_PUBLISHABLE_KEY =
   process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY || '';
 
@@ -37,6 +38,46 @@ export async function getUser(accessToken) {
       },
     });
     return response.ok ? await response.json() : null;
+  } catch {
+    return null;
+  }
+}
+
+function setAuthCookies(req, res, access, refresh) {
+  const secure =
+    process.env.NODE_ENV === 'production' ||
+    String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim() === 'https';
+  res.setHeader('Set-Cookie', [
+    `lina_access=${encodeURIComponent(access)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=3600${secure ? '; Secure' : ''}`,
+    `lina_refresh=${encodeURIComponent(refresh)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=2592000${secure ? '; Secure' : ''}`,
+  ]);
+}
+
+/**
+ * Resolve the current user and transparently rotate an expired access token.
+ * Reading endpoints must behave like /api/auth/me so an active refresh cookie
+ * does not get mistaken for a logged-out user after the 1-hour access token expires.
+ */
+export async function getAuthenticatedUser(req, res) {
+  const cookies = parseCookies(req);
+  let user = await getUser(cookies.lina_access);
+  if (user || !cookies.lina_refresh || !SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) return user;
+
+  try {
+    const response = await fetch(SUPABASE_URL + '/auth/v1/token?grant_type=refresh_token', {
+      method: 'POST',
+      headers: {
+        apikey: SUPABASE_PUBLISHABLE_KEY,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ refresh_token: cookies.lina_refresh }),
+    });
+    if (!response.ok) return null;
+    const session = await response.json();
+    if (!session?.access_token || !session?.refresh_token) return null;
+    setAuthCookies(req, res, session.access_token, session.refresh_token);
+    user = await getUser(session.access_token);
+    return user;
   } catch {
     return null;
   }
