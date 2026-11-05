@@ -1,0 +1,20 @@
+import assert from 'node:assert/strict';
+import { READING_STORY_SERIES } from '../src/data/readingStorySeries';
+import { addWeakWord, buildListeningChoices, matchesShadowReading, normalizeChineseTranscript, removeWeakWord } from '../src/services/readingPractice';
+
+const chapter = READING_STORY_SERIES.flatMap(story => story.chapters).find(item => item.sentences.length >= 3);
+assert.ok(chapter, 'a chapter with enough sentences should exist');
+const choices = buildListeningChoices(chapter, 1);
+assert.equal(choices.length, 4, 'listening exercise should provide one target and up to three distractors');
+assert.equal(choices.filter(item => item.correct).length, 1, 'listening exercise should have exactly one correct choice');
+assert.equal(choices.find(item => item.correct)?.chinese, chapter.sentences[1].chinese, 'correct choice should match selected sentence');
+assert.deepEqual(buildListeningChoices(chapter, 99), [], 'invalid sentence index should safely return no choices');
+assert.equal(normalizeChineseTranscript('  今天早上，我六点起床。 '), '今天早上我六点起床');
+assert.equal(matchesShadowReading('今天早上，我六点起床。', '今天早上我六点起床'), true, 'punctuation differences should not affect transcript match');
+assert.equal(matchesShadowReading('今天早上，我六点起床。', '今天早上我七点起床。'), false, 'different characters should not pass exact text match');
+assert.equal(matchesShadowReading('今天早上。', ''), false, 'empty transcript should not pass');
+const word = { hanzi: '起床', pinyin: 'qǐchuáng', vietnamese: 'thức dậy', chapterId: chapter.id, markedAt: '2026-11-05T00:00:00.000Z' };
+const once = addWeakWord([], word);
+assert.equal(addWeakWord(once, { ...word, markedAt: '2026-11-05T01:00:00.000Z' }).length, 1, 'marking a word again should not duplicate it');
+assert.equal(removeWeakWord(once, chapter.id, '起床').length, 0, 'mastered word should be removable from review list');
+console.log('Active reading practice validation passed.');

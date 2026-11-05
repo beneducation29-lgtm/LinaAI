@@ -1,9 +1,10 @@
 import React from 'react';
-import { BookOpen, BookmarkPlus, Check, ChevronLeft, ChevronRight, Headphones, Volume2 } from 'lucide-react';
+import { BookOpen, BookmarkPlus, Check, ChevronLeft, ChevronRight, Headphones, Mic, Volume2 } from 'lucide-react';
 import type { HSKLevel, Vocabulary } from '../../types';
 import { accountStorageKey } from '../../services/accountStorage';
 import { READING_STORY_SERIES, type ReadingChapter, type ReadingStorySeries } from '../../data/readingStorySeries';
 import { summarizeReadingProgress, type ReadingProgressMap } from '../../services/readingProgress';
+import { addWeakWord, buildListeningChoices, matchesShadowReading, removeWeakWord, type ReadingWeakWord } from '../../services/readingPractice';
 
 interface Props {
   ownerId: string;
@@ -13,6 +14,14 @@ interface Props {
 }
 type Progress = ReadingProgressMap;
 const STORAGE_KEY = 'lina-story-chapter-progress-v1';
+const WEAK_WORDS_STORAGE_KEY = 'lina-reading-weak-words-v1';
+function readWeakWords(ownerId: string): ReadingWeakWord[] {
+  try {
+    if (typeof window === 'undefined') return [];
+    const parsed = JSON.parse(localStorage.getItem(accountStorageKey(WEAK_WORDS_STORAGE_KEY, ownerId)) || '[]');
+    return Array.isArray(parsed) ? parsed.filter(item => item && typeof item.hanzi === 'string' && typeof item.chapterId === 'string') : [];
+  } catch { return []; }
+}
 
 function readProgress(ownerId: string): Progress {
   try {
@@ -97,9 +106,19 @@ export const ReadingStoryLibrary: React.FC<Props> = ({ ownerId, vocabularies, on
   const [selectedReadingToken, setSelectedReadingToken] = React.useState<ReadingToken | null>(null);
   const [isSpeaking, setIsSpeaking] = React.useState(false);
   const [activeAudioRange, setActiveAudioRange] = React.useState<{ start: number; end: number } | null>(null);
+  const [weakWords, setWeakWords] = React.useState<ReadingWeakWord[]>(() => readWeakWords(ownerId));
+  const [listeningIndex, setListeningIndex] = React.useState(0);
+  const [listeningAnswer, setListeningAnswer] = React.useState<number | null>(null);
+  const [listeningSubmitted, setListeningSubmitted] = React.useState(false);
+  const [shadowIndex, setShadowIndex] = React.useState(0);
+  const [shadowTranscript, setShadowTranscript] = React.useState('');
+  const [shadowFeedback, setShadowFeedback] = React.useState('');
+  const [shadowListening, setShadowListening] = React.useState(false);
+  const recognitionRef = React.useRef<any>(null);
 
   React.useEffect(() => {
     setProgress(readProgress(ownerId));
+    setWeakWords(readWeakWords(ownerId));
     setAnswers({});
     setSubmitted(false);
     setSelectedWord(null);
@@ -107,6 +126,10 @@ export const ReadingStoryLibrary: React.FC<Props> = ({ ownerId, vocabularies, on
     setActiveAudioRange(null);
     setIsSpeaking(false);
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) window.speechSynthesis.cancel();
+    recognitionRef.current?.stop?.();
+    setShadowListening(false);
+    setShadowTranscript('');
+    setShadowFeedback('');
   }, [ownerId]);
 
   const story = READING_STORY_SERIES.find(item => item.id === storyId) || READING_STORY_SERIES[0];
@@ -118,6 +141,8 @@ export const ReadingStoryLibrary: React.FC<Props> = ({ ownerId, vocabularies, on
   const readingTokens = React.useMemo(() => buildReadingTokens(chapter, vocabularies), [chapter, vocabularies]);
   const readingText = chapter.sentences.map(item => item.chinese).join('');
   const score = chapter.questions.reduce((total, question, index) => total + (answers[index] === question.answer ? 1 : 0), 0);
+  const listeningChoices = React.useMemo(() => buildListeningChoices(chapter, listeningIndex), [chapter, listeningIndex]);
+  const shadowSentence = chapter.sentences[shadowIndex] || chapter.sentences[0];
 
   const stopSpeaking = () => {
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) window.speechSynthesis.cancel();
@@ -144,7 +169,39 @@ export const ReadingStoryLibrary: React.FC<Props> = ({ ownerId, vocabularies, on
   };
   React.useEffect(() => () => {
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) window.speechSynthesis.cancel();
+    recognitionRef.current?.stop?.();
   }, []);
+  React.useEffect(() => {
+    setListeningIndex(0); setListeningAnswer(null); setListeningSubmitted(false);
+    setShadowIndex(0); setShadowTranscript(''); setShadowFeedback('');
+    recognitionRef.current?.stop?.(); setShadowListening(false);
+  }, [chapter.id]);
+  const persistWeakWords = (next: ReadingWeakWord[]) => {
+    setWeakWords(next);
+    try { localStorage.setItem(accountStorageKey(WEAK_WORDS_STORAGE_KEY, ownerId), JSON.stringify(next)); } catch { /* keep current session state */ }
+  };
+  const markWeakWord = (token: ReadingToken) => {
+    const next = addWeakWord(weakWords, { hanzi: token.hanzi, pinyin: token.pinyin, vietnamese: token.vietnamese, chapterId: chapter.id, markedAt: new Date().toISOString() });
+    persistWeakWords(next);
+  };
+  const startShadowReading = () => {
+    if (typeof window === 'undefined') return;
+    const SpeechRecognitionCtor = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognitionCtor) { setShadowFeedback('Trình duyệt chưa hỗ trợ nhận dạng giọng nói. Bạn vẫn có thể nghe mẫu và đọc nhại thủ công.'); return; }
+    recognitionRef.current?.stop?.();
+    const recognition = new SpeechRecognitionCtor();
+    recognition.lang = 'zh-CN'; recognition.interimResults = false; recognition.maxAlternatives = 1;
+    recognition.onstart = () => { setShadowListening(true); setShadowFeedback('Đang nghe bạn đọc…'); };
+    recognition.onresult = (event: any) => {
+      const transcript = event.results?.[0]?.[0]?.transcript || '';
+      setShadowTranscript(transcript);
+      setShadowFeedback(matchesShadowReading(shadowSentence.chinese, transcript) ? 'Nội dung nhận dạng khớp với câu mẫu.' : 'Nội dung nhận dạng chưa khớp hoàn toàn. Hãy nghe lại và thử thêm lần nữa.');
+    };
+    recognition.onerror = () => setShadowFeedback('Không nhận được giọng nói. Hãy kiểm tra quyền microphone rồi thử lại.');
+    recognition.onend = () => setShadowListening(false);
+    recognitionRef.current = recognition;
+    try { recognition.start(); } catch { setShadowListening(false); setShadowFeedback('Không thể khởi động microphone. Hãy thử lại sau.'); }
+  };
   const saveProgress = () => {
     const next = { ...progress, [chapter.id]: { completedAt: new Date().toISOString(), correct: score, total: chapter.questions.length } };
     setProgress(next);
@@ -202,7 +259,7 @@ export const ReadingStoryLibrary: React.FC<Props> = ({ ownerId, vocabularies, on
       {showVietnamese&&<p className="mt-2 text-sm leading-7 text-stone-600 dark:text-stone-300">{chapter.sentences.map(item=>item.vietnamese).join(' ')}</p>}
       {selectedReadingToken&&<div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-sky-200 bg-sky-50 p-3 dark:border-sky-900 dark:bg-sky-950/30">
         <div><p className="font-cjk text-2xl font-black text-stone-900 dark:text-stone-100">{selectedReadingToken.hanzi}</p><p className="mt-1 text-sm font-bold text-sky-800 dark:text-sky-300">{selectedReadingToken.pinyin||'Chưa có dữ liệu Pinyin'}</p><p className="mt-1 text-sm text-stone-700 dark:text-stone-300">{selectedReadingToken.vietnamese}</p></div>
-        <div className="flex items-center gap-2"><button type="button" onClick={()=>speak(selectedReadingToken.hanzi)} className="grid h-9 w-9 place-items-center rounded-lg bg-white text-sky-800 dark:bg-stone-900"><Volume2 className="h-4 w-4"/></button>{(()=>{const saved=vocabularyByHanzi.get(selectedReadingToken.hanzi);return saved&&!isVocabularySaved(saved.id)?<button type="button" onClick={()=>onSaveVocabulary(saved.id)} className="inline-flex min-h-9 items-center gap-1 rounded-lg bg-amber-700 px-3 text-xs font-bold text-white"><BookmarkPlus className="h-3.5 w-3.5"/>Lưu từ</button>:saved&&isVocabularySaved(saved.id)?<span className="text-xs font-bold text-emerald-700">Đã lưu</span>:null;})()}</div>
+        <div className="flex flex-wrap items-center gap-2"><button type="button" onClick={()=>speak(selectedReadingToken.hanzi)} className="grid h-9 w-9 place-items-center rounded-lg bg-white text-sky-800 dark:bg-stone-900"><Volume2 className="h-4 w-4"/></button><button type="button" onClick={()=>markWeakWord(selectedReadingToken)} className="min-h-9 rounded-lg border border-amber-300 bg-white px-3 text-xs font-bold text-amber-800 dark:bg-stone-900 dark:text-amber-200">Cần ôn lại</button>{(()=>{const saved=vocabularyByHanzi.get(selectedReadingToken.hanzi);return saved&&!isVocabularySaved(saved.id)?<button type="button" onClick={()=>onSaveVocabulary(saved.id)} className="inline-flex min-h-9 items-center gap-1 rounded-lg bg-amber-700 px-3 text-xs font-bold text-white"><BookmarkPlus className="h-3.5 w-3.5"/>Lưu từ</button>:saved&&isVocabularySaved(saved.id)?<span className="text-xs font-bold text-emerald-700">Đã lưu</span>:null;})()}</div>
       </div>}
     </article>
     <section className="rounded-2xl border border-stone-200 bg-white p-4 dark:border-stone-700 dark:bg-stone-950">
@@ -210,6 +267,23 @@ export const ReadingStoryLibrary: React.FC<Props> = ({ ownerId, vocabularies, on
       <div className="mt-3 flex flex-wrap gap-2">{chapter.vocabulary.map(word=>{const saved=vocabularyByHanzi.get(word.hanzi);return <button key={word.hanzi} type="button" onClick={()=>setSelectedWord(current=>current===word.hanzi?null:word.hanzi)} className={'rounded-xl border px-3 py-2 text-left '+(selectedWord===word.hanzi?'border-amber-400 bg-amber-50 dark:bg-amber-950/30':'border-stone-200 dark:border-stone-700')}><span className="font-cjk font-bold text-stone-900 dark:text-stone-100">{word.hanzi}</span><span className="ml-2 text-[10px] text-stone-500">{word.pinyin}</span></button>})}</div>
       {selectedWord&&(()=>{const word=chapter.vocabulary.find(item=>item.hanzi===selectedWord);const saved=word?vocabularyByHanzi.get(word.hanzi):undefined;return word?<div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-amber-50 p-3 dark:bg-amber-950/20"><div><p className="font-cjk text-xl font-black">{word.hanzi}</p><p className="text-sm font-semibold text-amber-800 dark:text-amber-200">{word.pinyin} · {word.vietnamese}</p>{saved&&<p className="mt-1 text-[10px] text-stone-500">{saved.hskLevel} · Đã khớp kho từ vựng LinaAI</p>}</div><div className="flex items-center gap-2"><button type="button" onClick={()=>speak(word.hanzi)} className="grid h-9 w-9 place-items-center rounded-lg bg-white text-amber-800 dark:bg-stone-900"><Volume2 className="h-4 w-4"/></button>{saved&&!isVocabularySaved(saved.id)&&<button type="button" onClick={()=>onSaveVocabulary(saved.id)} className="inline-flex min-h-9 items-center gap-1 rounded-lg bg-amber-700 px-3 text-xs font-bold text-white"><BookmarkPlus className="h-3.5 w-3.5"/> Lưu từ</button>}{saved&&isVocabularySaved(saved.id)&&<span className="text-xs font-bold text-emerald-700 dark:text-emerald-300"><Check className="inline h-4 w-4"/> Đã lưu</span>}{!saved&&<span className="text-[10px] text-stone-500">Chưa có mục từ khớp trong kho</span>}</div></div>:null})()}
     </section>
+    <section className="grid gap-3 lg:grid-cols-2">
+      <div className="rounded-2xl border border-sky-200 bg-sky-50/70 p-4 dark:border-sky-950 dark:bg-sky-950/20">
+        <div className="flex items-center justify-between gap-2"><div><h4 className="text-sm font-extrabold text-stone-900 dark:text-stone-100">Luyện nghe chủ động</h4><p className="mt-1 text-xs text-stone-600 dark:text-stone-300">Nghe câu mẫu rồi chọn đúng câu chữ Hán.</p></div><span className="text-[10px] font-bold text-sky-700 dark:text-sky-300">{listeningIndex+1}/{chapter.sentences.length}</span></div>
+        <button type="button" onClick={()=>speak(chapter.sentences[listeningIndex]?.chinese || '')} className="mt-3 inline-flex min-h-10 items-center gap-2 rounded-xl bg-sky-700 px-3 text-xs font-bold text-white"><Headphones className="h-4 w-4"/>Nghe câu mẫu</button>
+        <div className="mt-3 grid gap-2">{listeningChoices.map(choice=><button key={choice.sentenceIndex} type="button" disabled={listeningSubmitted} onClick={()=>setListeningAnswer(choice.sentenceIndex)} className={'rounded-xl border p-3 text-left font-cjk text-base '+(listeningAnswer===choice.sentenceIndex?'border-sky-500 bg-white dark:bg-stone-900':'border-stone-200 bg-white/80 dark:border-stone-700 dark:bg-stone-950')}>{choice.chinese}</button>)}</div>
+        {listeningSubmitted&&<p className="mt-2 text-xs font-semibold text-stone-600 dark:text-stone-300">{listeningAnswer===listeningIndex?'Chính xác!':'Chưa đúng. Hãy nghe lại câu mẫu.'}</p>}
+        <div className="mt-3 flex flex-wrap gap-2">{!listeningSubmitted?<button type="button" disabled={listeningAnswer===null} onClick={()=>setListeningSubmitted(true)} className="min-h-9 rounded-lg bg-sky-700 px-3 text-xs font-bold text-white disabled:opacity-40">Kiểm tra</button>:<button type="button" onClick={()=>{setListeningIndex((listeningIndex+1)%chapter.sentences.length);setListeningAnswer(null);setListeningSubmitted(false);}} className="min-h-9 rounded-lg bg-sky-700 px-3 text-xs font-bold text-white">Câu tiếp theo</button>}</div>
+      </div>
+      <div className="rounded-2xl border border-violet-200 bg-violet-50/70 p-4 dark:border-violet-950 dark:bg-violet-950/20">
+        <div className="flex items-center justify-between gap-2"><div><h4 className="text-sm font-extrabold text-stone-900 dark:text-stone-100">Nghe mẫu & đọc nhại</h4><p className="mt-1 text-xs text-stone-600 dark:text-stone-300">Nghe câu, tự đọc lại; nếu trình duyệt hỗ trợ, Lina sẽ đối chiếu nội dung nhận dạng.</p></div><span className="text-[10px] font-bold text-violet-700 dark:text-violet-300">{shadowIndex+1}/{chapter.sentences.length}</span></div>
+        <p className="mt-3 font-cjk text-lg leading-8 text-stone-900 dark:text-stone-100">{shadowSentence.chinese}</p><p className="mt-1 text-xs font-semibold text-sky-800 dark:text-sky-300">{shadowSentence.pinyin}</p>
+        <div className="mt-3 flex flex-wrap gap-2"><button type="button" onClick={()=>speak(shadowSentence.chinese)} className="inline-flex min-h-9 items-center gap-1 rounded-lg border border-violet-300 bg-white px-3 text-xs font-bold text-violet-800 dark:bg-stone-900 dark:text-violet-200"><Volume2 className="h-4 w-4"/>Nghe mẫu</button><button type="button" onClick={shadowListening?()=>recognitionRef.current?.stop?.():startShadowReading()} className="inline-flex min-h-9 items-center gap-1 rounded-lg bg-violet-700 px-3 text-xs font-bold text-white"><Mic className="h-4 w-4"/>{shadowListening?'Dừng ghi nhận':'Đọc nhại bằng mic'}</button><button type="button" onClick={()=>{setShadowIndex((shadowIndex+1)%chapter.sentences.length);setShadowTranscript('');setShadowFeedback('');}} className="min-h-9 rounded-lg border border-violet-300 px-3 text-xs font-bold text-violet-800 dark:text-violet-200">Câu tiếp</button></div>
+        {shadowTranscript&&<p className="mt-2 rounded-lg bg-white/80 p-2 text-sm text-stone-700 dark:bg-stone-900 dark:text-stone-200">Nhận dạng: {shadowTranscript}</p>}{shadowFeedback&&<p aria-live="polite" className="mt-2 text-xs font-semibold text-violet-800 dark:text-violet-200">{shadowFeedback}</p>}
+        <p className="mt-2 text-[10px] text-stone-500">Đối chiếu văn bản chỉ kiểm tra nội dung nhận dạng, không chấm điểm thanh điệu hay chất lượng phát âm.</p>
+      </div>
+    </section>
+    {weakWords.length>0&&<section className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4 dark:border-amber-950 dark:bg-amber-950/20"><div className="flex items-center justify-between gap-2"><div><h4 className="text-sm font-extrabold text-stone-900 dark:text-stone-100">Từ cần ôn lại</h4><p className="mt-1 text-xs text-stone-600 dark:text-stone-300">Danh sách này được lưu riêng theo tài khoản của bạn.</p></div><span className="text-xs font-bold text-amber-800 dark:text-amber-200">{weakWords.length} từ</span></div><div className="mt-3 flex flex-wrap gap-2">{weakWords.map(word=><div key={word.chapterId+'-'+word.hanzi} className="flex items-center gap-2 rounded-xl border border-amber-200 bg-white px-3 py-2 dark:border-amber-900 dark:bg-stone-950"><button type="button" onClick={()=>{const source=READING_STORY_SERIES.flatMap(item=>item.chapters).find(item=>item.id===word.chapterId);if(source){const parent=READING_STORY_SERIES.find(item=>item.chapters.some(ch=>ch.id===word.chapterId));if(parent)chooseStory(parent);const index=parent?.chapters.findIndex(item=>item.id===word.chapterId)??0;chooseChapter(Math.max(0,index));setSelectedReadingToken({hanzi:word.hanzi,pinyin:word.pinyin,vietnamese:word.vietnamese,start:0,end:word.hanzi.length,known:true});}}} className="text-left"><span className="font-cjk text-sm font-bold text-stone-900 dark:text-stone-100">{word.hanzi}</span><span className="ml-2 text-[10px] text-sky-700 dark:text-sky-300">{word.pinyin}</span><span className="ml-2 text-[10px] text-stone-500">{word.vietnamese}</span></button><button type="button" aria-label={'Đánh dấu đã thuộc '+word.hanzi} onClick={()=>persistWeakWords(removeWeakWord(weakWords,word.chapterId,word.hanzi))} className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300">Đã thuộc</button></div>)}</div></section>}
     <section className="rounded-2xl border border-amber-200 bg-amber-50/60 p-4 dark:border-amber-950 dark:bg-amber-950/10"><h4 className="text-sm font-extrabold text-stone-900 dark:text-stone-100">Đọc hiểu chương này</h4><div className="mt-3 space-y-3">{chapter.questions.map((question,index)=><fieldset key={index}><legend className="text-sm font-bold">{index+1}. {question.question}</legend><div className="mt-2 grid gap-2 sm:grid-cols-3">{question.options.map((option,optionIndex)=><label key={optionIndex} className="flex min-h-10 cursor-pointer items-center gap-2 rounded-xl border border-stone-200 bg-white px-3 text-xs dark:border-stone-700 dark:bg-stone-950"><input type="radio" name={chapter.id+'-'+index} checked={answers[index]===optionIndex} disabled={submitted} onChange={()=>setAnswers(current=>({...current,[index]:optionIndex}))}/>{option}</label>)}</div>{submitted&&<p className="mt-1 text-xs text-stone-500">{answers[index]===question.answer?'Chính xác. ':'Đáp án: '+question.options[question.answer]+'. '}{question.explanation}</p>}</fieldset>)}</div>
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3"><p className="text-xs font-bold text-stone-600 dark:text-stone-300">{submitted?'Kết quả: '+score+'/'+chapter.questions.length+' câu đúng':'Hoàn thành câu hỏi để lưu chương đã học.'}</p>{!submitted?<button type="button" disabled={Object.keys(answers).length!==chapter.questions.length} onClick={saveProgress} className="min-h-10 rounded-xl bg-amber-700 px-4 text-xs font-extrabold text-white disabled:opacity-40">Nộp bài & lưu tiến độ</button>:<button type="button" onClick={nextChapter} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-amber-700 px-4 text-xs font-extrabold text-white">{chapterIndex===story.chapters.length-1?'Truyện tiếp theo':'Chương tiếp theo'} <ChevronRight className="h-4 w-4"/></button>}</div>
     </section>
