@@ -76,6 +76,9 @@ class AITutorClientService implements AITutorProvider {
       return await this.sendMessageStreaming(options, userText, callbacks);
     } catch (err) {
       if ((err as Error)?.name === 'AbortError' && options.signal?.aborted) throw err;
+      // A provider outage is not a conversation turn. Do not substitute a
+      // canned answer that appears to respond to unrelated learner messages.
+      if (['TUTOR_PROVIDER_UNAVAILABLE', 'TUTOR_NOT_CONFIGURED'].includes(String((err as any)?.code || ''))) throw err;
       console.warn('Tutor API failed, utilizing graceful local fallback:', err);
       return this.getLocalFallbackResponse(userText, options.mode, options.userName);
     }
@@ -125,7 +128,11 @@ class AITutorClientService implements AITutorProvider {
       if (payload.type === 'speech' && typeof payload.text === 'string') callbacks.onSpeech?.(payload.text);
       if (payload.type === 'response' && payload.response) finalResponse = payload.response as StructuredTutorResponse;
       if (payload.type === 'fallback' && payload.response) fallbackResponse = payload.response as StructuredTutorResponse;
-      if (payload.type === 'error') throw new Error(payload.error || 'Streaming tutor error');
+      if (payload.type === 'error') {
+        throw Object.assign(new Error(payload.error || 'Streaming tutor error'), {
+          code: payload.code || 'TUTOR_API_ERROR'
+        });
+      }
     };
 
     while (true) {
