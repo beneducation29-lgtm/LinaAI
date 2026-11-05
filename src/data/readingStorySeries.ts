@@ -199,5 +199,282 @@ export const READING_STORY_SERIES: ReadingStorySeries[] = [
         ]
       }
     ]
+  },
+{
+    id: 'hsk1-school-day',
+    title: 'Một ngày ở trường', titleZh: '在学校的一天', level: 'HSK 1',
+    topic: 'Trường học · Bạn bè',
+    description: 'Một buổi sáng đến lớp, học tiếng Trung và gặp bạn mới.',
+    chapters: [
+      { id: 'hsk1-school-day-01', title: 'Buổi sáng đến lớp', titleZh: '早上去学校',
+        sentences: [
+          { chinese: '今天早上我去学校。', pinyin: 'Jīntiān zǎoshang wǒ qù xuéxiào.', vietnamese: 'Sáng nay tôi đi đến trường.' },
+          { chinese: '我和朋友一起走。', pinyin: 'Wǒ hé péngyou yìqǐ zǒu.', vietnamese: 'Tôi đi cùng bạn.' },
+          { chinese: '老师在教室里。', pinyin: 'Lǎoshī zài jiàoshì lǐ.', vietnamese: 'Thầy cô đang ở trong lớp học.' }
+        ],
+        vocabulary: [
+          { hanzi: '早上', pinyin: 'zǎoshang', vietnamese: 'buổi sáng' },
+          { hanzi: '学校', pinyin: 'xuéxiào', vietnamese: 'trường học' },
+          { hanzi: '朋友', pinyin: 'péngyou', vietnamese: 'bạn bè' },
+          { hanzi: '一起', pinyin: 'yìqǐ', vietnamese: 'cùng nhau' },
+          { hanzi: '老师', pinyin: 'lǎoshī', vietnamese: 'giáo viên' },
+          { hanzi: '教室', pinyin: 'jiàoshì', vietnamese: 'phòng học' }
+        ],
+        questions: [
+          { question: '“我”早上去哪儿？', options: ['学校', '商店', '医院'], answer: 0, explanation: '第一句说：我去学校。' },
+          { question: '谁在教室里？', options: ['朋友', '老师', '妈妈'], answer: 1, explanation: '第三句说：老师在教室里。' }
+        ]
+      },
+      { id: 'hsk1-school-day-02', title: 'Học tiếng Trung', titleZh: '学习中文',
+        sentences: [
+          { chinese: '今天我们学习中文。', pinyin: 'Jīntiān wǒmen xuéxí Zhōngwén.', vietnamese: 'Hôm nay chúng tôi học tiếng Trung.' },
+          { chinese: '老师说，我听。', pinyin: 'Lǎoshī shuō, wǒ tīng.', vietnamese: 'Thầy cô nói, tôi nghe.' },
+          { chinese: '下课以后，我很高兴。', pinyin: 'Xiàkè yǐhòu, wǒ hěn gāoxìng.', vietnamese: 'Sau giờ học, tôi rất vui.' }
+        ],
+        vocabulary: [
+          { hanzi: '学习', pinyin: 'xuéxí', vietnamese: 'học tập' },
+          { hanzi: '中文', pinyin: 'Zhōngwén', vietnamese: 'tiếng Trung' },
+          { hanzi: '说', pinyin: 'shuō', vietnamese: 'nói' },
+          { hanzi: '听', pinyin: 'tīng', vietnamese: 'nghe' },
+          { hanzi: '下课', pinyin: 'xiàkè', vietnamese: 'tan học' },
+          { hanzi: '以后', pinyin: 'yǐhòu', vietnamese: 'sau đó' }
+        ],
+        questions: [
+          { question: '他们今天学习什么？', options: ['英语', '中文', '数学'], answer: 1, explanation: '第一句说今天学习中文。' },
+          { question: '下课以后，“我”怎么样？', options: ['很高兴', '很累', '很忙'], answer: 0, explanation: '最后一句说我很高兴。' }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'hsk2-rainy-day',
+    title: 'Một ngày mưa bất ngờ', titleZh: '突然下雨了', level: 'HSK 2',
+    topic: 'Thời tiết · Sinh hoạt',
+    description: 'Một cơn mưa bất ngờ khiến hai người bạn thay đổi kế hoạch.',
+    chapters: [
+      { id: 'hsk2-rainy-day-01', title: 'Trời bắt đầu mưa', titleZh: '开始下雨了',
+        sentences: [
+          { chinese: '今天下午天气不太好。', pinyin: 'Jīntiān xiàwǔ tiānqì bú tài hǎo.', vietnamese: 'Chiều nay thời tiết không được đẹp lắm.' },
+          { chinese: '我和朋友准备去打球。', pinyin: 'Wǒ hé péngyou zhǔnbèi qù dǎ qiú.', vietnamese: 'Tôi và bạn định đi chơi bóng.' },
+          { chinese: '可是我们刚出门，就下雨了。', pinyin: 'Kěshì wǒmen gāng chūmén, jiù xià yǔ le.', vietnamese: 'Nhưng chúng tôi vừa ra khỏi nhà thì trời đổ mưa.' }
+        ],
+        vocabulary: [
+          { hanzi: '下午', pinyin: 'xiàwǔ', vietnamese: 'buổi chiều' },
+          { hanzi: '天气', pinyin: 'tiānqì', vietnamese: 'thời tiết' },
+          { hanzi: '准备', pinyin: 'zhǔnbèi', vietnamese: 'chuẩn bị; dự định' },
+          { hanzi: '打球', pinyin: 'dǎ qiú', vietnamese: 'chơi bóng' },
+          { hanzi: '可是', pinyin: 'kěshì', vietnamese: 'nhưng' },
+          { hanzi: '下雨', pinyin: 'xià yǔ', vietnamese: 'trời mưa' }
+        ],
+        questions: [
+          { question: '他们原来准备做什么？', options: ['看电影', '打球', '买东西'], answer: 1, explanation: '第二句说他们准备去打球。' },
+          { question: '他们出门以后发生了什么？', options: ['下雨了', '下雪了', '天晴了'], answer: 0, explanation: '第三句说刚出门就下雨了。' }
+        ]
+      },
+      { id: 'hsk2-rainy-day-02', title: 'Đổi kế hoạch', titleZh: '改变计划',
+        sentences: [
+          { chinese: '我们只好回家拿雨伞。', pinyin: 'Wǒmen zhǐhǎo huí jiā ná yǔsǎn.', vietnamese: 'Chúng tôi đành về nhà lấy ô.' },
+          { chinese: '朋友说，在家看一部电影也不错。', pinyin: 'Péngyou shuō, zài jiā kàn yí bù diànyǐng yě búcuò.', vietnamese: 'Bạn tôi nói xem một bộ phim ở nhà cũng khá hay.' },
+          { chinese: '虽然没有出去，但是我们过得很开心。', pinyin: 'Suīrán méiyǒu chūqù, dànshì wǒmen guò de hěn kāixīn.', vietnamese: 'Dù không ra ngoài nhưng chúng tôi vẫn rất vui.' }
+        ],
+        vocabulary: [
+          { hanzi: '只好', pinyin: 'zhǐhǎo', vietnamese: 'đành phải' },
+          { hanzi: '雨伞', pinyin: 'yǔsǎn', vietnamese: 'ô; dù' },
+          { hanzi: '电影', pinyin: 'diànyǐng', vietnamese: 'phim điện ảnh' },
+          { hanzi: '不错', pinyin: 'búcuò', vietnamese: 'khá tốt' },
+          { hanzi: '虽然', pinyin: 'suīrán', vietnamese: 'mặc dù' },
+          { hanzi: '开心', pinyin: 'kāixīn', vietnamese: 'vui vẻ' }
+        ],
+        questions: [
+          { question: '他们回家拿什么？', options: ['手机', '雨伞', '书'], answer: 1, explanation: '第一句说回家拿雨伞。' },
+          { question: '他们最后开心吗？', options: ['很开心', '不开心', '不知道'], answer: 0, explanation: '最后一句说他们过得很开心。' }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'hsk3-travel-plan',
+    title: 'Chuyến đi được mong đợi', titleZh: '期待已久的旅行', level: 'HSK 3',
+    topic: 'Du lịch · Lập kế hoạch',
+    description: 'Hai người bạn lên kế hoạch cho chuyến đi đầu tiên đến một thành phố mới.',
+    chapters: [
+      { id: 'hsk3-travel-plan-01', title: 'Chọn điểm đến', titleZh: '选择目的地',
+        sentences: [
+          { chinese: '我和同学打算利用假期去旅行。', pinyin: 'Wǒ hé tóngxué dǎsuàn lìyòng jiàqī qù lǚxíng.', vietnamese: 'Tôi và bạn học dự định tranh thủ kỳ nghỉ để đi du lịch.' },
+          { chinese: '我们比较了几个城市，最后决定去成都。', pinyin: 'Wǒmen bǐjiào le jǐ ge chéngshì, zuìhòu juédìng qù Chéngdū.', vietnamese: 'Chúng tôi so sánh vài thành phố rồi cuối cùng quyết định đến Thành Đô.' },
+          { chinese: '听说那里的风景很美，东西也很好吃。', pinyin: 'Tīngshuō nàli de fēngjǐng hěn měi, dōngxi yě hěn hǎochī.', vietnamese: 'Nghe nói phong cảnh ở đó rất đẹp, đồ ăn cũng rất ngon.' }
+        ],
+        vocabulary: [
+          { hanzi: '同学', pinyin: 'tóngxué', vietnamese: 'bạn học' },
+          { hanzi: '打算', pinyin: 'dǎsuàn', vietnamese: 'dự định' },
+          { hanzi: '利用', pinyin: 'lìyòng', vietnamese: 'tận dụng' },
+          { hanzi: '假期', pinyin: 'jiàqī', vietnamese: 'kỳ nghỉ' },
+          { hanzi: '比较', pinyin: 'bǐjiào', vietnamese: 'so sánh' },
+          { hanzi: '决定', pinyin: 'juédìng', vietnamese: 'quyết định' }
+        ],
+        questions: [
+          { question: '他们打算什么时候旅行？', options: ['假期', '考试时', '每天早上'], answer: 0, explanation: '第一句说，他们打算利用假期去旅行。' },
+          { question: '他们决定去哪座城市？', options: ['北京', '成都', '上海'], answer: 1, explanation: '第二句说最后决定去成都。' }
+        ]
+      },
+      { id: 'hsk3-travel-plan-02', title: 'Chuẩn bị hành lý', titleZh: '准备行李',
+        sentences: [
+          { chinese: '出发以前，我们先查了天气预报。', pinyin: 'Chūfā yǐqián, wǒmen xiān chá le tiānqì yùbào.', vietnamese: 'Trước khi khởi hành, chúng tôi kiểm tra dự báo thời tiết trước.' },
+          { chinese: '我负责订车票，同学负责找酒店。', pinyin: 'Wǒ fùzé dìng chēpiào, tóngxué fùzé zhǎo jiǔdiàn.', vietnamese: 'Tôi phụ trách đặt vé tàu xe, bạn học phụ trách tìm khách sạn.' },
+          { chinese: '我们希望这次旅行既轻松又有意思。', pinyin: 'Wǒmen xīwàng zhè cì lǚxíng jì qīngsōng yòu yǒu yìsi.', vietnamese: 'Chúng tôi hy vọng chuyến đi lần này vừa thoải mái vừa thú vị.' }
+        ],
+        vocabulary: [
+          { hanzi: '出发', pinyin: 'chūfā', vietnamese: 'khởi hành' },
+          { hanzi: '以前', pinyin: 'yǐqián', vietnamese: 'trước đây; trước khi' },
+          { hanzi: '预报', pinyin: 'yùbào', vietnamese: 'dự báo' },
+          { hanzi: '负责', pinyin: 'fùzé', vietnamese: 'phụ trách' },
+          { hanzi: '车票', pinyin: 'chēpiào', vietnamese: 'vé tàu xe' },
+          { hanzi: '轻松', pinyin: 'qīngsōng', vietnamese: 'thoải mái' }
+        ],
+        questions: [
+          { question: '谁负责订车票？', options: ['“我”', '同学', '老师'], answer: 0, explanation: '第二句说我负责订车票。' },
+          { question: '他们希望旅行怎么样？', options: ['很紧张', '既轻松又有意思', '很无聊'], answer: 1, explanation: '最后一句表达了他们的希望。' }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'hsk4-first-interview',
+    title: 'Buổi phỏng vấn đầu tiên', titleZh: '第一次面试', level: 'HSK 4',
+    topic: 'Công việc · Giao tiếp',
+    description: 'Một ứng viên trẻ chuẩn bị và rút kinh nghiệm sau buổi phỏng vấn.',
+    chapters: [
+      { id: 'hsk4-first-interview-01', title: 'Trước buổi phỏng vấn', titleZh: '面试以前',
+        sentences: [
+          { chinese: '为了得到这份工作，我提前做了充分的准备。', pinyin: 'Wèile dédào zhè fèn gōngzuò, wǒ tíqián zuò le chōngfèn de zhǔnbèi.', vietnamese: 'Để có được công việc này, tôi đã chuẩn bị kỹ lưỡng từ trước.' },
+          { chinese: '除了了解公司的情况，我还练习了怎样介绍自己的经验。', pinyin: 'Chúle liǎojiě gōngsī de qíngkuàng, wǒ hái liànxí le zěnyàng jièshào zìjǐ de jīngyàn.', vietnamese: 'Ngoài việc tìm hiểu tình hình công ty, tôi còn luyện cách giới thiệu kinh nghiệm của bản thân.' },
+          { chinese: '我提醒自己，回答问题时要清楚，也要诚实。', pinyin: 'Wǒ tíxǐng zìjǐ, huídá wèntí shí yào qīngchu, yě yào chéngshí.', vietnamese: 'Tôi tự nhắc mình khi trả lời câu hỏi phải rõ ràng và trung thực.' }
+        ],
+        vocabulary: [
+          { hanzi: '为了', pinyin: 'wèile', vietnamese: 'để; nhằm' },
+          { hanzi: '提前', pinyin: 'tíqián', vietnamese: 'trước thời hạn' },
+          { hanzi: '充分', pinyin: 'chōngfèn', vietnamese: 'đầy đủ; thỏa đáng' },
+          { hanzi: '除了', pinyin: 'chúle', vietnamese: 'ngoài… ra' },
+          { hanzi: '经验', pinyin: 'jīngyàn', vietnamese: 'kinh nghiệm' },
+          { hanzi: '诚实', pinyin: 'chéngshí', vietnamese: 'trung thực' }
+        ],
+        questions: [
+          { question: '“我”为什么提前准备？', options: ['为了得到工作', '为了旅行', '为了考试'], answer: 0, explanation: '第一句说明准备的目的是得到这份工作。' },
+          { question: '回答问题时应该怎样？', options: ['只说好听的话', '清楚而诚实', '尽量说得很快'], answer: 1, explanation: '最后一句说要清楚，也要诚实。' }
+        ]
+      },
+      { id: 'hsk4-first-interview-02', title: 'Nhìn lại trải nghiệm', titleZh: '回顾这次经历',
+        sentences: [
+          { chinese: '面试结束以后，我发现交流比我想象的自然。', pinyin: 'Miànshì jiéshù yǐhòu, wǒ fāxiàn jiāoliú bǐ wǒ xiǎngxiàng de zìrán.', vietnamese: 'Sau buổi phỏng vấn, tôi nhận ra cuộc trao đổi tự nhiên hơn mình tưởng.' },
+          { chinese: '面试官不仅关心我的专业能力，也重视团队合作。', pinyin: 'Miànshìguān bùjǐn guānxīn wǒ de zhuānyè nénglì, yě zhòngshì tuánduì hézuò.', vietnamese: 'Người phỏng vấn không chỉ quan tâm năng lực chuyên môn mà còn coi trọng khả năng hợp tác nhóm.' },
+          { chinese: '无论结果如何，这次经历都让我更有信心。', pinyin: 'Wúlùn jiéguǒ rúhé, zhè cì jīnglì dōu ràng wǒ gèng yǒu xìnxīn.', vietnamese: 'Dù kết quả thế nào, trải nghiệm này cũng khiến tôi tự tin hơn.' }
+        ],
+        vocabulary: [
+          { hanzi: '发现', pinyin: 'fāxiàn', vietnamese: 'phát hiện; nhận ra' },
+          { hanzi: '交流', pinyin: 'jiāoliú', vietnamese: 'trao đổi' },
+          { hanzi: '面试官', pinyin: 'miànshìguān', vietnamese: 'người phỏng vấn' },
+          { hanzi: '专业', pinyin: 'zhuānyè', vietnamese: 'chuyên môn' },
+          { hanzi: '团队', pinyin: 'tuánduì', vietnamese: 'đội nhóm' },
+          { hanzi: '信心', pinyin: 'xìnxīn', vietnamese: 'sự tự tin' }
+        ],
+        questions: [
+          { question: '面试官重视什么？', options: ['只重视年龄', '专业能力和团队合作', '只重视外表'], answer: 1, explanation: '第二句说，面试官不仅关心专业能力，也重视团队合作。' },
+          { question: '这次经历让“我”怎么样？', options: ['更有信心', '更害怕', '更生气'], answer: 0, explanation: '最后一句说更有信心。' }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'hsk5-green-project',
+    title: 'Dự án xanh của khu phố', titleZh: '社区绿色行动', level: 'HSK 5',
+    topic: 'Môi trường · Cộng đồng',
+    description: 'Cư dân cùng xây dựng một dự án giảm rác và thay đổi thói quen sinh hoạt.',
+    chapters: [
+      { id: 'hsk5-green-project-01', title: 'Một ý tưởng chung', titleZh: '共同的想法',
+        sentences: [
+          { chinese: '随着城市不断发展，社区里的生活方式也在发生变化。', pinyin: 'Suízhe chéngshì búduàn fāzhǎn, shèqū lǐ de shēnghuó fāngshì yě zài fāshēng biànhuà.', vietnamese: 'Cùng với sự phát triển không ngừng của thành phố, cách sinh hoạt trong khu dân cư cũng đang thay đổi.' },
+          { chinese: '几位居民提出建议，希望减少一次性用品的使用。', pinyin: 'Jǐ wèi jūmín tíchū jiànyì, xīwàng jiǎnshǎo yí cì xìng yòngpǐn de shǐyòng.', vietnamese: 'Một vài cư dân đưa ra đề xuất, mong muốn giảm việc sử dụng đồ dùng một lần.' },
+          { chinese: '经过讨论，大家决定先从垃圾分类和旧物交换做起。', pinyin: 'Jīngguò tǎolùn, dàjiā juédìng xiān cóng lājī fēnlèi hé jiùwù jiāohuàn zuòqǐ.', vietnamese: 'Sau khi thảo luận, mọi người quyết định bắt đầu từ phân loại rác và trao đổi đồ cũ.' }
+        ],
+        vocabulary: [
+          { hanzi: '随着', pinyin: 'suízhe', vietnamese: 'cùng với; theo đà' },
+          { hanzi: '社区', pinyin: 'shèqū', vietnamese: 'cộng đồng dân cư' },
+          { hanzi: '居民', pinyin: 'jūmín', vietnamese: 'cư dân' },
+          { hanzi: '提出', pinyin: 'tíchū', vietnamese: 'đưa ra; đề xuất' },
+          { hanzi: '一次性', pinyin: 'yí cì xìng', vietnamese: 'dùng một lần' },
+          { hanzi: '垃圾分类', pinyin: 'lājī fēnlèi', vietnamese: 'phân loại rác' }
+        ],
+        questions: [
+          { question: '居民希望减少什么？', options: ['公共交通', '一次性用品的使用', '社区活动'], answer: 1, explanation: '第二句说，居民希望减少一次性用品的使用。' },
+          { question: '大家决定先做哪两件事？', options: ['垃圾分类和旧物交换', '修路和建房', '旅行和运动'], answer: 0, explanation: '第三句列出垃圾分类和旧物交换。' }
+        ]
+      },
+      { id: 'hsk5-green-project-02', title: 'Thay đổi thói quen', titleZh: '让行动持续下去',
+        sentences: [
+          { chinese: '项目开始时，参与的人并不多，但组织者没有放弃。', pinyin: 'Xiàngmù kāishǐ shí, cānyù de rén bìng bù duō, dàn zǔzhīzhě méiyǒu fàngqì.', vietnamese: 'Khi dự án bắt đầu, số người tham gia không nhiều, nhưng ban tổ chức không bỏ cuộc.' },
+          { chinese: '他们定期公布回收数据，让居民看到行动带来的实际效果。', pinyin: 'Tāmen dìngqī gōngbù huíshōu shùjù, ràng jūmín kàndào xíngdòng dàilái de shíjì xiàoguǒ.', vietnamese: 'Họ định kỳ công bố số liệu tái chế để cư dân thấy hiệu quả thực tế mà hành động mang lại.' },
+          { chinese: '慢慢地，环保不再是一句口号，而成了大家共同坚持的习惯。', pinyin: 'Mànmàn de, huánbǎo bú zài shì yí jù kǒuhào, ér chéng le dàjiā gòngtóng jiānchí de xíguàn.', vietnamese: 'Dần dần, bảo vệ môi trường không còn là khẩu hiệu mà trở thành thói quen mọi người cùng duy trì.' }
+        ],
+        vocabulary: [
+          { hanzi: '项目', pinyin: 'xiàngmù', vietnamese: 'dự án' },
+          { hanzi: '参与', pinyin: 'cānyù', vietnamese: 'tham gia' },
+          { hanzi: '组织者', pinyin: 'zǔzhīzhě', vietnamese: 'người tổ chức' },
+          { hanzi: '定期', pinyin: 'dìngqī', vietnamese: 'định kỳ' },
+          { hanzi: '实际', pinyin: 'shíjì', vietnamese: 'thực tế' },
+          { hanzi: '口号', pinyin: 'kǒuhào', vietnamese: 'khẩu hiệu' }
+        ],
+        questions: [
+          { question: '组织者怎样让居民了解效果？', options: ['定期公布数据', '只发广告', '停止活动'], answer: 0, explanation: '第二句说他们定期公布回收数据。' },
+          { question: '最后，环保变成了什么？', options: ['一句口号', '共同坚持的习惯', '一次比赛'], answer: 1, explanation: '最后一句说环保成了共同坚持的习惯。' }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'hsk6-city-future',
+    title: 'Thành phố trong tương lai', titleZh: '未来城市的选择', level: 'HSK 6',
+    topic: 'Đô thị · Công nghệ · Xã hội',
+    description: 'Một nhóm nghiên cứu cân nhắc cách phát triển thành phố thông minh mà vẫn đáng sống.',
+    chapters: [
+      { id: 'hsk6-city-future-01', title: 'Không chỉ là công nghệ', titleZh: '不只是技术问题',
+        sentences: [
+          { chinese: '谈到未来城市，人们往往首先想到自动化交通和智能设备。', pinyin: 'Tándào wèilái chéngshì, rénmen wǎngwǎng shǒuxiān xiǎngdào zìdònghuà jiāotōng hé zhìnéng shèbèi.', vietnamese: 'Khi nhắc đến thành phố tương lai, người ta thường nghĩ ngay đến giao thông tự động hóa và thiết bị thông minh.' },
+          { chinese: '然而，技术进步并不必然意味着生活质量会同步提高。', pinyin: 'Rán’ér, jìshù jìnbù bìng bù bìrán yìwèizhe shēnghuó zhìliàng huì tóngbù tígāo.', vietnamese: 'Tuy nhiên, tiến bộ công nghệ không nhất thiết đồng nghĩa chất lượng cuộc sống sẽ tăng lên tương ứng.' },
+          { chinese: '如果忽视公共空间、隐私保护和不同群体的需求，城市就可能变得高效却不宜居。', pinyin: 'Rúguǒ hūshì gōnggòng kōngjiān, yǐnsī bǎohù hé bùtóng qúntǐ de xūqiú, chéngshì jiù kěnéng biànde gāoxiào què bù yíjū.', vietnamese: 'Nếu xem nhẹ không gian công cộng, bảo vệ quyền riêng tư và nhu cầu của các nhóm khác nhau, thành phố có thể trở nên hiệu quả nhưng không đáng sống.' }
+        ],
+        vocabulary: [
+          { hanzi: '自动化', pinyin: 'zìdònghuà', vietnamese: 'tự động hóa' },
+          { hanzi: '智能', pinyin: 'zhìnéng', vietnamese: 'thông minh' },
+          { hanzi: '必然', pinyin: 'bìrán', vietnamese: 'tất yếu' },
+          { hanzi: '同步', pinyin: 'tóngbù', vietnamese: 'đồng bộ; cùng nhịp' },
+          { hanzi: '隐私', pinyin: 'yǐnsī', vietnamese: 'quyền riêng tư' },
+          { hanzi: '宜居', pinyin: 'yíjū', vietnamese: 'đáng sống' }
+        ],
+        questions: [
+          { question: '技术进步是否必然提高生活质量？', options: ['是，必然提高', '不一定', '完全没有关系'], answer: 1, explanation: '第二句明确说并不必然意味着生活质量同步提高。' },
+          { question: '作者提醒城市规划者关注什么？', options: ['只关注设备数量', '公共空间、隐私和群体需求', '只关注交通速度'], answer: 1, explanation: '第三句列出了这些需要考虑的因素。' }
+        ]
+      },
+      { id: 'hsk6-city-future-02', title: 'Cân bằng phát triển', titleZh: '在效率与公平之间',
+        sentences: [
+          { chinese: '研究小组认为，衡量城市发展的标准不应局限于经济增长速度。', pinyin: 'Yánjiū xiǎozǔ rènwéi, héngliáng chéngshì fāzhǎn de biāozhǔn bù yīng júxiàn yú jīngjì zēngzhǎng sùdù.', vietnamese: 'Nhóm nghiên cứu cho rằng tiêu chí đánh giá sự phát triển đô thị không nên chỉ giới hạn ở tốc độ tăng trưởng kinh tế.' },
+          { chinese: '政策制定者需要在效率、公平与可持续性之间寻找平衡。', pinyin: 'Zhèngcè zhìdìngzhě xūyào zài xiàolǜ, gōngpíng yǔ kě chíxù xìng zhījiān xúnzhǎo pínghéng.', vietnamese: 'Những người hoạch định chính sách cần tìm sự cân bằng giữa hiệu quả, công bằng và tính bền vững.' },
+          { chinese: '只有让技术服务于人的真实需求，创新才有长久的价值。', pinyin: 'Zhǐyǒu ràng jìshù fúwù yú rén de zhēnshí xūqiú, chuàngxīn cái yǒu chángjiǔ de jiàzhí.', vietnamese: 'Chỉ khi công nghệ phục vụ nhu cầu thực sự của con người, đổi mới mới có giá trị lâu dài.' }
+        ],
+        vocabulary: [
+          { hanzi: '衡量', pinyin: 'héngliáng', vietnamese: 'đo lường; đánh giá' },
+          { hanzi: '局限', pinyin: 'júxiàn', vietnamese: 'giới hạn' },
+          { hanzi: '政策', pinyin: 'zhèngcè', vietnamese: 'chính sách' },
+          { hanzi: '公平', pinyin: 'gōngpíng', vietnamese: 'công bằng' },
+          { hanzi: '可持续性', pinyin: 'kě chíxù xìng', vietnamese: 'tính bền vững' },
+          { hanzi: '长久', pinyin: 'chángjiǔ', vietnamese: 'lâu dài' }
+        ],
+        questions: [
+          { question: '城市发展的标准不应局限于什么？', options: ['经济增长速度', '居民需求', '公共服务'], answer: 0, explanation: '第一句说不应局限于经济增长速度。' },
+          { question: '创新怎样才有长久的价值？', options: ['只追求速度', '服务人的真实需求', '增加设备数量'], answer: 1, explanation: '最后一句强调技术要服务于人的真实需求。' }
+        ]
+      }
+    ]
   }
+
 ];

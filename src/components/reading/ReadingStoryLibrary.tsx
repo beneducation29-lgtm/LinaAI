@@ -1,6 +1,6 @@
 import React from 'react';
 import { BookOpen, BookmarkPlus, Check, ChevronLeft, ChevronRight, Headphones, Volume2 } from 'lucide-react';
-import type { Vocabulary } from '../../types';
+import type { HSKLevel, Vocabulary } from '../../types';
 import { accountStorageKey } from '../../services/accountStorage';
 import { READING_STORY_SERIES, type ReadingStorySeries } from '../../data/readingStorySeries';
 
@@ -23,6 +23,7 @@ function readProgress(ownerId: string): Progress {
 
 export const ReadingStoryLibrary: React.FC<Props> = ({ ownerId, vocabularies, onSaveVocabulary, isVocabularySaved }) => {
   const [storyId, setStoryId] = React.useState(READING_STORY_SERIES[0].id);
+  const [levelFilter, setLevelFilter] = React.useState<HSKLevel | 'Tất cả'>('Tất cả');
   const [chapterIndex, setChapterIndex] = React.useState(0);
   const [showPinyin, setShowPinyin] = React.useState(true);
   const [showVietnamese, setShowVietnamese] = React.useState(true);
@@ -39,6 +40,7 @@ export const ReadingStoryLibrary: React.FC<Props> = ({ ownerId, vocabularies, on
   }, [ownerId]);
 
   const story = READING_STORY_SERIES.find(item => item.id === storyId) || READING_STORY_SERIES[0];
+  const visibleStories = READING_STORY_SERIES.filter(item => levelFilter === 'Tất cả' || item.level === levelFilter);
   const chapter = story.chapters[chapterIndex] || story.chapters[0];
   const vocabularyByHanzi = React.useMemo(() => new Map(vocabularies.map(item => [item.hanzi, item])), [vocabularies]);
   const completed = story.chapters.filter(item => progress[item.id]).length;
@@ -71,10 +73,11 @@ export const ReadingStoryLibrary: React.FC<Props> = ({ ownerId, vocabularies, on
   return <section className="space-y-4 rounded-3xl border border-amber-200 bg-gradient-to-br from-amber-50/80 via-white to-orange-50/60 p-4 shadow-sm dark:border-amber-950 dark:from-stone-900 dark:via-stone-900 dark:to-amber-950/10 sm:p-6">
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div className="flex items-start gap-3"><div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-200"><BookOpen className="h-5 w-5"/></div><div><p className="text-[10px] font-extrabold uppercase tracking-[.16em] text-amber-800 dark:text-amber-300">Lina chapter stories</p><h2 className="mt-1 text-lg font-black text-stone-900 dark:text-stone-100">Truyện đọc theo chương</h2><p className="mt-1 max-w-2xl text-sm leading-6 text-stone-600 dark:text-stone-300">Truyện nguyên bản của LinaAI, chia chương ngắn. Mỗi câu có chữ Hán, Pinyin và nghĩa tiếng Việt; hoàn thành câu hỏi để lưu tiến độ theo tài khoản.</p></div></div>
-      <span className="rounded-full border border-amber-200 bg-white/80 px-3 py-1.5 text-[10px] font-extrabold text-amber-900 dark:border-amber-900 dark:bg-stone-900 dark:text-amber-200">2 truyện · HSK 1</span>
+      <span className="rounded-full border border-amber-200 bg-white/80 px-3 py-1.5 text-[10px] font-extrabold text-amber-900 dark:border-amber-900 dark:bg-stone-900 dark:text-amber-200">{READING_STORY_SERIES.length} truyện · HSK 1–6</span>
     </div>
+    <div className="flex flex-wrap gap-2">{(['Tất cả', 'HSK 1', 'HSK 2', 'HSK 3', 'HSK 4', 'HSK 5', 'HSK 6'] as Array<HSKLevel | 'Tất cả'>).map(level=><button key={level} type="button" onClick={()=>{setLevelFilter(level);if(level!=="Tất cả"){const first=READING_STORY_SERIES.find(item=>item.level===level);if(first)chooseStory(first);}}} aria-pressed={levelFilter===level} className={'min-h-9 rounded-full border px-3 text-xs font-bold '+(levelFilter===level?'border-amber-700 bg-amber-700 text-white':'border-stone-200 bg-white text-stone-600 dark:border-stone-700 dark:bg-stone-950 dark:text-stone-300')}>{level}</button>)}</div>
     <div className="grid gap-3 sm:grid-cols-2">
-      {READING_STORY_SERIES.map(item=><button key={item.id} type="button" onClick={()=>chooseStory(item)} aria-pressed={story.id===item.id} className={'rounded-2xl border p-3 text-left transition '+(story.id===item.id?'border-amber-500 bg-amber-100/70 dark:bg-amber-950/30':'border-stone-200 bg-white hover:border-amber-300 dark:border-stone-700 dark:bg-stone-950')}><div className="flex items-center justify-between gap-2"><span className="rounded-full bg-emerald-100 px-2 py-1 text-[10px] font-extrabold text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200">{item.level}</span><span className="text-[10px] font-bold text-stone-500">{item.chapters.filter(ch=>progress[ch.id]).length}/{item.chapters.length} chương</span></div><p className="mt-2 text-sm font-extrabold text-stone-900 dark:text-stone-100">{item.title}</p><p className="mt-0.5 font-cjk text-base text-amber-900 dark:text-amber-200">{item.titleZh}</p><p className="mt-1 text-xs leading-5 text-stone-500">{item.description}</p><p className="mt-2 text-[10px] font-semibold text-stone-400">{item.topic}</p></button>)}
+      {visibleStories.map(item=><button key={item.id} type="button" onClick={()=>chooseStory(item)} aria-pressed={story.id===item.id} className={'rounded-2xl border p-3 text-left transition '+(story.id===item.id?'border-amber-500 bg-amber-100/70 dark:bg-amber-950/30':'border-stone-200 bg-white hover:border-amber-300 dark:border-stone-700 dark:bg-stone-950')}><div className="flex items-center justify-between gap-2"><span className="rounded-full bg-emerald-100 px-2 py-1 text-[10px] font-extrabold text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200">{item.level}</span><span className="text-[10px] font-bold text-stone-500">{item.chapters.filter(ch=>progress[ch.id]).length}/{item.chapters.length} chương</span></div><p className="mt-2 text-sm font-extrabold text-stone-900 dark:text-stone-100">{item.title}</p><p className="mt-0.5 font-cjk text-base text-amber-900 dark:text-amber-200">{item.titleZh}</p><p className="mt-1 text-xs leading-5 text-stone-500">{item.description}</p><p className="mt-2 text-[10px] font-semibold text-stone-400">{item.topic}</p></button>)}
     </div>
     <div className="rounded-2xl border border-stone-200 bg-white p-3 dark:border-stone-700 dark:bg-stone-950 sm:p-4">
       <div className="flex flex-wrap items-center justify-between gap-2"><div><p className="text-[10px] font-extrabold uppercase tracking-wider text-amber-700 dark:text-amber-300">{story.level} · {story.topic}</p><h3 className="mt-1 text-lg font-black text-stone-900 dark:text-stone-100">{story.title}</h3><p className="font-cjk text-base text-amber-800 dark:text-amber-200">{story.titleZh}</p></div><span className="text-xs font-bold tabular-nums text-stone-500">{completed}/{story.chapters.length} chương đã học</span></div>

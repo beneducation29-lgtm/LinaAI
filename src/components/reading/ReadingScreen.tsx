@@ -1,5 +1,4 @@
 import React from 'react';
-import { ReadingWebStudio } from './ReadingWebStudio';
 import { ReadingStoryLibrary } from './ReadingStoryLibrary';
 import { BookOpen, Bookmark, CheckCircle2, ChevronDown, ChevronUp, Eye, EyeOff, Headphones, Library, Search, Volume2 } from 'lucide-react';
 import type { HSKLevel, Vocabulary } from '../../types';
@@ -247,8 +246,6 @@ export const ReadingScreen: React.FC<Props> = ({ ownerId, vocabularies, onSaveVo
       </div>
       <div className="mt-5 flex flex-wrap gap-2 text-[11px] font-semibold text-emerald-50/90"><span className="rounded-full border border-white/20 px-3 py-1.5">HSK 1–6</span><span className="rounded-full border border-white/20 px-3 py-1.5">Song ngữ theo câu</span><span className="rounded-full border border-white/20 px-3 py-1.5">Lưu tiến độ theo tài khoản</span><span className="rounded-full border border-white/20 px-3 py-1.5">Từ vựng liên kết ôn tập</span></div>
     </section>
-
-    <ReadingWebStudio vocabularies={vocabularies} onSaveVocabulary={onSaveVocabulary} isVocabularySaved={isVocabularySaved} />
 
     <ReadingStoryLibrary ownerId={ownerId} vocabularies={vocabularies} onSaveVocabulary={onSaveVocabulary} isVocabularySaved={isVocabularySaved} />
 
