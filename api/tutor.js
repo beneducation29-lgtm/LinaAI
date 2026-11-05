@@ -289,7 +289,10 @@ async function generateTutor(body) {
   const apiKey = cleanString(process.env.GEMINI_API_KEY, 500);
   if (!apiKey) {
     console.error('[Lina][TUTOR_API_ERROR] GEMINI_API_KEY is missing');
-    return FALLBACK(message, userName);
+    throw Object.assign(new Error('Lina AI chưa được cấu hình Gemini API key.'), {
+      code: 'TUTOR_NOT_CONFIGURED',
+      status: 503
+    });
   }
 
   const history = normalizeHistory(body.history);
@@ -313,7 +316,9 @@ async function generateTutor(body) {
     'Phản hồi ngay dựa trên TIN NHẮN MỚI NHẤT và 2-3 lượt gần nhất. Không dùng câu xác nhận chung chung nếu có thể trả lời cụ thể. Không lặp lại câu mẫu.'
   ].filter(Boolean).join('\n');
 
-  const models = [MODEL];
+  // Try the configured fast model first, then the maintained fallback list.
+  // A provider 503 must not silently turn every learner turn into a canned reply.
+  const models = [...new Set([MODEL, ...MODEL_FALLBACKS])];
   let lastError = null;
 
   for (const model of models) {
@@ -323,7 +328,7 @@ async function generateTutor(body) {
     } catch (error) {
       lastError = error;
       const message = String(error?.message || 'Unknown error');
-      const retryable = /Gemini (429|500|502|504):/i.test(message);
+      const retryable = /Gemini (429|500|502|503|504):/i.test(message) || error?.name === 'AbortError';
       console.error('[Lina][TUTOR_API_ERROR]', {
         model,
         name: error?.name || 'Error',
@@ -334,11 +339,8 @@ async function generateTutor(body) {
     }
   }
 
-  // A 503 means the provider is saturated. Do not wait for another model: the
-  // conversation room should respond immediately with a local contextual reply.
-  if (/Gemini 503:/i.test(String(lastError?.message || ''))) {
-    return FALLBACK(message, userName);
-  }
+  // Never present a canned response as if Lina understood the learner.
+  // The client will show a clear temporary-unavailability message instead.
   throw lastError || new Error('Gemini tutor request failed');
 }
 
@@ -467,6 +469,9 @@ export default async function handler(req, res) {
     sendSse(res, {
       type: 'error',
       error: String(error?.message || 'Gemini tutor request failed').slice(0, 800),
+      code: error?.code || (/Gemini (429|500|502|503|504):/i.test(String(error?.message || ''))
+        ? 'TUTOR_PROVIDER_UNAVAILABLE'
+        : 'TUTOR_API_ERROR'),
       model: MODEL
     });
     sendSse(res, { type: 'done' });
