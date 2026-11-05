@@ -1,4 +1,5 @@
-const SUPABASE_URL = String(process.env.SUPABASE_URL || '').replace(/\\/$/, '');
+const SUPABASE_URL_RAW = String(process.env.SUPABASE_URL || '');
+const SUPABASE_URL = SUPABASE_URL_RAW.endsWith('/') ? SUPABASE_URL_RAW.slice(0, -1) : SUPABASE_URL_RAW;
 const SUPABASE_PUBLISHABLE_KEY =
   process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY || '';
 
