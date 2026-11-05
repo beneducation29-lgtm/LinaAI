@@ -313,7 +313,7 @@ export const READING_STORY_SERIES: ReadingStorySeries[] = [
           { hanzi: '决定', pinyin: 'juédìng', vietnamese: 'quyết định' }
         ],
         questions: [
-          { question: '他们打算什么时候旅行？', options: ['假期', '考试时', '每天早上'], answer: 0, explanation: '第一句 nói利用假期去旅行。' },
+          { question: '他们打算什么时候旅行？', options: ['假期', '考试时', '每天早上'], answer: 0, explanation: '第一句说，他们打算利用假期去旅行。' },
           { question: '他们决定去哪座城市？', options: ['北京', '成都', '上海'], answer: 1, explanation: '第二句说最后决定去成都。' }
         ]
       },
@@ -378,7 +378,7 @@ export const READING_STORY_SERIES: ReadingStorySeries[] = [
           { hanzi: '信心', pinyin: 'xìnxīn', vietnamese: 'sự tự tin' }
         ],
         questions: [
-          { question: '面试官重视什么？', options: ['只重视年龄', '专业能力和团队合作', '只重视外表'], answer: 1, explanation: '第二句 nói面试官不仅关心专业能力，也重视团队合作。' },
+          { question: '面试官重视什么？', options: ['只重视年龄', '专业能力和团队合作', '只重视外表'], answer: 1, explanation: '第二句说，面试官不仅关心专业能力，也重视团队合作。' },
           { question: '这次经历让“我”怎么样？', options: ['更有信心', '更害怕', '更生气'], answer: 0, explanation: '最后一句说更有信心。' }
         ]
       }
@@ -405,7 +405,7 @@ export const READING_STORY_SERIES: ReadingStorySeries[] = [
           { hanzi: '垃圾分类', pinyin: 'lājī fēnlèi', vietnamese: 'phân loại rác' }
         ],
         questions: [
-          { question: '居民希望减少什么？', options: ['公共交通', '一次性用品的使用', '社区活动'], answer: 1, explanation: '第二句 nói希望减少一次性用品的使用。' },
+          { question: '居民希望减少什么？', options: ['公共交通', '一次性用品的使用', '社区活动'], answer: 1, explanation: '第二句说，居民希望减少一次性用品的使用。' },
           { question: '大家决定先做哪两件事？', options: ['垃圾分类和旧物交换', '修路和建房', '旅行和运动'], answer: 0, explanation: '第三句列出垃圾分类和旧物交换。' }
         ]
       },
