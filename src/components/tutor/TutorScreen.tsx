@@ -133,6 +133,7 @@ export const TutorScreen: React.FC = () => {
   const spokenFinalRef = useRef('');
   const spokenInterimRef = useRef('');
   const spokenSendInFlightRef = useRef(false);
+  const speechSessionRef = useRef(0);
   const speakingRetryRef = useRef<{ target: string; attempt: number } | null>(null);
   const roleplayEngine = useMemo(() => createRoleplayEngine(), []);
 
@@ -198,6 +199,8 @@ export const TutorScreen: React.FC = () => {
   }, [showHintsModal]);
 
   useEffect(() => () => {
+    speechSessionRef.current += 1;
+    speechService.stopListening();
     realtimeConversationController.interrupt();
     if (autoSendTimerRef.current) clearTimeout(autoSendTimerRef.current);
   }, []);
@@ -242,6 +245,9 @@ export const TutorScreen: React.FC = () => {
    */
   const handleSendMessage = async (textToSend: string, forceRoleplay = false, isSpoken = false) => {
     if (!textToSend.trim()) return;
+    speechSessionRef.current += 1;
+    if (autoSendTimerRef.current) { clearTimeout(autoSendTimerRef.current); autoSendTimerRef.current = null; }
+    spokenSendInFlightRef.current = false;
 
     // Prevent an explanation for an older message from appearing after a new turn starts.
     explanationRequestIdRef.current += 1;
@@ -419,6 +425,7 @@ export const TutorScreen: React.FC = () => {
    */
   const startRecording = () => {
     if (micState === 'LISTENING' || micState === 'REQUESTING') return;
+    const sessionId = ++speechSessionRef.current;
 
     setErrorMessage(null);
     realtimeConversationController.interrupt();
@@ -441,10 +448,12 @@ export const TutorScreen: React.FC = () => {
     speechService.startListening({
       lang: voiceSettings.speechLanguage,
       onStart: () => {
+        if (sessionId !== speechSessionRef.current) return;
         setMicState('LISTENING');
         avatarService.setState('LISTENING');
       },
       onResult: (res) => {
+        if (sessionId !== speechSessionRef.current || spokenSendInFlightRef.current) return;
         const chunk = res.transcript.trim();
         if (!chunk) return;
 
@@ -489,11 +498,14 @@ export const TutorScreen: React.FC = () => {
         }
       },
       onError: (friendlyMsg) => {
+        if (sessionId !== speechSessionRef.current) return;
+        if (autoSendTimerRef.current) { clearTimeout(autoSendTimerRef.current); autoSendTimerRef.current = null; }
         setMicState('ERROR');
         avatarService.setState('ERROR');
         setErrorMessage(friendlyMsg);
       },
       onEnd: () => {
+        if (sessionId !== speechSessionRef.current) return;
         setMicState((prev) => (prev === 'LISTENING' || prev === 'REQUESTING' ? 'IDLE' : prev));
       }
     });
@@ -504,40 +516,29 @@ export const TutorScreen: React.FC = () => {
    */
   const stopRecording = () => {
     if (micState === 'LISTENING') {
+      const sessionId = speechSessionRef.current;
       speechService.stopListening();
       if (autoSendTimerRef.current) clearTimeout(autoSendTimerRef.current);
       setMicState('IDLE');
-      avatarService.setState('THINKING');
-
-      const recognized = [spokenFinalRef.current, spokenInterimRef.current]
-        .filter(Boolean)
-        .join(' ')
-        .replace(/\s+/g, ' ')
-        .trim();
-
-      if (recognized) {
-        setLiveTranscript(recognized);
-        setRecognizedReview({
-          hanzi: recognized,
-          pinyin: getQuickPinyin(recognized),
-          vietnamese: getQuickVietnamese(recognized)
-        });
-        if ((voiceSettings.autoSendRecognizedSpeech ?? true) && !spokenSendInFlightRef.current) {
-          // Give Web Speech a brief moment to emit its final result after stop().
-          autoSendTimerRef.current = setTimeout(() => {
-            autoSendTimerRef.current = null;
-            if (spokenSendInFlightRef.current) return;
-            const fullText = [spokenFinalRef.current, spokenInterimRef.current]
-              .filter(Boolean)
-              .join(' ')
-              .replace(/\s+/g, ' ')
-              .trim();
-            if (!fullText) return;
-            spokenSendInFlightRef.current = true;
-            void handleSendMessage(fullText, false, true);
-          }, 180);
+      avatarService.setState('IDLE');
+      // Web Speech may deliver its final transcript asynchronously after stop().
+      // Wait briefly, then read the refs (not the stale React render snapshot).
+      autoSendTimerRef.current = setTimeout(() => {
+        autoSendTimerRef.current = null;
+        if (sessionId !== speechSessionRef.current || spokenSendInFlightRef.current) return;
+        const fullText = [spokenFinalRef.current, spokenInterimRef.current]
+          .filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
+        if (!fullText) {
+          setErrorMessage('Mình chưa nhận được câu nói rõ ràng. Bạn thử nói lại chậm hơn nhé.');
+          return;
         }
-      }
+        setLiveTranscript(fullText);
+        setRecognizedReview({ hanzi: fullText, pinyin: getQuickPinyin(fullText), vietnamese: getQuickVietnamese(fullText) });
+        if (voiceSettings.autoSendRecognizedSpeech ?? true) {
+          spokenSendInFlightRef.current = true;
+          void handleSendMessage(fullText, false, true);
+        }
+      }, 550);
     }
   };
 
@@ -603,6 +604,7 @@ export const TutorScreen: React.FC = () => {
   const handleEndRoleplay = () => setShowRoleplaySummary(true);
 
   const selectPracticeTab = (tab: 'listening' | 'speaking' | 'conversation' | 'review') => {
+    speechSessionRef.current += 1;
     if (micState === 'LISTENING' || micState === 'REQUESTING') speechService.stopListening();
     realtimeConversationController.interrupt();
     if (autoSendTimerRef.current) {
@@ -610,7 +612,12 @@ export const TutorScreen: React.FC = () => {
       autoSendTimerRef.current = null;
     }
     spokenSendInFlightRef.current = false;
+    spokenFinalRef.current = '';
+    spokenInterimRef.current = '';
+    setLiveTranscript('');
+    setRecognizedReview(null);
     setMicState('IDLE');
+    avatarService.setState('IDLE');
     setActivePracticeTab(tab);
     if (tab === 'speaking') setTutorMode('teacher');
     if (tab === 'conversation') setTutorMode('conversation');
@@ -633,6 +640,27 @@ export const TutorScreen: React.FC = () => {
         ))}
       </nav>
     );
+  };
+
+  const latestTutorMessage = [...conversation.messages].reverse().find(message => message.sender === 'ai');
+  const shadowingTarget = latestTutorMessage || {
+    hanzi: '你好，我想练习中文。',
+    pinyin: 'Nǐ hǎo, wǒ xiǎng liànxí Zhōngwén.',
+    vietnamese: 'Xin chào, mình muốn luyện tiếng Trung.'
+  };
+
+  const playShadowingModel = async () => {
+    setErrorMessage(null);
+    realtimeConversationController.interrupt();
+    setMicState('AI_SPEAKING');
+    avatarService.setState('SPEAKING');
+    await speechService.speakChinese(shadowingTarget.hanzi, {
+      rate: voiceSettings.playbackSpeed,
+      voiceURI: voiceSettings.selectedVoiceURI,
+      useGeminiTTS: voiceSettings.useGeminiTTS,
+      onEnd: () => { setMicState('IDLE'); avatarService.setState('IDLE'); },
+      onError: () => { setMicState('IDLE'); avatarService.setState('IDLE'); }
+    });
   };
 
   // State Visual Indicators
@@ -762,6 +790,24 @@ export const TutorScreen: React.FC = () => {
             </button>
           </div>
         </div>
+
+        {activePracticeTab === 'speaking' && (
+          <section aria-label="Luyện nhại câu tiếng Trung" className="shrink-0 rounded-2xl border border-emerald-200 bg-emerald-50/80 p-3 dark:border-emerald-900/60 dark:bg-emerald-950/20 sm:p-4">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 text-xs font-extrabold text-emerald-900 dark:text-emerald-200"><Mic className="h-4 w-4"/> Luyện phản xạ · Nghe mẫu và nói lại</div>
+                <p className="mt-1 font-cjk text-lg font-bold leading-relaxed text-stone-900 dark:text-stone-100">{shadowingTarget.hanzi}</p>
+                {shadowingTarget.pinyin && <p className="mt-1 text-xs font-semibold text-emerald-800 dark:text-emerald-300">{shadowingTarget.pinyin}</p>}
+                {shadowingTarget.vietnamese && <p className="mt-1 text-xs leading-5 text-stone-600 dark:text-stone-300">{shadowingTarget.vietnamese}</p>}
+              </div>
+              <div className="flex shrink-0 gap-2">
+                <button type="button" onClick={() => void playShadowingModel()} disabled={micState === 'LISTENING' || micState === 'REQUESTING' || micState === 'PROCESSING'} className="inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-emerald-300 bg-white px-3 text-xs font-bold text-emerald-800 disabled:opacity-50 dark:border-emerald-800 dark:bg-stone-900 dark:text-emerald-200"><Volume2 className="h-4 w-4"/> Nghe mẫu</button>
+                <button type="button" onClick={handleToggleMic} disabled={micState === 'PROCESSING' || micState === 'AI_SPEAKING'} className="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-emerald-700 px-3 text-xs font-bold text-white disabled:opacity-50">{micState === 'LISTENING' ? <MicOff className="h-4 w-4"/> : <Mic className="h-4 w-4"/>}{micState === 'LISTENING' ? 'Dừng nói' : 'Nói lại'}</button>
+              </div>
+            </div>
+            <p className="mt-2 text-[10px] leading-5 text-emerald-900/75 dark:text-emerald-200/75">Lina sẽ nhận diện câu bạn nói, đối chiếu cách diễn đạt và đưa ra gợi ý sửa tự nhiên. Điểm Speaking Coach chỉ phản ánh độ tự nhiên của văn bản nhận diện, không phải phép đo âm học hay độ chính xác thanh điệu.</p>
+          </section>
+        )}
 
         {roleplayActive && (
           <div className="px-2 py-2 rounded-2xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/60 space-y-2 shrink-0">
