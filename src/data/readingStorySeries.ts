@@ -243,7 +243,38 @@ export const READING_STORY_SERIES: ReadingStorySeries[] = [
           { question: '他们今天学习什么？', options: ['英语', '中文', '数学'], answer: 1, explanation: '第一句说今天学习中文。' },
           { question: '下课以后，“我”怎么样？', options: ['很高兴', '很累', '很忙'], answer: 0, explanation: '最后一句说我很高兴。' }
         ]
+      ,
+      { id: 'hsk1-school-day-03', title: 'Buổi sáng của tôi', titleZh: '我的早上',
+        sentences: [
+          { chinese: '今天早上，我六点起床。', pinyin: 'Jīntiān zǎoshang, wǒ liù diǎn qǐchuáng.', vietnamese: 'Sáng nay, tôi thức dậy lúc sáu giờ.' },
+          { chinese: '我和妈妈一起吃早饭，喝一杯牛奶。', pinyin: 'Wǒ hé māma yìqǐ chī zǎofàn, hē yì bēi niúnǎi.', vietnamese: 'Tôi cùng mẹ ăn sáng và uống một cốc sữa.' },
+          { chinese: '七点半，我去学校学习汉语。', pinyin: 'Qī diǎn bàn, wǒ qù xuéxiào xuéxí Hànyǔ.', vietnamese: 'Bảy giờ rưỡi, tôi đến trường học tiếng Trung.' }
+        ],
+        vocabulary: [
+          { hanzi: '今天', pinyin: 'jīntiān', vietnamese: 'hôm nay' },
+          { hanzi: '早上', pinyin: 'zǎoshang', vietnamese: 'buổi sáng' },
+          { hanzi: '我', pinyin: 'wǒ', vietnamese: 'tôi' },
+          { hanzi: '六点', pinyin: 'liù diǎn', vietnamese: 'sáu giờ' },
+          { hanzi: '起床', pinyin: 'qǐchuáng', vietnamese: 'thức dậy' },
+          { hanzi: '和', pinyin: 'hé', vietnamese: 'và; cùng với' },
+          { hanzi: '妈妈', pinyin: 'māma', vietnamese: 'mẹ' },
+          { hanzi: '一起', pinyin: 'yìqǐ', vietnamese: 'cùng nhau' },
+          { hanzi: '吃早饭', pinyin: 'chī zǎofàn', vietnamese: 'ăn sáng' },
+          { hanzi: '喝', pinyin: 'hē', vietnamese: 'uống' },
+          { hanzi: '一杯', pinyin: 'yì bēi', vietnamese: 'một cốc' },
+          { hanzi: '牛奶', pinyin: 'niúnǎi', vietnamese: 'sữa' },
+          { hanzi: '七点半', pinyin: 'qī diǎn bàn', vietnamese: 'bảy giờ rưỡi' },
+          { hanzi: '去', pinyin: 'qù', vietnamese: 'đi' },
+          { hanzi: '学校', pinyin: 'xuéxiào', vietnamese: 'trường học' },
+          { hanzi: '学习', pinyin: 'xuéxí', vietnamese: 'học tập' },
+          { hanzi: '汉语', pinyin: 'Hànyǔ', vietnamese: 'tiếng Trung' }
+        ],
+        questions: [
+          { question: '“我”几点起床？', options: ['五点', '六点', '七点半'], answer: 1, explanation: '第一句说：“我六点起床。”' },
+          { question: '“我”早上和谁一起吃早饭？', options: ['爸爸', '妈妈', '朋友'], answer: 1, explanation: '第二句说：“我和妈妈一起吃早饭。”' }
+        ]
       }
+    ]
     ]
   },
   {
