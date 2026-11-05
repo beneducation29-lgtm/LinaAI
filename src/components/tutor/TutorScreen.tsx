@@ -642,6 +642,27 @@ export const TutorScreen: React.FC = () => {
     );
   };
 
+  const latestTutorMessage = [...conversation.messages].reverse().find(message => message.sender === 'ai');
+  const shadowingTarget = latestTutorMessage || {
+    hanzi: '你好，我想练习中文。',
+    pinyin: 'Nǐ hǎo, wǒ xiǎng liànxí Zhōngwén.',
+    vietnamese: 'Xin chào, mình muốn luyện tiếng Trung.'
+  };
+
+  const playShadowingModel = async () => {
+    setErrorMessage(null);
+    realtimeConversationController.interrupt();
+    setMicState('AI_SPEAKING');
+    avatarService.setState('SPEAKING');
+    await speechService.speakChinese(shadowingTarget.hanzi, {
+      rate: voiceSettings.playbackSpeed,
+      voiceURI: voiceSettings.selectedVoiceURI,
+      useGeminiTTS: voiceSettings.useGeminiTTS,
+      onEnd: () => { setMicState('IDLE'); avatarService.setState('IDLE'); },
+      onError: () => { setMicState('IDLE'); avatarService.setState('IDLE'); }
+    });
+  };
+
   // State Visual Indicators
   const stateLabels: Record<MicrophoneState, { text: string; badgeColor: string }> = {
     IDLE: { text: 'Sẵn sàng luyện nói', badgeColor: 'bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300' },
@@ -769,6 +790,24 @@ export const TutorScreen: React.FC = () => {
             </button>
           </div>
         </div>
+
+        {activePracticeTab === 'speaking' && (
+          <section aria-label="Luyện nhại câu tiếng Trung" className="shrink-0 rounded-2xl border border-emerald-200 bg-emerald-50/80 p-3 dark:border-emerald-900/60 dark:bg-emerald-950/20 sm:p-4">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 text-xs font-extrabold text-emerald-900 dark:text-emerald-200"><Mic className="h-4 w-4"/> Luyện phản xạ · Nghe mẫu và nói lại</div>
+                <p className="mt-1 font-cjk text-lg font-bold leading-relaxed text-stone-900 dark:text-stone-100">{shadowingTarget.hanzi}</p>
+                {shadowingTarget.pinyin && <p className="mt-1 text-xs font-semibold text-emerald-800 dark:text-emerald-300">{shadowingTarget.pinyin}</p>}
+                {shadowingTarget.vietnamese && <p className="mt-1 text-xs leading-5 text-stone-600 dark:text-stone-300">{shadowingTarget.vietnamese}</p>}
+              </div>
+              <div className="flex shrink-0 gap-2">
+                <button type="button" onClick={() => void playShadowingModel()} disabled={micState === 'LISTENING' || micState === 'REQUESTING' || micState === 'PROCESSING'} className="inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-emerald-300 bg-white px-3 text-xs font-bold text-emerald-800 disabled:opacity-50 dark:border-emerald-800 dark:bg-stone-900 dark:text-emerald-200"><Volume2 className="h-4 w-4"/> Nghe mẫu</button>
+                <button type="button" onClick={handleToggleMic} disabled={micState === 'PROCESSING' || micState === 'AI_SPEAKING'} className="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-emerald-700 px-3 text-xs font-bold text-white disabled:opacity-50">{micState === 'LISTENING' ? <MicOff className="h-4 w-4"/> : <Mic className="h-4 w-4"/>}{micState === 'LISTENING' ? 'Dừng nói' : 'Nói lại'}</button>
+              </div>
+            </div>
+            <p className="mt-2 text-[10px] leading-5 text-emerald-900/75 dark:text-emerald-200/75">Lina sẽ nhận diện câu bạn nói, đối chiếu cách diễn đạt và đưa ra gợi ý sửa tự nhiên. Điểm Speaking Coach chỉ phản ánh độ tự nhiên của văn bản nhận diện, không phải phép đo âm học hay độ chính xác thanh điệu.</p>
+          </section>
+        )}
 
         {roleplayActive && (
           <div className="px-2 py-2 rounded-2xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/60 space-y-2 shrink-0">
