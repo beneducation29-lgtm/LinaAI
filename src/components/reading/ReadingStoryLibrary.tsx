@@ -41,9 +41,14 @@ function hanIndexAt(chars: string[], targetIndex: number): number {
   for (let index = 0; index < targetIndex; index += 1) if (isHanCharacter(chars[index])) count += 1;
   return count;
 }
-function buildReadingTokens(chapter: ReadingChapter): ReadingToken[] {
+function buildReadingTokens(chapter: ReadingChapter, appVocabulary: Vocabulary[]): ReadingToken[] {
   const tokens: ReadingToken[] = [];
-  const vocabulary = [...chapter.vocabulary].sort((a, b) => Array.from(b.hanzi).length - Array.from(a.hanzi).length);
+  const uniqueVocabulary = new Map<string, { hanzi: string; pinyin: string; vietnamese: string }>();
+  for (const item of chapter.vocabulary) uniqueVocabulary.set(item.hanzi, item);
+  for (const item of appVocabulary) {
+    if (!uniqueVocabulary.has(item.hanzi)) uniqueVocabulary.set(item.hanzi, { hanzi: item.hanzi, pinyin: item.pinyin, vietnamese: item.vietnamese });
+  }
+  const vocabulary = [...uniqueVocabulary.values()].sort((a, b) => Array.from(b.hanzi).length - Array.from(a.hanzi).length);
   let globalOffset = 0;
   for (const sentence of chapter.sentences) {
     const chars = Array.from(sentence.chinese);
@@ -108,7 +113,7 @@ export const ReadingStoryLibrary: React.FC<Props> = ({ ownerId, vocabularies, on
   const chapter = story.chapters[chapterIndex] || story.chapters[0];
   const vocabularyByHanzi = React.useMemo(() => new Map(vocabularies.map(item => [item.hanzi, item])), [vocabularies]);
   const completed = story.chapters.filter(item => progress[item.id]).length;
-  const readingTokens = React.useMemo(() => buildReadingTokens(chapter), [chapter]);
+  const readingTokens = React.useMemo(() => buildReadingTokens(chapter, vocabularies), [chapter, vocabularies]);
   const readingText = chapter.sentences.map(item => item.chinese).join('');
   const score = chapter.questions.reduce((total, question, index) => total + (answers[index] === question.answer ? 1 : 0), 0);
 
