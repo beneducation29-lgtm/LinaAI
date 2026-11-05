@@ -3,6 +3,7 @@ import { BookOpen, BookmarkPlus, Check, ChevronLeft, ChevronRight, Headphones, V
 import type { HSKLevel, Vocabulary } from '../../types';
 import { accountStorageKey } from '../../services/accountStorage';
 import { READING_STORY_SERIES, type ReadingChapter, type ReadingStorySeries } from '../../data/readingStorySeries';
+import { summarizeReadingProgress, type ReadingProgressMap } from '../../services/readingProgress';
 
 interface Props {
   ownerId: string;
@@ -10,7 +11,7 @@ interface Props {
   onSaveVocabulary: (id: string) => void;
   isVocabularySaved: (id: string) => boolean;
 }
-type Progress = Record<string, { completedAt: string; correct: number; total: number }>;
+type Progress = ReadingProgressMap;
 const STORAGE_KEY = 'lina-story-chapter-progress-v1';
 
 function readProgress(ownerId: string): Progress {
@@ -113,6 +114,7 @@ export const ReadingStoryLibrary: React.FC<Props> = ({ ownerId, vocabularies, on
   const chapter = story.chapters[chapterIndex] || story.chapters[0];
   const vocabularyByHanzi = React.useMemo(() => new Map(vocabularies.map(item => [item.hanzi, item])), [vocabularies]);
   const completed = story.chapters.filter(item => progress[item.id]).length;
+  const progressSummary = React.useMemo(() => summarizeReadingProgress(READING_STORY_SERIES, progress), [progress]);
   const readingTokens = React.useMemo(() => buildReadingTokens(chapter, vocabularies), [chapter, vocabularies]);
   const readingText = chapter.sentences.map(item => item.chinese).join('');
   const score = chapter.questions.reduce((total, question, index) => total + (answers[index] === question.answer ? 1 : 0), 0);
@@ -162,6 +164,11 @@ export const ReadingStoryLibrary: React.FC<Props> = ({ ownerId, vocabularies, on
       <div className="flex items-start gap-3"><div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-200"><BookOpen className="h-5 w-5"/></div><div><p className="text-[10px] font-extrabold uppercase tracking-[.16em] text-amber-800 dark:text-amber-300">Lina chapter stories</p><h2 className="mt-1 text-lg font-black text-stone-900 dark:text-stone-100">Truyện đọc theo chương</h2><p className="mt-1 max-w-2xl text-sm leading-6 text-stone-600 dark:text-stone-300">Truyện nguyên bản của LinaAI, chia chương ngắn. Mỗi câu có chữ Hán, Pinyin và nghĩa tiếng Việt; hoàn thành câu hỏi để lưu tiến độ theo tài khoản.</p></div></div>
       <span className="rounded-full border border-amber-200 bg-white/80 px-3 py-1.5 text-[10px] font-extrabold text-amber-900 dark:border-amber-900 dark:bg-stone-900 dark:text-amber-200">{READING_STORY_SERIES.length} truyện · HSK 1–6</span>
     </div>
+    <section aria-label="Tổng quan tiến độ đọc" className="grid gap-3 sm:grid-cols-3">
+      <div className="rounded-2xl border border-amber-200 bg-white/90 p-3 dark:border-amber-950 dark:bg-stone-950"><p className="text-[10px] font-bold uppercase tracking-wider text-stone-500">Chương đã hoàn thành</p><p className="mt-1 text-2xl font-black tabular-nums text-stone-900 dark:text-stone-100">{progressSummary.completedChapters}<span className="ml-1 text-sm font-semibold text-stone-400">/ {progressSummary.totalChapters}</span></p><div className="mt-2 h-2 overflow-hidden rounded-full bg-stone-100 dark:bg-stone-800"><div className="h-full rounded-full bg-amber-600" style={{ width: progressSummary.totalChapters ? (progressSummary.completedChapters / progressSummary.totalChapters * 100) + '%' : '0%' }} /></div></div>
+      <div className="rounded-2xl border border-amber-200 bg-white/90 p-3 dark:border-amber-950 dark:bg-stone-950"><p className="text-[10px] font-bold uppercase tracking-wider text-stone-500">Độ chính xác đọc hiểu</p><p className="mt-1 text-2xl font-black tabular-nums text-stone-900 dark:text-stone-100">{progressSummary.accuracy}<span className="ml-1 text-sm font-semibold text-stone-400">%</span></p><p className="mt-2 text-[11px] text-stone-500">{progressSummary.completedQuestions}/{progressSummary.totalQuestions} câu đúng trong các chương đã nộp</p></div>
+      <div className="rounded-2xl border border-amber-200 bg-white/90 p-3 dark:border-amber-950 dark:bg-stone-950"><p className="text-[10px] font-bold uppercase tracking-wider text-stone-500">Lộ trình HSK</p><div className="mt-2 flex flex-wrap gap-1.5">{progressSummary.byLevel.map(item=><button key={item.level} type="button" onClick={()=>{setLevelFilter(item.level);const first=READING_STORY_SERIES.find(storyItem=>storyItem.level===item.level);if(first)chooseStory(first);}} aria-label={item.level+' '+item.completedChapters+' trên '+item.totalChapters+' chương'} className="rounded-lg border border-stone-200 px-2 py-1 text-[10px] font-bold text-stone-600 hover:border-amber-400 dark:border-stone-700 dark:text-stone-300">{item.level.replace('HSK ', '')}: {item.completedChapters}/{item.totalChapters}</button>)}</div></div>
+    </section>
     <div className="flex flex-wrap gap-2">{(['Tất cả', 'HSK 1', 'HSK 2', 'HSK 3', 'HSK 4', 'HSK 5', 'HSK 6'] as Array<HSKLevel | 'Tất cả'>).map(level=><button key={level} type="button" onClick={()=>{setLevelFilter(level);if(level!=="Tất cả"){const first=READING_STORY_SERIES.find(item=>item.level===level);if(first)chooseStory(first);}}} aria-pressed={levelFilter===level} className={'min-h-9 rounded-full border px-3 text-xs font-bold '+(levelFilter===level?'border-amber-700 bg-amber-700 text-white':'border-stone-200 bg-white text-stone-600 dark:border-stone-700 dark:bg-stone-950 dark:text-stone-300')}>{level}</button>)}</div>
     <div className="grid gap-3 sm:grid-cols-2">
       {visibleStories.map(item=><button key={item.id} type="button" onClick={()=>chooseStory(item)} aria-pressed={story.id===item.id} className={'rounded-2xl border p-3 text-left transition '+(story.id===item.id?'border-amber-500 bg-amber-100/70 dark:bg-amber-950/30':'border-stone-200 bg-white hover:border-amber-300 dark:border-stone-700 dark:bg-stone-950')}><div className="flex items-center justify-between gap-2"><span className="rounded-full bg-emerald-100 px-2 py-1 text-[10px] font-extrabold text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200">{item.level}</span><span className="text-[10px] font-bold text-stone-500">{item.chapters.filter(ch=>progress[ch.id]).length}/{item.chapters.length} chương</span></div><p className="mt-2 text-sm font-extrabold text-stone-900 dark:text-stone-100">{item.title}</p><p className="mt-0.5 font-cjk text-base text-amber-900 dark:text-amber-200">{item.titleZh}</p><p className="mt-1 text-xs leading-5 text-stone-500">{item.description}</p><p className="mt-2 text-[10px] font-semibold text-stone-400">{item.topic}</p></button>)}
