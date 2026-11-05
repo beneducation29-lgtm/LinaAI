@@ -527,7 +527,7 @@ export const TutorScreen: React.FC = () => {
         autoSendTimerRef.current = null;
         if (sessionId !== speechSessionRef.current || spokenSendInFlightRef.current) return;
         const fullText = [spokenFinalRef.current, spokenInterimRef.current]
-          .filter(Boolean).join(' ').replace(/\\s+/g, ' ').trim();
+          .filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
         if (!fullText) {
           setErrorMessage('Mình chưa nhận được câu nói rõ ràng. Bạn thử nói lại chậm hơn nhé.');
           return;
