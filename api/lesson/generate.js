@@ -2,7 +2,7 @@ import { getUser, parseCookies } from '../auth/_utils.js';
 
 const MAX_READING_IMAGE_BYTES = 700 * 1024;
 const READING_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
-const READING_MODEL = process.env.GEMINI_READING_MODEL || process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+const READING_MODEL = process.env.GEMINI_READING_MODEL || process.env.GEMINI_MODEL || 'gemini-3.8-flash';
 
 export function validateReadingImage(payload) {
   const mimeType = typeof payload?.mimeType === 'string' ? payload.mimeType.toLowerCase() : '';
