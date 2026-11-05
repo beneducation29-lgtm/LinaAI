@@ -2,7 +2,7 @@ import React from 'react';
 import { BookOpen, BookmarkPlus, Check, ChevronLeft, ChevronRight, Headphones, Volume2 } from 'lucide-react';
 import type { Vocabulary } from '../../types';
 import { accountStorageKey } from '../../services/accountStorage';
-import { READING_STORY_SERIES, type ReadingChapter, type ReadingStorySeries } from '../../data/readingStorySeries';
+import { READING_STORY_SERIES, type ReadingStorySeries } from '../../data/readingStorySeries';
 
 interface Props {
   ownerId: string;
@@ -15,6 +15,7 @@ const STORAGE_KEY = 'lina-story-chapter-progress-v1';
 
 function readProgress(ownerId: string): Progress {
   try {
+    if (typeof window === 'undefined') return {};
     const parsed = JSON.parse(localStorage.getItem(accountStorageKey(STORAGE_KEY, ownerId)) || '{}');
     return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
   } catch { return {}; }
@@ -29,6 +30,13 @@ export const ReadingStoryLibrary: React.FC<Props> = ({ ownerId, vocabularies, on
   const [submitted, setSubmitted] = React.useState(false);
   const [progress, setProgress] = React.useState<Progress>(() => readProgress(ownerId));
   const [selectedWord, setSelectedWord] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    setProgress(readProgress(ownerId));
+    setAnswers({});
+    setSubmitted(false);
+    setSelectedWord(null);
+  }, [ownerId]);
 
   const story = READING_STORY_SERIES.find(item => item.id === storyId) || READING_STORY_SERIES[0];
   const chapter = story.chapters[chapterIndex] || story.chapters[0];
