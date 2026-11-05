@@ -32,4 +32,17 @@ for (const level of expectedLevels) {
   assert.ok(READING_STORY_SERIES.some(series => series.level === level), level + ' stories should be available');
 }
 assert.ok(chapterIds.size >= 14, 'the library should contain a meaningful multi-level chapter collection');
+
+const morningStory = READING_STORY_SERIES.find(series => series.id === 'hsk1-school-day');
+const morningChapter = morningStory?.chapters.find(chapter => chapter.id === 'hsk1-school-day-03');
+assert.ok(morningChapter, 'the continuous HSK 1 morning paragraph should be available');
+assert.equal(
+  morningChapter.sentences.map(sentence => sentence.chinese).join(''),
+  '今天早上，我六点起床。我和妈妈一起吃早饭，喝一杯牛奶。七点半，我去学校学习汉语。',
+  'the sample paragraph should remain continuous and complete'
+);
+for (const hanzi of ['今天', '早上', '六点', '起床', '妈妈', '一起', '吃早饭', '牛奶', '七点半', '学校', '汉语']) {
+  assert.ok(morningChapter.vocabulary.some(word => word.hanzi === hanzi), hanzi + ' should have a clickable Pinyin and Vietnamese glossary entry');
+}
+
 console.log('Reading story series validation passed.');
