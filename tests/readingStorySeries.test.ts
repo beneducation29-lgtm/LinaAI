@@ -27,5 +27,9 @@ for (const series of READING_STORY_SERIES) {
     }
   }
 }
-assert.ok(READING_STORY_SERIES.some(series => series.level === 'HSK 1'), 'HSK 1 stories should be available');
+const expectedLevels = ['HSK 1', 'HSK 2', 'HSK 3', 'HSK 4', 'HSK 5', 'HSK 6'];
+for (const level of expectedLevels) {
+  assert.ok(READING_STORY_SERIES.some(series => series.level === level), level + ' stories should be available');
+}
+assert.ok(chapterIds.size >= 14, 'the library should contain a meaningful multi-level chapter collection');
 console.log('Reading story series validation passed.');
