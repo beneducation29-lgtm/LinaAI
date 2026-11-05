@@ -2,7 +2,7 @@ import React from 'react';
 import { BookOpen, BookmarkPlus, Check, ChevronLeft, ChevronRight, Headphones, Volume2 } from 'lucide-react';
 import type { HSKLevel, Vocabulary } from '../../types';
 import { accountStorageKey } from '../../services/accountStorage';
-import { READING_STORY_SERIES, type ReadingStorySeries } from '../../data/readingStorySeries';
+import { READING_STORY_SERIES, type ReadingChapter, type ReadingStorySeries } from '../../data/readingStorySeries';
 
 interface Props {
   ownerId: string;
@@ -31,7 +31,7 @@ interface ReadingToken {
   known: boolean;
 }
 function isHanCharacter(value: string): boolean {
-  return /[\\u3400-\\u9fff]/.test(value);
+  return /[\u3400-\u9fff]/.test(value);
 }
 function getPinyinSyllables(value: string): string[] {
   return value.match(/[A-Za-züÜāáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜńňḿ]+/g) || [];
@@ -60,7 +60,8 @@ function buildReadingTokens(chapter: ReadingChapter): ReadingToken[] {
       const match = vocabulary.find(item => chars.slice(charIndex, charIndex + Array.from(item.hanzi).length).join('') === item.hanzi);
       const length = match ? Array.from(match.hanzi).length : 1;
       const hanzi = chars.slice(charIndex, charIndex + length).join('');
-      const fallbackPinyin = Array.from({ length }, (_, index) => syllables[hanIndexAt(chars, charIndex + index)] || '').filter(Boolean).join(' ');
+      const fallbackParts = Array.from({ length }, (_, index) => syllables[hanIndexAt(chars, charIndex + index)] || '');
+      const fallbackPinyin = fallbackParts.length === length && fallbackParts.every(Boolean) ? fallbackParts.join(' ') : '';
       tokens.push({
         hanzi,
         pinyin: match?.pinyin || fallbackPinyin,
