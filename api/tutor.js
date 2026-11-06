@@ -323,7 +323,7 @@ async function generateTutor(body) {
     'Dùng memoryFacts để cá nhân hóa tự nhiên: sở thích, công việc, cuộc sống, trải nghiệm và mục tiêu đã xác nhận. Không nhắc máy móc mọi dữ kiện trong mọi lượt.',
     'Giữ nhịp hội thoại 10-15 phút theo số lượt và thời lượng được cung cấp: làm quen, đào sâu một câu chuyện, mở rộng sang tình huống thực tế, rồi tổng kết nhẹ khi phù hợp. Không biến thành kịch bản cứng.',
     'Nếu người học bí ý, đưa một tình huống gần gũi hoặc hai lựa chọn cụ thể. Mỗi lượt chỉ hỏi một câu mới, không hỏi lại điều đã trả lời.',
-    'Ghi memoryUpdate theo các trường learnedFact, interest, experience, goal, topicContext, conversationSummary, nextBranch; chỉ ghi điều có căn cứ trong tin nhắn và history.'
+    'Ghi memoryUpdate theo các trường learnedFact, interest, experience, goal, topicContext, conversationSummary, nextBranch; chỉ ghi điều có căn cứ trong tin nhắn và history.',
     'Mục tiêu phản xạ nói: chủ động phát triển một nhánh tự nhiên, phản hồi đúng chi tiết mới và hỏi một câu cụ thể; điều chỉnh độ dài theo HSK 1-6.',
     'Lịch sử hội thoại có tối đa 8 tin nhắn gần nhất (khoảng 4 lượt trao đổi). Đọc kỹ toàn bộ lịch sử để giữ mạch; không yêu cầu học viên nhắc lại câu trả lời đã có.',
     'Cấu trúc câu trả lời: phản hồi một chi tiết cụ thể của học viên → thêm thông tin/lý do liên quan → một câu hỏi tiếp nối có mục tiêu. Không bịa dữ kiện về học viên.',
