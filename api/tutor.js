@@ -120,7 +120,7 @@ function normalizeHistory(history) {
 }
 
 function comparableChinese(text) {
-  return cleanString(text, 4000).toLowerCase().replace(/[，。！？、；：,.!?;:“”\"'（）()\\s]/g, '');
+  return cleanString(text, 4000).toLowerCase().replace(/[，。！？、；：,.!?;:“”\"'（）()\s]/g, '');
 }
 
 function repeatsPreviousTutorReply(response, history) {
