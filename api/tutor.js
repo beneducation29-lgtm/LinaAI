@@ -4,7 +4,7 @@
 const MODEL = process.env.GEMINI_TUTOR_MODEL || 'gemini-3.5-flash-lite';
 const MODEL_FALLBACKS = ['gemini-3.6-flash'];
 const MAX_MESSAGE = 2000;
-const MAX_HISTORY = 4;
+const MAX_HISTORY = 8;
 const MAX_MEMORY_FACTS = 8;
 
 const FALLBACK = (message, userName = 'Bạn') => {
@@ -84,6 +84,9 @@ CHÍNH SÁCH PHẢN HỒI HỘI THOẠI DÀI VÀ LUYỆN PHẢN XẠ:
 - Với câu trả lời conversation/roleplay, chia nội dung thành 3 phần có liên kết: (1) phản hồi cụ thể điều người học vừa nói, (2) mở rộng bằng 1-2 chi tiết hoặc lý do mới, (3) đặt một câu hỏi tiếp nối rõ ràng để người học phải tự tạo câu trả lời. Không chỉ thêm câu chào hoặc câu rỗng để tăng độ dài.
 - Ưu tiên một câu hỏi mở có thể trả lời bằng trải nghiệm, lý do, lựa chọn hoặc kế hoạch; tránh đặt nhiều câu hỏi không liên quan trong cùng lượt.
 - Nếu tin nhắn người học ngắn, hãy mở rộng vừa phải dựa trên đúng chủ đề và trình độ, không tự bịa thông tin về người học. Nếu người học trả lời dài, hãy phản hồi vào ít nhất một chi tiết cụ thể từ câu trả lời đó.
+- Duy trì mạch hội thoại qua tối đa 4 lượt trao đổi gần nhất: nhớ câu hỏi Lina đã đặt, câu trả lời người học vừa đưa ra, các chi tiết đã được xác nhận và việc gì đang dang dở. Nếu người học trả lời câu hỏi trước đó, hãy tiếp tục đúng nhánh đó thay vì quay lại mở đầu chủ đề.
+- Không hỏi lại thông tin người học đã trả lời trong lịch sử gần đây. Không tự đổi chủ đề đột ngột; chỉ chuyển chủ đề khi người học đề nghị hoặc khi đã khép lại tự nhiên một nhánh.
+- Mỗi lượt phải có tiến triển mới: khai thác một chi tiết chưa được hỏi, đưa thêm một góc nhìn/ví dụ phù hợp, hoặc tạo tình huống giao tiếp tiếp theo. Tránh lặp lại nguyên văn hay diễn đạt lại câu trả lời AI ngay trước đó.
 - Pinyin và bản dịch phải bao phủ đầy đủ từng câu tiếng Trung theo đúng thứ tự; không bỏ sót câu cuối, không tự thêm nội dung không có trong bản tiếng Trung.
 - Tạo pinyin có dấu thanh và bản dịch tiếng Việt đầy đủ, khớp với toàn bộ phần chinese theo từng câu; không được chỉ dịch câu đầu hoặc rút gọn phần dịch.
 - Ưu tiên nhịp hội thoại tự nhiên: xác nhận cụ thể → mở rộng nội dung → hỏi tiếp có mục tiêu. Tránh lặp “我听懂了”, “我们继续聊吧” hoặc hỏi “你呢？” như câu trả lời mặc định.
@@ -114,6 +117,18 @@ function normalizeHistory(history) {
     pinyin: cleanString(m?.pinyin, 300),
     vietnamese: cleanString(m?.vietnamese, 700)
   }));
+}
+
+function comparableChinese(text) {
+  return cleanString(text, 4000).toLowerCase().replace(/[，。！？、；：,.!?;:“”\"'（）()\\s]/g, '');
+}
+
+function repeatsPreviousTutorReply(response, history) {
+  const previous = [...history].reverse().find((item) => item.sender === 'ai' && item.hanzi);
+  if (!previous) return false;
+  const currentText = comparableChinese(response && response.chinese);
+  const previousText = comparableChinese(previous.hanzi);
+  return currentText.length >= 12 && currentText === previousText;
 }
 
 function parseTutorJson(text) {
@@ -310,10 +325,12 @@ async function generateTutor(body) {
     `TIN NHẮN MỚI NHẤT:\n${message}`,
     'Nếu người học nói về tên, sở thích, quê quán, công việc, gia đình, thói quen hoặc mục tiêu HSK thì ghi nhận vào memoryUpdate. Chỉ ghi điều người học thực sự nói, không suy đoán.',
     'Mục tiêu phản xạ nói: phản hồi có nội dung, thường 3-5 câu tiếng Trung (điều chỉnh HSK), có mở rộng chủ đề và 1 câu hỏi mở cụ thể; không trả lời cụt ngủn hoặc chỉ hỏi “你呢？”.',
+    'Lịch sử hội thoại có tối đa 8 tin nhắn gần nhất (khoảng 4 lượt trao đổi). Đọc kỹ toàn bộ lịch sử để giữ mạch; không yêu cầu học viên nhắc lại câu trả lời đã có.',
     'Cấu trúc câu trả lời: phản hồi một chi tiết cụ thể của học viên → thêm thông tin/lý do liên quan → một câu hỏi tiếp nối có mục tiêu. Không bịa dữ kiện về học viên.',
     'Trước khi trả về JSON, tự rà soát chinese, pinyin và vietnamese phải đủ câu và cùng thứ tự; suggestedReplies phải giúp trả lời trực tiếp câu hỏi cuối.',
     'Đảm bảo pinyin dấu thanh và tiếng Việt dịch đầy đủ, khớp với toàn bộ chinese. suggestedReplies là các câu trả lời thực tế cho câu hỏi cuối của Lina.',
-    'Phản hồi ngay dựa trên TIN NHẮN MỚI NHẤT và 2-3 lượt gần nhất. Không dùng câu xác nhận chung chung nếu có thể trả lời cụ thể. Không lặp lại câu mẫu.'
+    'Phản hồi ngay dựa trên TIN NHẮN MỚI NHẤT và tối đa 4 lượt trao đổi gần nhất. Hãy tiếp nối câu hỏi đang mở và không hỏi lại điều người học vừa trả lời.',
+    'Không lặp lại câu trả lời tiếng Trung của Lina ở lượt trước. Mỗi lượt cần phản hồi vào chi tiết mới trong câu người học, hoặc tiếp tục đúng câu hỏi mà Lina vừa đặt.'
   ].filter(Boolean).join('\n');
 
   // Try the configured fast model first, then the maintained fallback list.
@@ -324,7 +341,27 @@ async function generateTutor(body) {
   for (const model of models) {
     try {
       const text = await callGemini({ apiKey, model, prompt });
-      return validateTutorResponse(parseTutorJson(text), speakingAttempt);
+      let response = validateTutorResponse(parseTutorJson(text), speakingAttempt);
+
+      // Only retry when the generated Chinese exactly repeats the previous AI turn.
+      if (mode !== 'teacher' && repeatsPreviousTutorReply(response, history)) {
+        const previousReply = [...history].reverse().find((item) => item.sender === 'ai')?.hanzi || '';
+        const retryPrompt = [
+          prompt,
+          'REGENERATION REQUIRED: your draft exactly repeats Lina’s previous Chinese reply.',
+          'Previous Lina reply (do not repeat or paraphrase): ' + previousReply,
+          'Learner latest message (respond to this specifically): ' + message,
+          'Generate a genuinely new next turn that answers the learner and advances the current conversation. Do not restart or ask a question already answered.'
+        ].join('\\n');
+        const retryText = await callGemini({ apiKey, model, prompt: retryPrompt });
+        response = validateTutorResponse(parseTutorJson(retryText), speakingAttempt);
+        if (repeatsPreviousTutorReply(response, history)) {
+          throw Object.assign(new Error('Lina generated a repeated conversation turn.'), {
+            code: 'TUTOR_REPETITIVE_RESPONSE', status: 502
+          });
+        }
+      }
+      return response;
     } catch (error) {
       lastError = error;
       const message = String(error?.message || 'Unknown error');
