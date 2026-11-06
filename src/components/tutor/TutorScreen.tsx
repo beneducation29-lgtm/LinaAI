@@ -511,7 +511,7 @@ export const TutorScreen: React.FC = () => {
             const fullText = [spokenFinalRef.current, spokenInterimRef.current]
               .filter(Boolean)
               .join(' ')
-              .replace(/\\s+/g, ' ')
+              .replace(/\s+/g, ' ')
               .trim();
             if (!fullText) return;
             spokenSendInFlightRef.current = true;
