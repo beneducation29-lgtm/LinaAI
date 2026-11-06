@@ -177,21 +177,21 @@ export const ReadingStoryLibrary: React.FC<Props> = ({ ownerId, vocabularies, on
         <button type="button" onClick={()=>setShowVietnamese(value=>!value)} className="min-h-10 rounded-xl border border-stone-200 px-3 text-xs font-bold dark:border-stone-700">{showVietnamese?'Ẩn tiếng Việt':'Hiện tiếng Việt'}</button>
       </div></div>
       <p className="mt-4 text-xs text-stone-500">Chạm vào từ hoặc chữ Hán để xem Pinyin và nghĩa. Khi nghe, phần văn bản đang được đọc sẽ tự động sáng lên.</p>
-      <p className="mt-3 font-cjk text-2xl leading-[2.1] tracking-wide text-stone-900 dark:text-stone-100">
+      <p className="mt-5 font-cjk text-2xl leading-[2.5] tracking-wide text-stone-900 dark:text-stone-100 sm:text-[1.7rem] sm:leading-[2.7]">
         {(() => {
           const parts: React.ReactNode[] = [];
           let cursor = 0;
           readingTokens.forEach((token,index) => {
             if (token.start > cursor) parts.push(<span key={'plain-'+cursor}>{readingText.slice(cursor,token.start)}</span>);
             const active = Boolean(activeAudioRange && token.start < activeAudioRange.end && token.end > activeAudioRange.start);
-            parts.push(<button key={token.start+'-'+index} type="button" onClick={()=>setSelectedReadingToken(token)} aria-pressed={selectedReadingToken?.start===token.start} className={'rounded-md px-[1px] transition-colors '+(active?'bg-amber-300 text-amber-950 ring-2 ring-amber-400 dark:bg-amber-400 dark:text-stone-950':selectedReadingToken?.start===token.start?'bg-sky-100 text-sky-900 dark:bg-sky-900/60 dark:text-sky-100':'hover:bg-amber-100 dark:hover:bg-amber-950/50')}>{token.hanzi}</button>);
+            const ruby = <ruby className="reading-ruby-unit">{token.hanzi}{showPinyin && token.pinyin ? <rt>{token.pinyin}</rt> : null}</ruby>;
+            parts.push(<button key={token.start+'-'+index} type="button" onClick={()=>setSelectedReadingToken(token)} aria-pressed={selectedReadingToken?.start===token.start} className={'rounded-md px-[1px] transition-colors '+(active?'bg-amber-300 text-amber-950 ring-2 ring-amber-400 dark:bg-amber-400 dark:text-stone-950':selectedReadingToken?.start===token.start?'bg-sky-100 text-sky-900 dark:bg-sky-900/60 dark:text-sky-100':'hover:bg-amber-100 dark:hover:bg-amber-950/50')}>{ruby}</button>);
             cursor = token.end;
           });
           if (cursor < readingText.length) parts.push(<span key="plain-tail">{readingText.slice(cursor)}</span>);
           return parts;
         })()}
       </p>
-      {showPinyin&&<p className="mt-2 text-sm font-semibold leading-7 text-sky-800 dark:text-sky-300">{chapter.sentences.map(item=>item.pinyin).join(' ')}</p>}
       {showVietnamese&&<p className="mt-2 text-sm leading-7 text-stone-600 dark:text-stone-300">{chapter.sentences.map(item=>item.vietnamese).join(' ')}</p>}
       {selectedReadingToken&&<div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-sky-200 bg-sky-50 p-3 dark:border-sky-900 dark:bg-sky-950/30">
         <div><p className="font-cjk text-2xl font-black text-stone-900 dark:text-stone-100">{selectedReadingToken.hanzi}</p><p className="mt-1 text-sm font-bold text-sky-800 dark:text-sky-300">{selectedReadingToken.pinyin||'Chưa có dữ liệu Pinyin'}</p><p className="mt-1 text-sm text-stone-700 dark:text-stone-300">{selectedReadingToken.vietnamese}</p></div>
