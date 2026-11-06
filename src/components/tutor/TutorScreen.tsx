@@ -135,6 +135,8 @@ export const TutorScreen: React.FC = () => {
   const spokenSendInFlightRef = useRef(false);
   const speechSessionRef = useRef(0);
   const speakingRetryRef = useRef<{ target: string; attempt: number } | null>(null);
+  const speakingSessionStartedAtRef = useRef(Date.now());
+  const speakingSessionTurnRef = useRef(0);
   const roleplayEngine = useMemo(() => createRoleplayEngine(), []);
 
   // Save voice settings to localStorage
@@ -287,10 +289,17 @@ export const TutorScreen: React.FC = () => {
       const relevantMemory = aiMemory.mistakes.filter(m => !m.resolved).sort((a,b) => b.frequency-a.frequency).slice(0,6).map(m => `${m.type}: ${m.original} → ${m.corrected}`);
       const memoryContext = [
         ...learnerMemory,
+        ...aiMemory.learnerFacts.slice(-6).map(fact => `Thông tin đã xác nhận: ${fact}`),
+        ...aiMemory.preferences.slice(-4).map(preference => `Sở thích: ${preference}`),
+        ...aiMemory.goals.slice(-4).map(goal => `Mục tiêu: ${goal}`),
+        ...aiMemory.topics.slice(-4).map(topic => `Chủ đề từng quan tâm: ${topic}`),
+        ...(aiMemory.conversationSummary ? [`Tóm tắt hội thoại trước: ${aiMemory.conversationSummary}`] : []),
         `HSK: ${learnerProfile.hskLevel}`,
         `Điểm yếu: ${learnerProfile.weakAreas.slice(0,5).join(', ') || 'chưa xác định'}`,
         `Lỗi cần ưu tiên: ${relevantMemory.join(' | ') || 'chưa có'}`
       ];
+      const sessionTurnNumber = ++speakingSessionTurnRef.current;
+      const sessionElapsedMinutes = Math.max(0, Math.min(30, Math.floor((Date.now() - speakingSessionStartedAtRef.current) / 60000)));
       let structuredRes;
       if (useRoleplay) {
         structuredRes = await roleplayEngine.sendTurn(
@@ -299,7 +308,7 @@ export const TutorScreen: React.FC = () => {
         );
       } else {
         structuredRes = await realtimeSpeechOrchestrator.startConversationTurn(
-          { conversationId: conversation.id, topicTitleVi: conversation.topicTitleVi, hskLevel: conversation.hskLevel, userLevel: user.currentLevel, userName: user.name, history: [...conversation.messages, userMsg], mode: tutorMode, memoryFacts: memoryContext, isSpoken, isSpeakingRetry: Boolean(speakingRetry), speakingCoachTarget: speakingRetry?.target, speakingAttempt: speakingRetry?.attempt },
+          { conversationId: conversation.id, topicTitleVi: conversation.topicTitleVi, hskLevel: conversation.hskLevel, userLevel: user.currentLevel, userName: user.name, history: [...conversation.messages, userMsg], mode: tutorMode, memoryFacts: memoryContext, isSpoken, isSpeakingRetry: Boolean(speakingRetry), speakingCoachTarget: speakingRetry?.target, speakingAttempt: speakingRetry?.attempt, sessionTurnNumber, sessionElapsedMinutes },
           textToSend,
           {
             onState: state => {
@@ -357,11 +366,13 @@ export const TutorScreen: React.FC = () => {
       }
 
       // Persist durable learner memory after every tutor turn: facts, topic and a compact summary.
-      if (structuredRes.memoryUpdate?.learnedFact || structuredRes.memoryUpdate?.topicContext) {
+      if (structuredRes.memoryUpdate?.learnedFact || structuredRes.memoryUpdate?.interest || structuredRes.memoryUpdate?.experience || structuredRes.memoryUpdate?.goal || structuredRes.memoryUpdate?.topicContext || structuredRes.memoryUpdate?.conversationSummary) {
         recordTutorMemory({
-          fact: structuredRes.memoryUpdate?.learnedFact,
+          fact: [structuredRes.memoryUpdate?.learnedFact, structuredRes.memoryUpdate?.experience].filter(Boolean).join(' | '),
+          preference: structuredRes.memoryUpdate?.interest,
+          goal: structuredRes.memoryUpdate?.goal,
           topic: structuredRes.memoryUpdate?.topicContext || conversation.topicTitleVi,
-          summary: `${conversation.topicTitleVi}: ${textToSend.slice(0, 120)} → ${structuredRes.chinese.slice(0, 160)}`
+          summary: structuredRes.memoryUpdate?.conversationSummary || `${conversation.topicTitleVi}: ${textToSend.slice(0, 120)} → ${structuredRes.chinese.slice(0, 160)}`
         });
       } else {
         recordTutorMemory({

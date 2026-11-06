@@ -278,7 +278,12 @@ export interface StructuredTutorResponse {
   }>;
   memoryUpdate?: {
     learnedFact?: string;
+    interest?: string;
+    experience?: string;
+    goal?: string;
     topicContext?: string;
+    conversationSummary?: string;
+    nextBranch?: string;
   };
   speakingCoach?: SpeakingCoachDetails;
 }

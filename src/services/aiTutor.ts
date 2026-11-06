@@ -29,6 +29,8 @@ export interface SendMessageOptions {
   speakingCoachTarget?: string;
   speakingAttempt?: number;
   signal?: AbortSignal;
+  sessionTurnNumber?: number;
+  sessionElapsedMinutes?: number;
 }
 
 export interface StreamingTutorCallbacks {
@@ -110,7 +112,9 @@ class AITutorClientService implements AITutorProvider {
         isSpoken: Boolean(options.isSpoken),
         isSpeakingRetry: Boolean(options.isSpeakingRetry),
         speakingCoachTarget: options.speakingCoachTarget ? sanitizePlainText(options.speakingCoachTarget, 500) : '',
-        speakingAttempt: options.speakingAttempt || 0
+        speakingAttempt: options.speakingAttempt || 0,
+        sessionTurnNumber: options.sessionTurnNumber || 1,
+        sessionElapsedMinutes: options.sessionElapsedMinutes || 0
       })
     }, { timeoutMs: 30000, retries: 0, signal: options.signal });
 
