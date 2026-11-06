@@ -11,8 +11,6 @@ import { TutorMessage } from './TutorMessage';
 import { LayerToggles } from '../common/LayerToggles';
 import { VoiceSettingsModal } from '../voice/VoiceSettingsModal';
 import { ToneTrainingModal } from '../voice/ToneTrainingModal';
-import { ListeningScreen } from '../listening/ListeningScreen';
-import { ReviewScreen } from '../review/ReviewScreen';
 import { AvatarStage } from '../avatar/AvatarStage';
 import { CharacterDesignModal } from '../avatar/CharacterDesignModal';
 import { 
@@ -30,13 +28,11 @@ import { getQuickPinyin, getQuickVietnamese } from '../../utils/chinesePinyinMap
 import { 
   Mic, 
   MicOff,
-  Headphones,
   MessagesSquare,
   Volume2, 
   Lightbulb, 
   Send, 
   Sparkles, 
-  RotateCcw,
   MessageSquare,
   GraduationCap,
   FlaskConical,
@@ -70,7 +66,7 @@ export const TutorScreen: React.FC = () => {
   } = useApp();
 
   // Microphone and Conversation States
-  const [activePracticeTab, setActivePracticeTab] = useState<'listening' | 'speaking' | 'conversation' | 'review'>('conversation');
+  const [activePracticeTab, setActivePracticeTab] = useState<'speaking' | 'conversation'>('conversation');
   const [micState, setMicState] = useState<MicrophoneState>('IDLE');
   const [inputText, setInputText] = useState('');
   
@@ -623,7 +619,7 @@ export const TutorScreen: React.FC = () => {
   const handleChangeImmersion = (level: 'beginner'|'intermediate'|'advanced') => { setRoleplayImmersion(level); roleplayEngine.setImmersion(level); };
   const handleEndRoleplay = () => setShowRoleplaySummary(true);
 
-  const selectPracticeTab = (tab: 'listening' | 'speaking' | 'conversation' | 'review') => {
+  const selectPracticeTab = (tab: 'speaking' | 'conversation') => {
     speechSessionRef.current += 1;
     if (micState === 'LISTENING' || micState === 'REQUESTING') speechService.stopListening();
     realtimeConversationController.interrupt();
@@ -645,13 +641,11 @@ export const TutorScreen: React.FC = () => {
 
   const renderPracticeTabs = () => {
     const tabs = [
-      { id: 'listening' as const, label: 'Luyện nghe', icon: Headphones },
       { id: 'speaking' as const, label: 'Luyện nói', icon: Mic },
       { id: 'conversation' as const, label: 'Hội thoại AI', icon: MessagesSquare },
-      { id: 'review' as const, label: 'Ôn tập', icon: RotateCcw },
     ];
     return (
-      <nav aria-label="Khu luyện nghe nói" className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 rounded-2xl border border-stone-200 bg-white/90 p-1.5 dark:border-stone-800 dark:bg-stone-900/90 shrink-0">
+      <nav aria-label="Chế độ luyện nói với Lina" className="grid grid-cols-2 gap-1.5 rounded-2xl border border-stone-200 bg-white/90 p-1.5 dark:border-stone-800 dark:bg-stone-900/90 shrink-0">
         {tabs.map(({ id, label, icon: Icon }) => (
           <button key={id} type="button" onClick={() => selectPracticeTab(id)} aria-current={activePracticeTab === id ? 'page' : undefined}
             className={`flex min-h-11 items-center justify-center gap-2 rounded-xl px-2 py-2 text-xs sm:text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 ${activePracticeTab === id ? 'bg-amber-700 text-white shadow-sm' : 'text-stone-600 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-800'}`}>
@@ -692,13 +686,6 @@ export const TutorScreen: React.FC = () => {
     AI_SPEAKING: { text: 'Lina đang nói...', badgeColor: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300' },
     ERROR: { text: 'Cần thử lại', badgeColor: 'bg-red-100 text-red-800 dark:bg-red-950/60 dark:text-red-300' },
   };
-
-  if (activePracticeTab === 'listening') {
-    return <div className="min-h-[calc(100dvh-4rem)] w-full max-w-6xl mx-auto px-3 sm:px-5 py-3 pb-24 md:pb-8 space-y-4 overflow-y-auto">{renderPracticeTabs()}<ListeningScreen /></div>;
-  }
-  if (activePracticeTab === 'review') {
-    return <div className="min-h-[calc(100dvh-4rem)] w-full max-w-6xl mx-auto px-3 sm:px-5 py-3 pb-24 md:pb-8 space-y-4 overflow-y-auto">{renderPracticeTabs()}<ReviewScreen /></div>;
-  }
 
   return (
     <div className="flex flex-col md:flex-row h-[calc(100dvh-4rem)] md:h-screen max-w-6xl mx-auto w-full px-2 sm:px-4 py-2 gap-3 md:gap-4 overflow-hidden">

@@ -11,14 +11,12 @@ assert.match(chineseSentence, /const handleSelectWord = \(word: string\) =>/ , '
 assert.match(chineseSentence, /handleSelectWord\(part\.word!\.hanzi\)/, 'vocabulary taps should stop audio from the previously selected word');
 assert.match(chineseSentence, /speechService\.stopSpeaking\(\);\s*setIsPlayingWord\(false\);\s*setSelectedWord\(/, 'changing vocabulary selection should stop speech and reset playback state');
 
-for (const label of ['Luyện nghe', 'Luyện nói', 'Hội thoại AI', 'Ôn tập']) {
+for (const label of ['Luyện nói', 'Hội thoại AI']) {
   assert.ok(tutor.includes(label), 'Practice hub must expose ' + label);
 }
-assert.match(tutor, /grid-cols-2 sm:grid-cols-4/, 'practice navigation should adapt to mobile and desktop');
-assert.match(tutor, /aria-label="Khu luyện nghe nói"/, 'practice navigation should be labelled for assistive technology');
+assert.match(tutor, /grid-cols-2 gap-1\.5/, 'speaking modes should share a compact two-column layout');
+assert.match(tutor, /aria-label="Chế độ luyện nói với Lina"/, 'speaking navigation should be labelled for assistive technology');
 assert.match(tutor, /aria-current=\{activePracticeTab === id \? 'page' : undefined\}/, 'active practice mode should be announced');
-assert.match(tutor, /<ListeningScreen \/>/, 'listening tab must open the existing listening experience');
-assert.match(tutor, /<ReviewScreen \/>/, 'review tab must open the existing review experience');
 assert.match(tutor, /setTutorMode\('teacher'\)/, 'speaking tab must use the speaking coach mode');
 assert.match(tutor, /setTutorMode\('conversation'\)/, 'AI conversation tab must use conversation mode');
 assert.match(tutor, /speechService\.stopListening\(\)/, 'switching modes should stop microphone capture');
@@ -27,6 +25,9 @@ assert.match(tutor, /clearTimeout\(autoSendTimerRef\.current\)/, 'switching mode
 assert.match(listening, /recordListeningQuizResult/, 'listening results should continue to be recorded');
 assert.match(review, /updateFlashcardRating/, 'review ratings should continue to update spaced repetition');
 assert.match(appShell, /case 'speak':\s*return <TutorScreen \/>/, 'existing navigation should continue to enter the practice hub');
+assert.match(appShell, /case 'listening':\s*return <ListeningScreen \/>/, 'listening remains available from the primary navigation');
+assert.match(appShell, /case 'review':\s*return <ReviewScreen \/>/, 'review remains available from the primary navigation');
+assert.doesNotMatch(tutor, /label: 'Luyện nghe'|label: 'Ôn tập'|<ListeningScreen \/>|<ReviewScreen \/>/, 'speaking hub must not duplicate primary navigation destinations');
 
 assert.match(chineseSentence, /<span className="mr-1 text-\[10px\] font-bold uppercase tracking-wide opacity-70">Pinyin<\/span>\{selected\.pinyin\}/, 'selected vocabulary should visually emphasize the matching tone-marked pinyin');
 assert.match(chineseSentence, /<span className="mr-1 text-\[10px\] font-bold uppercase tracking-wide text-amber-700 dark:text-amber-300">Nghĩa<\/span>\{selected\.vietnamese\}/, 'selected vocabulary should visually emphasize its Vietnamese meaning alongside Hanzi and pinyin');
