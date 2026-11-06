@@ -184,7 +184,7 @@ export const ReadingStoryLibrary: React.FC<Props> = ({ ownerId, vocabularies, on
           readingTokens.forEach((token,index) => {
             if (token.start > cursor) parts.push(<span key={'plain-'+cursor}>{readingText.slice(cursor,token.start)}</span>);
             const active = Boolean(activeAudioRange && token.start < activeAudioRange.end && token.end > activeAudioRange.start);
-            const ruby = <ruby className="reading-ruby-unit">{token.hanzi}{showPinyin && token.pinyin ? <rt>{token.pinyin}</rt> : null}</ruby>;
+            const ruby = <span className="reading-ruby-unit"><ruby>{token.hanzi}{showPinyin && token.pinyin ? <rt>{token.pinyin}</rt> : null}</ruby></span>;
             parts.push(<button key={token.start+'-'+index} type="button" onClick={()=>setSelectedReadingToken(token)} aria-pressed={selectedReadingToken?.start===token.start} className={'rounded-md px-[1px] transition-colors '+(active?'bg-amber-300 text-amber-950 ring-2 ring-amber-400 dark:bg-amber-400 dark:text-stone-950':selectedReadingToken?.start===token.start?'bg-sky-100 text-sky-900 dark:bg-sky-900/60 dark:text-sky-100':'hover:bg-amber-100 dark:hover:bg-amber-950/50')}>{ruby}</button>);
             cursor = token.end;
           });
