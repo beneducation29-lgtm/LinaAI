@@ -1,5 +1,6 @@
 import type { HSKLevel } from '../types';
 import { HSK1_EXPANSION_CHAPTERS } from './readingStoryExpansion';
+import { MORE_READING_STORIES } from './readingStoryMoreSeries';
 
 export interface StorySentence {
   chinese: string;
@@ -532,8 +533,11 @@ const BASE_READING_STORY_SERIES: ReadingStorySeries[] = [
 ];
 
 // Keep the original stories intact and extend the HSK 1 path to exactly 20 readings.
-export const READING_STORY_SERIES: ReadingStorySeries[] = BASE_READING_STORY_SERIES.map(series =>
-  series.id === 'hsk1-family-dinner'
-    ? { ...series, chapters: [...series.chapters, ...HSK1_EXPANSION_CHAPTERS] }
-    : series
-);
+export const READING_STORY_SERIES: ReadingStorySeries[] = [
+  ...BASE_READING_STORY_SERIES.map(series =>
+    series.id === 'hsk1-family-dinner'
+      ? { ...series, chapters: [...series.chapters, ...HSK1_EXPANSION_CHAPTERS] }
+      : series
+  ),
+  ...MORE_READING_STORIES
+];
