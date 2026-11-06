@@ -32,9 +32,17 @@ const expectedLevels = ['HSK 1', 'HSK 2', 'HSK 3', 'HSK 4', 'HSK 5', 'HSK 6'];
 for (const level of expectedLevels) {
   assert.ok(READING_STORY_SERIES.some(series => series.level === level), level + ' stories should be available');
 }
-assert.ok(chapterIds.size >= 14, 'the library should contain a meaningful multi-level chapter collection');
+assert.ok(chapterIds.size >= 35, 'the library should contain a substantial multi-level chapter collection');
 const hsk1ReadingCount = READING_STORY_SERIES.filter(series => series.level === 'HSK 1').reduce((total, series) => total + series.chapters.length, 0);
-assert.equal(hsk1ReadingCount, 20, 'HSK 1 should contain exactly 20 complete readings');
+assert.equal(hsk1ReadingCount, 23, 'HSK 1 should contain 23 complete readings after the new story series');
+for (const level of expectedLevels.slice(1)) {
+  const levelStories = READING_STORY_SERIES.filter(series => series.level === level);
+  assert.ok(levelStories.length >= 2, level + ' should contain at least two separate story series');
+  assert.ok(levelStories.reduce((total, series) => total + series.chapters.length, 0) >= 4, level + ' should contain at least four complete readings');
+}
+const newSeries = READING_STORY_SERIES.find(series => series.id === 'hsk1-market-day');
+assert.equal(newSeries?.chapters.length, 3, 'the new HSK 1 market story should contain three chapters');
+assert.ok(READING_STORY_SERIES.some(series => series.id === 'hsk6-critical-thinking'), 'HSK 6 should include original critical-thinking reading content');
 
 const morningStory = READING_STORY_SERIES.find(series => series.id === 'hsk1-school-day');
 const morningChapter = morningStory?.chapters.find(chapter => chapter.id === 'hsk1-school-day-03');
