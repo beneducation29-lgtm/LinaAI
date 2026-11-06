@@ -24,6 +24,9 @@ export const Flashcard: React.FC<FlashcardProps> = ({
   const [recallDraft, setRecallDraft] = useState('');
 
   const { vocabulary } = card;
+  const frontTitle = direction === 'hanzi-to-meaning' ? 'Nhớ nghĩa' : direction === 'meaning-to-hanzi' ? 'Nhớ chữ Hán' : 'Nhớ chữ qua âm thanh';
+  const recallPrompt = direction === 'hanzi-to-meaning' ? 'Hãy nhớ nghĩa tiếng Việt trước khi xem đáp án.' : direction === 'meaning-to-hanzi' ? 'Hãy nhớ và nhập chữ Hán tương ứng với nghĩa này.' : 'Nghe cách phát âm, sau đó nhập chữ Hán bạn nghe được.';
+  const revealHint = recallDraft.trim() ? 'Chạm thẻ để đối chiếu đáp án.' : 'Nhập câu trả lời trước khi mở đáp án.';
 
   const handlePlay = async (e: React.MouseEvent, text: string) => {
     e.stopPropagation();
@@ -67,7 +70,7 @@ export const Flashcard: React.FC<FlashcardProps> = ({
             handleFlip();
           }
         }}
-        aria-label={isFlipped ? 'Thẻ ghi nhớ tiếng Trung, đang hiển thị đáp án; nhấn để xem mặt trước' : 'Thẻ ghi nhớ tiếng Trung, đang hiển thị mặt trước; nhấn để xem đáp án'}
+        aria-label={isFlipped ? 'Thẻ ghi nhớ tiếng Trung, đang hiển thị đáp án; nhấn để xem mặt trước' : `Thẻ ghi nhớ tiếng Trung, ${frontTitle}; ${recallDraft.trim() ? 'nhấn để xem đáp án' : 'nhập câu trả lời trước khi xem đáp án'}`}
         aria-pressed={isFlipped}
         className="w-full h-[390px] sm:h-[420px] cursor-pointer [perspective:1000px] select-none focus:outline-hidden focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-4 rounded-3xl"
       >
@@ -84,7 +87,7 @@ export const Flashcard: React.FC<FlashcardProps> = ({
               <span>{vocabulary.hskLevel}</span>
               <span className="flex items-center gap-1 text-amber-700 dark:text-amber-400">
                 <Sparkles className="w-3.5 h-3.5" />
-                Mặt trước · Nhớ nghĩa
+                Mặt trước · {frontTitle}
               </span>
             </div>
 
@@ -102,7 +105,7 @@ export const Flashcard: React.FC<FlashcardProps> = ({
                 </div>
               )}
               <p className="text-xs text-stone-500 dark:text-stone-400">
-                {direction === 'hanzi-to-meaning' ? 'Hãy nhớ nghĩa tiếng Việt trước khi xem đáp án.' : 'Hãy tự nhớ và nhập chữ Hán trước khi xem đáp án.'}
+                {recallPrompt}
               </p>
               <textarea
                 value={recallDraft}
@@ -113,7 +116,7 @@ export const Flashcard: React.FC<FlashcardProps> = ({
                 aria-label="Câu trả lời ôn tập"
                 className="w-full resize-none rounded-xl border border-stone-200 bg-stone-50 p-3 text-center text-sm text-stone-800 outline-none focus:border-amber-400 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-100"
               />
-              <p className="text-[10px] text-stone-400">Nhập câu trả lời rồi chạm thẻ để đối chiếu.</p>
+              <p className="text-[10px] text-stone-400" aria-live="polite">{revealHint}</p>
             </div>
 
             <div className="w-full flex items-center justify-between pt-2 border-t border-stone-100 dark:border-stone-800">
@@ -128,7 +131,7 @@ export const Flashcard: React.FC<FlashcardProps> = ({
               </button>
 
               <span className="text-xs font-medium text-stone-500 flex items-center gap-1">
-                <RotateCcw className="w-3.5 h-3.5" /> Lật thẻ
+                <RotateCcw className="w-3.5 h-3.5" /> {recallDraft.trim() ? 'Xem đáp án' : 'Nhập câu trả lời'}
               </span>
             </div>
           </div>
