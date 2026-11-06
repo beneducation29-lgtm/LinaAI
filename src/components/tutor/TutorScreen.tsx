@@ -493,15 +493,22 @@ export const TutorScreen: React.FC = () => {
           vietnamese: getQuickVietnamese(recognized)
         });
 
-        // Web Speech can emit a final result for only part of a sentence.
-        // Keep the session open and wait for a short silence before sending,
-        // so the complete learner turn reaches Gemini instead of an early fragment.
-        if (res.isFinal && (voiceSettings.autoSendRecognizedSpeech ?? true) && (!res.confidence || res.confidence >= 0.55)) {
-          if (autoSendTimerRef.current) clearTimeout(autoSendTimerRef.current);
+        // Any new recognition activity cancels the pending send. Browsers can
+        // mark a clause as final while the learner is only pausing to think.
+        if (autoSendTimerRef.current) {
+          clearTimeout(autoSendTimerRef.current);
+          autoSendTimerRef.current = null;
+        }
+
+        if (res.isFinal && (voiceSettings.autoSendRecognizedSpeech ?? true)) {
           autoSendTimerRef.current = setTimeout(() => {
             autoSendTimerRef.current = null;
-            if (spokenSendInFlightRef.current) return;
-            const fullText = spokenFinalRef.current.trim() || spokenInterimRef.current.trim();
+            if (sessionId !== speechSessionRef.current || spokenSendInFlightRef.current) return;
+            const fullText = [spokenFinalRef.current, spokenInterimRef.current]
+              .filter(Boolean)
+              .join(' ')
+              .replace(/\\s+/g, ' ')
+              .trim();
             if (!fullText) return;
             spokenSendInFlightRef.current = true;
             // Close the microphone before sending so recognition cannot continue
@@ -510,7 +517,7 @@ export const TutorScreen: React.FC = () => {
             setMicState('IDLE');
             avatarService.setState('THINKING');
             void handleSendMessage(fullText, false, true);
-          }, 900);
+          }, 2600);
         }
       },
       onError: (friendlyMsg) => {
