@@ -38,9 +38,10 @@ const morningChapter = morningStory?.chapters.find(chapter => chapter.id === 'hs
 assert.ok(morningChapter, 'the continuous HSK 1 morning paragraph should be available');
 assert.equal(
   morningChapter.sentences.map(sentence => sentence.chinese).join(''),
-  '今天早上，我六点起床。我和妈妈一起吃早饭，喝一杯牛奶。七点半，我去学校学习汉语。',
-  'the sample paragraph should remain continuous and complete'
+  '今天早上，我六点起床。妈妈已经在厨房做早饭了。我吃了一个鸡蛋，又喝了一杯牛奶。出门以前，妈妈帮我把书放进书包。七点半，我和朋友一起去学校。路上，朋友发现自己忘了带笔。我把自己的笔给他用。他笑着说谢谢，我也觉得很高兴。到了教室，老师让我们读中文。我认真地听，也大声地读。下课以后，我们约好明天一起复习。回家的路上，我想：学习新词很重要，关心朋友也很重要。',
+  'the HSK 1 morning story should be a continuous, meaningful long-form passage'
 );
+assert.ok(morningChapter.sentences.length >= 10, 'the morning chapter should provide enough context for sustained reading');
 for (const hanzi of ['今天', '早上', '六点', '起床', '妈妈', '一起', '吃早饭', '牛奶', '七点半', '学校', '汉语']) {
   assert.ok(morningChapter.vocabulary.some(word => word.hanzi === hanzi), hanzi + ' should have a clickable Pinyin and Vietnamese glossary entry');
 }
