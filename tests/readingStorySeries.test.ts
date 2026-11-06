@@ -33,6 +33,8 @@ for (const level of expectedLevels) {
   assert.ok(READING_STORY_SERIES.some(series => series.level === level), level + ' stories should be available');
 }
 assert.ok(chapterIds.size >= 14, 'the library should contain a meaningful multi-level chapter collection');
+const hsk1ReadingCount = READING_STORY_SERIES.filter(series => series.level === 'HSK 1').reduce((total, series) => total + series.chapters.length, 0);
+assert.equal(hsk1ReadingCount, 20, 'HSK 1 should contain exactly 20 complete readings');
 
 const morningStory = READING_STORY_SERIES.find(series => series.id === 'hsk1-school-day');
 const morningChapter = morningStory?.chapters.find(chapter => chapter.id === 'hsk1-school-day-03');

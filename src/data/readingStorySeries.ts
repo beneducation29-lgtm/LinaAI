@@ -1,4 +1,5 @@
 import type { HSKLevel } from '../types';
+import { HSK1_EXPANSION_CHAPTERS } from './readingStoryExpansion';
 
 export interface StorySentence {
   chinese: string;
@@ -35,7 +36,7 @@ export interface ReadingStorySeries {
 }
 
 /** Original LinaAI graded stories. Pinyin and translations are aligned sentence by sentence. */
-export const READING_STORY_SERIES: ReadingStorySeries[] = [
+const BASE_READING_STORY_SERIES: ReadingStorySeries[] = [
   {
     id: 'hsk1-family-dinner',
     title: 'Bữa tối lúc bảy giờ',
@@ -529,3 +530,10 @@ export const READING_STORY_SERIES: ReadingStorySeries[] = [
   }
 
 ];
+
+// Keep the original stories intact and extend the HSK 1 path to exactly 20 readings.
+export const READING_STORY_SERIES: ReadingStorySeries[] = BASE_READING_STORY_SERIES.map(series =>
+  series.id === 'hsk1-family-dinner'
+    ? { ...series, chapters: [...series.chapters, ...HSK1_EXPANSION_CHAPTERS] }
+    : series
+);
