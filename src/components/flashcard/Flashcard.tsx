@@ -9,16 +9,19 @@ interface FlashcardProps {
   card: FlashcardType;
   onRate: (rating: ReviewRating) => void;
   className?: string;
+  direction?: 'hanzi-to-meaning' | 'meaning-to-hanzi' | 'audio-to-hanzi';
 }
 
 export const Flashcard: React.FC<FlashcardProps> = ({
   card,
   onRate,
-  className = ''
+  className = '',
+  direction = 'hanzi-to-meaning'
 }) => {
   const [isFlipped, setIsFlipped] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [sentenceDraft, setSentenceDraft] = useState('');
+  const [recallDraft, setRecallDraft] = useState('');
 
   const { vocabulary } = card;
 
@@ -39,6 +42,7 @@ export const Flashcard: React.FC<FlashcardProps> = ({
   };
 
   const handleFlip = () => {
+    if (!isFlipped && !recallDraft.trim()) return;
     setIsFlipped(!isFlipped);
   };
 
@@ -84,13 +88,32 @@ export const Flashcard: React.FC<FlashcardProps> = ({
               </span>
             </div>
 
-            <div className="my-auto space-y-3">
-              <div className="font-cjk text-6xl font-bold text-stone-900 dark:text-stone-50 tracking-wider">
-                {vocabulary.hanzi}
-              </div>
-              <p className="text-xs text-stone-400 dark:text-stone-500">
-                Chạm vào thẻ để xem Pinyin và nghĩa
+            <div className="my-auto w-full space-y-3" onClick={e => e.stopPropagation()}>
+              {direction === 'hanzi-to-meaning' ? (
+                <div className="font-cjk text-6xl font-bold text-stone-900 dark:text-stone-50 tracking-wider">{vocabulary.hanzi}</div>
+              ) : direction === 'meaning-to-hanzi' ? (
+                <div className="text-2xl font-bold leading-relaxed text-stone-900 dark:text-stone-50">{vocabulary.vietnamese}</div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="text-lg font-bold text-stone-900 dark:text-stone-50">Nghe và nhớ chữ Hán</div>
+                  <button type="button" onClick={e => handlePlay(e, vocabulary.hanzi)} className="mx-auto min-h-12 rounded-xl bg-amber-100 px-5 py-3 text-sm font-bold text-amber-900 dark:bg-amber-950/50 dark:text-amber-200">
+                    <Volume2 className="mr-2 inline h-4 w-4" /> Nghe từ
+                  </button>
+                </div>
+              )}
+              <p className="text-xs text-stone-500 dark:text-stone-400">
+                {direction === 'hanzi-to-meaning' ? 'Hãy nhớ nghĩa tiếng Việt trước khi xem đáp án.' : 'Hãy tự nhớ và nhập chữ Hán trước khi xem đáp án.'}
               </p>
+              <textarea
+                value={recallDraft}
+                onChange={e => setRecallDraft(e.target.value)}
+                onKeyDown={e => e.stopPropagation()}
+                rows={2}
+                placeholder={direction === 'hanzi-to-meaning' ? 'Nhập nghĩa tiếng Việt bạn nhớ…' : 'Nhập chữ Hán bạn nhớ…'}
+                aria-label="Câu trả lời ôn tập"
+                className="w-full resize-none rounded-xl border border-stone-200 bg-stone-50 p-3 text-center text-sm text-stone-800 outline-none focus:border-amber-400 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-100"
+              />
+              <p className="text-[10px] text-stone-400">Nhập câu trả lời rồi chạm thẻ để đối chiếu.</p>
             </div>
 
             <div className="w-full flex items-center justify-between pt-2 border-t border-stone-100 dark:border-stone-800">
@@ -130,6 +153,11 @@ export const Flashcard: React.FC<FlashcardProps> = ({
 
               <div className="text-lg font-semibold text-stone-800 dark:text-stone-200">
                 {vocabulary.vietnamese}
+              </div>
+              <div className="rounded-xl bg-amber-50 px-3 py-2 text-left text-xs dark:bg-amber-950/30">
+                <div className="font-bold text-amber-800 dark:text-amber-200">Câu trả lời của bạn</div>
+                <div className="mt-1 text-stone-700 dark:text-stone-200">{recallDraft || 'Chưa nhập câu trả lời'}</div>
+                <div className="mt-1 text-[10px] text-stone-500">Tự đối chiếu với đáp án rồi chọn mức độ nhớ bên dưới.</div>
               </div>
 
               {vocabulary.exampleSentence ? (
