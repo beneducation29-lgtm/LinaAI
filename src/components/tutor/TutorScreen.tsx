@@ -289,6 +289,11 @@ export const TutorScreen: React.FC = () => {
       const relevantMemory = aiMemory.mistakes.filter(m => !m.resolved).sort((a,b) => b.frequency-a.frequency).slice(0,6).map(m => `${m.type}: ${m.original} → ${m.corrected}`);
       const memoryContext = [
         ...learnerMemory,
+        ...aiMemory.learnerFacts.slice(-6).map(fact => `Thông tin đã xác nhận: ${fact}`),
+        ...aiMemory.preferences.slice(-4).map(preference => `Sở thích: ${preference}`),
+        ...aiMemory.goals.slice(-4).map(goal => `Mục tiêu: ${goal}`),
+        ...aiMemory.topics.slice(-4).map(topic => `Chủ đề từng quan tâm: ${topic}`),
+        ...(aiMemory.conversationSummary ? [`Tóm tắt hội thoại trước: ${aiMemory.conversationSummary}`] : []),
         `HSK: ${learnerProfile.hskLevel}`,
         `Điểm yếu: ${learnerProfile.weakAreas.slice(0,5).join(', ') || 'chưa xác định'}`,
         `Lỗi cần ưu tiên: ${relevantMemory.join(' | ') || 'chưa có'}`

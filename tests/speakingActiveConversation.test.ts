@@ -20,6 +20,9 @@ assert.match(client, /sessionTurnNumber: options\.sessionTurnNumber/);
 assert.match(client, /sessionElapsedMinutes: options\.sessionElapsedMinutes/);
 assert.match(screen, /conversation\.messages\.filter\(message => message\.sender === 'user'\)/);
 assert.match(screen, /preference: structuredRes\.memoryUpdate\?\.interest/);
+assert.match(screen, /aiMemory\.preferences\.slice\(-4\)/);
+assert.match(screen, /aiMemory\.goals\.slice\(-4\)/);
+assert.match(screen, /aiMemory\.conversationSummary/);
 assert.match(types, /conversationSummary\?: string/);
 
 console.log('Active conversation roadmap tests passed');
