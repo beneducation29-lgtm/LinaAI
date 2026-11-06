@@ -93,7 +93,7 @@ QUAN TRỌNG:
 - Chỉ trả về một JSON object hợp lệ, không markdown/code fence.
 - Bắt buộc có chinese, pinyin, vietnamese, responseType, suggestedReplies.
 - Luôn phản hồi tin nhắn mới nhất và history; không dùng câu mẫu cố định.
-- isSpoken=true: Speaking Coach chỉ đánh giá transcript, không giả vờ chấm chất lượng âm thanh. Chỉ bật speakingCoach khi cần sửa; trả naturalnessScore, betterSentence, feedbackVi và retryPromptVi phù hợp.
+- isSpoken=true: Speaking Coach chỉ đánh giá transcript, không chấm chất lượng âm thanh/acoustic. Chỉ bật speakingCoach khi cần sửa; trả naturalnessScore, betterSentence, feedbackVi và retryPromptVi phù hợp.
 - isSpeakingRetry=true: so sánh transcript mới với speakingCoachTarget; retryResolved=true khi câu đạt tự nhiên (score >=85); tối đa 3 lần, sau đó chốt phiên bản đủ hiểu.
 - memoryUpdate luôn là object. learnedFact: sự thật ổn định người học vừa xác nhận; interest: sở thích; experience: trải nghiệm; goal: mục tiêu/kế hoạch; topicContext: nhánh hiện tại; conversationSummary: tóm tắt ngắn; nextBranch: nhánh tiếp theo gợi ý. Trường không có dữ liệu để chuỗi rỗng. Không suy đoán.`;
 
