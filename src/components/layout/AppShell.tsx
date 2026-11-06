@@ -4,16 +4,17 @@ import { completeOAuthSession, requestPasswordReset, resetPassword, startGoogleL
 import { Sidebar } from '../navigation/Sidebar';
 import { BottomNavigation } from '../navigation/BottomNavigation';
 import { HomeDashboard } from '../home/HomeDashboard';
-import { TutorScreen } from '../tutor/TutorScreen';
-import { ListeningScreen } from '../listening/ListeningScreen';
-import { ReadingScreen } from '../reading/ReadingScreen';
-import { LearningSystemScreen } from '../learning/LearningSystemScreen';
-import { ReviewScreen } from '../review/ReviewScreen';
-import { Profile } from '../profile/Profile';
 import { Onboarding } from '../onboarding/Onboarding';
 import { Flame, Moon, Sun, LockKeyhole, Mail, Eye, EyeOff } from 'lucide-react';
 import { PwaInstallBanner } from '../common/PwaInstallBanner';
 import linaAvatarImg from '../../assets/images/tutor_lina_avatar_1790861417833.jpg';
+
+const TutorScreen = React.lazy(() => import('../tutor/TutorScreen').then(module => ({ default: module.TutorScreen })));
+const ListeningScreen = React.lazy(() => import('../listening/ListeningScreen').then(module => ({ default: module.ListeningScreen })));
+const ReadingScreen = React.lazy(() => import('../reading/ReadingScreen').then(module => ({ default: module.ReadingScreen })));
+const LearningSystemScreen = React.lazy(() => import('../learning/LearningSystemScreen').then(module => ({ default: module.LearningSystemScreen })));
+const ReviewScreen = React.lazy(() => import('../review/ReviewScreen').then(module => ({ default: module.ReviewScreen })));
+const Profile = React.lazy(() => import('../profile/Profile').then(module => ({ default: module.Profile })));
 
 const AnalyticsDashboard = React.lazy(() => import('../analytics/AnalyticsDashboard').then(module => ({ default: module.AnalyticsDashboard })));
 
@@ -246,7 +247,7 @@ export const AppShell: React.FC = () => {
 
         {/* Dynamic Screen View */}
         <main className="flex-1 overflow-x-hidden mobile-content-safe">
-          {renderActiveScreen()}
+          <React.Suspense fallback={<div className="grid min-h-[45vh] place-items-center text-sm text-stone-500" role="status">Đang tải chức năng…</div>}>{renderActiveScreen()}</React.Suspense>
         </main>
 
         {/* Mobile Fixed Bottom Navigation */}

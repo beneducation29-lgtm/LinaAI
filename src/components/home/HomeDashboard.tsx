@@ -3,8 +3,9 @@ import { useApp } from '../../context/AppContext';
 import { buildKnowledgeProfile, generateDailyPlan } from '../../services/personalization';
 import { ProgressCard } from './ProgressCard';
 import { LayerToggles } from '../common/LayerToggles';
-import { ToneTrainingModal } from '../voice/ToneTrainingModal';
-import { BookOpen, BookOpenText, Headphones, Brain, Sparkles, ArrowRight, Music } from 'lucide-react';
+import { BookOpen, BookOpenText, Headphones, Sparkles, ArrowRight, Music } from 'lucide-react';
+
+const ToneTrainingModal = React.lazy(() => import('../voice/ToneTrainingModal').then(module => ({ default: module.ToneTrainingModal })));
 
 export const HomeDashboard: React.FC = () => {
   const [showToneModal, setShowToneModal] = useState(false);
@@ -18,7 +19,6 @@ export const HomeDashboard: React.FC = () => {
   const shortcuts = [
     { tab: 'listening' as const, label: 'Luyện nghe', description: 'Nghe hiểu theo cấp độ', icon: Headphones },
     { tab: 'reading' as const, label: 'Đọc thông minh', description: 'Bài đọc HSK có Pinyin', icon: BookOpenText },
-    { tab: 'review' as const, label: 'Ôn tập', description: 'Củng cố từ đến hạn', icon: Brain },
   ];
 
   return (
@@ -76,7 +76,7 @@ export const HomeDashboard: React.FC = () => {
             <button type="button" onClick={() => setCurrentTab('speak')} className="text-xs font-semibold text-amber-700 dark:text-amber-400">Nói với Lina</button>
           </div>
         </div>
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2">
           {shortcuts.map(({ tab, label, description, icon: Icon }) => (
             <button key={tab} type="button" onClick={() => setCurrentTab(tab)} className="flex min-h-20 items-center gap-3 rounded-2xl border border-stone-200 bg-white p-4 text-left transition hover:border-amber-300 hover:shadow-sm dark:border-stone-800 dark:bg-stone-900">
               <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300"><Icon className="h-5 w-5" /></span>
@@ -87,7 +87,7 @@ export const HomeDashboard: React.FC = () => {
       </section>
 
       <ProgressCard currentMinutes={user.todayMinutesSpent} targetMinutes={user.dailyGoalMinutes} streakDays={user.streakDays} onSelectGoal={setDailyGoalMinutes} />
-      <ToneTrainingModal isOpen={showToneModal} onClose={() => setShowToneModal(false)} />
+      {showToneModal && <React.Suspense fallback={null}><ToneTrainingModal isOpen={showToneModal} onClose={() => setShowToneModal(false)} /></React.Suspense>}
     </div>
   );
 };
