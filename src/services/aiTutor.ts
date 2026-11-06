@@ -94,7 +94,7 @@ class AITutorClientService implements AITutorProvider {
       headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
       body: JSON.stringify({
         message: sanitizePlainText(userText, 2000),
-        history: options.history.slice(-3).map(m => ({
+        history: options.history.slice(-8).map(m => ({
           sender: m.sender,
           hanzi: sanitizePlainText(m.hanzi, 700),
           text: sanitizePlainText(m.hanzi, 700),
