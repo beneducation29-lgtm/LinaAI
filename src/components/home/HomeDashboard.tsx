@@ -3,8 +3,9 @@ import { useApp } from '../../context/AppContext';
 import { buildKnowledgeProfile, generateDailyPlan } from '../../services/personalization';
 import { ProgressCard } from './ProgressCard';
 import { LayerToggles } from '../common/LayerToggles';
-import { ToneTrainingModal } from '../voice/ToneTrainingModal';
 import { BookOpen, BookOpenText, Headphones, Sparkles, ArrowRight, Music } from 'lucide-react';
+
+const ToneTrainingModal = React.lazy(() => import('../voice/ToneTrainingModal').then(module => ({ default: module.ToneTrainingModal })));
 
 export const HomeDashboard: React.FC = () => {
   const [showToneModal, setShowToneModal] = useState(false);
@@ -86,7 +87,7 @@ export const HomeDashboard: React.FC = () => {
       </section>
 
       <ProgressCard currentMinutes={user.todayMinutesSpent} targetMinutes={user.dailyGoalMinutes} streakDays={user.streakDays} onSelectGoal={setDailyGoalMinutes} />
-      <ToneTrainingModal isOpen={showToneModal} onClose={() => setShowToneModal(false)} />
+      {showToneModal && <React.Suspense fallback={null}><ToneTrainingModal isOpen={showToneModal} onClose={() => setShowToneModal(false)} /></React.Suspense>}
     </div>
   );
 };
