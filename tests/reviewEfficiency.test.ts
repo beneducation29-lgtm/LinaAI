@@ -14,6 +14,9 @@ assert.match(review, /meaning-to-hanzi/, 'Review should test productive recall, 
 assert.match(review, /audio-to-hanzi/, 'Review should include audio-to-character recall');
 assert.match(flashcard, /recallDraft/, 'Learners must attempt recall before revealing the answer');
 assert.match(flashcard, /Câu trả lời của bạn/, 'The revealed answer should support self-comparison');
+assert.match(flashcard, /frontTitle/, 'The flashcard prompt should match the active recall direction');
+assert.match(flashcard, /revealHint/, 'The flashcard should explain why the answer cannot be revealed yet');
+assert.match(flashcard, /nhập câu trả lời trước khi xem đáp án/, 'Accessible instructions should explain the recall requirement');
 assert.match(shell, /React\.lazy\(\(\) => import\('\.\.\/tutor\/TutorScreen'\)/, 'Heavy tutor screen should be loaded on demand');
 assert.match(shell, /React\.Suspense fallback/, 'Lazy screens should have a loading fallback');
 
