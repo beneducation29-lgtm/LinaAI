@@ -1,5 +1,5 @@
 import React from 'react';
-import { BookOpen, BookmarkPlus, Check, ChevronLeft, ChevronRight, Headphones, Volume2 } from 'lucide-react';
+import { BookOpen, BookmarkPlus, Check, ChevronLeft, ChevronRight, Headphones, Pause, Play, Square, Volume2 } from 'lucide-react';
 import type { HSKLevel, Vocabulary } from '../../types';
 import { accountStorageKey } from '../../services/accountStorage';
 import { READING_STORY_SERIES, type ReadingChapter, type ReadingStorySeries } from '../../data/readingStorySeries';
@@ -157,7 +157,25 @@ export const ReadingStoryLibrary: React.FC<Props> = ({ ownerId, vocabularies, on
   const [selectedWord, setSelectedWord] = React.useState<string | null>(null);
   const [selectedReadingToken, setSelectedReadingToken] = React.useState<ReadingToken | null>(null);
   const [isSpeaking, setIsSpeaking] = React.useState(false);
+  const [isPaused, setIsPaused] = React.useState(false);
+  const [speechRate, setSpeechRate] = React.useState(0.82);
+  const [chineseVoices, setChineseVoices] = React.useState<SpeechSynthesisVoice[]>([]);
+  const [selectedVoiceURI, setSelectedVoiceURI] = React.useState('');
   const [activeAudioRange, setActiveAudioRange] = React.useState<{ start: number; end: number } | null>(null);
+
+  React.useEffect(() => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+    const updateVoices = () => {
+      const voices = window.speechSynthesis.getVoices().filter(voice => /^zh([_-]|$)/i.test(voice.lang));
+      setChineseVoices(voices);
+      setSelectedVoiceURI(current => current && voices.some(voice => voice.voiceURI === current)
+        ? current
+        : (voices.find(voice => /^zh[-_]CN/i.test(voice.lang)) || voices[0])?.voiceURI || '');
+    };
+    window.speechSynthesis.addEventListener('voiceschanged', updateVoices);
+    updateVoices();
+    return () => window.speechSynthesis.removeEventListener('voiceschanged', updateVoices);
+  }, []);
 
   React.useEffect(() => {
     setProgress(readProgress(ownerId));
@@ -167,6 +185,7 @@ export const ReadingStoryLibrary: React.FC<Props> = ({ ownerId, vocabularies, on
     setSelectedReadingToken(null);
     setActiveAudioRange(null);
     setIsSpeaking(false);
+    setIsPaused(false);
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) window.speechSynthesis.cancel();
   }, [ownerId]);
 
@@ -182,6 +201,7 @@ export const ReadingStoryLibrary: React.FC<Props> = ({ ownerId, vocabularies, on
   const stopSpeaking = () => {
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) window.speechSynthesis.cancel();
     setIsSpeaking(false);
+    setIsPaused(false);
     setActiveAudioRange(null);
   };
   const chooseStory = (next: ReadingStorySeries) => { stopSpeaking(); setStoryId(next.id); setChapterIndex(0); setAnswers({}); setSubmitted(false); setSelectedWord(null); setSelectedReadingToken(null); };
@@ -191,15 +211,19 @@ export const ReadingStoryLibrary: React.FC<Props> = ({ ownerId, vocabularies, on
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = 'zh-CN';
-    utterance.rate = 0.82;
-    utterance.onstart = () => setIsSpeaking(true);
+    utterance.rate = speechRate;
+    const selectedVoice = chineseVoices.find(voice => voice.voiceURI === selectedVoiceURI);
+    if (selectedVoice) utterance.voice = selectedVoice;
+    utterance.onstart = () => { setIsSpeaking(true); setIsPaused(false); };
+    utterance.onpause = () => setIsPaused(true);
+    utterance.onresume = () => setIsPaused(false);
     utterance.onboundary = event => {
       const start = offset + event.charIndex;
       const length = event.charLength > 0 ? event.charLength : 1;
       setActiveAudioRange({ start, end: start + length });
     };
-    utterance.onend = () => { setIsSpeaking(false); setActiveAudioRange(null); };
-    utterance.onerror = () => { setIsSpeaking(false); setActiveAudioRange(null); };
+    utterance.onend = () => { setIsSpeaking(false); setIsPaused(false); setActiveAudioRange(null); };
+    utterance.onerror = () => { setIsSpeaking(false); setIsPaused(false); setActiveAudioRange(null); };
     window.speechSynthesis.speak(utterance);
   };
   React.useEffect(() => () => {
@@ -234,11 +258,29 @@ export const ReadingStoryLibrary: React.FC<Props> = ({ ownerId, vocabularies, on
     </div>
     <article className="rounded-2xl border border-stone-200 bg-[#fffefa] p-4 dark:border-stone-700 dark:bg-stone-950 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-[10px] font-extrabold uppercase tracking-wider text-stone-400">Chương {chapterIndex+1}/{story.chapters.length}</p><h4 className="mt-1 text-lg font-black text-stone-900 dark:text-stone-100">{chapter.title}</h4><p className="font-cjk text-xl text-amber-900 dark:text-amber-200">{chapter.titleZh}</p></div><div className="flex flex-wrap gap-2">
-        <button type="button" onClick={()=>isSpeaking?stopSpeaking():speak(readingText)} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-amber-700 px-3 text-xs font-bold text-white"><Headphones className="h-4 w-4"/>{isSpeaking?'Dừng đọc':'Nghe toàn đoạn'}</button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button type="button" onClick={()=>{if(isPaused)window.speechSynthesis.resume();else if(isSpeaking)window.speechSynthesis.pause();else speak(readingText);}} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-amber-700 px-3 text-xs font-bold text-white" aria-label={isPaused?'Tiếp tục đọc':isSpeaking?'Tạm dừng đọc':'Nghe toàn đoạn'}>
+            {isPaused?<Play className="h-4 w-4"/>:isSpeaking?<Pause className="h-4 w-4"/>:<Headphones className="h-4 w-4"/>}
+            {isPaused?'Tiếp tục':isSpeaking?'Tạm dừng':'Nghe toàn đoạn'}
+          </button>
+          {isSpeaking&&<button type="button" onClick={stopSpeaking} className="inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-stone-200 px-3 text-xs font-bold text-stone-600 dark:border-stone-700 dark:text-stone-300"><Square className="h-3.5 w-3.5"/> Dừng</button>}
+          <label className="flex min-h-10 items-center gap-1.5 rounded-xl border border-stone-200 px-2 text-[11px] font-semibold text-stone-600 dark:border-stone-700 dark:text-stone-300">
+            Tốc độ
+            <select aria-label="Tốc độ giọng đọc" value={speechRate} onChange={event=>setSpeechRate(Number(event.target.value))} className="max-w-[5rem] bg-transparent text-xs font-bold text-stone-900 outline-none dark:text-stone-100">
+              <option value={0.65}>0.65×</option><option value={0.82}>0.82×</option><option value={1}>1×</option><option value={1.15}>1.15×</option>
+            </select>
+          </label>
+          {chineseVoices.length>0&&<label className="flex min-h-10 max-w-full items-center gap-1.5 rounded-xl border border-stone-200 px-2 text-[11px] font-semibold text-stone-600 dark:border-stone-700 dark:text-stone-300">
+            Giọng
+            <select aria-label="Chọn giọng đọc tiếng Trung" value={selectedVoiceURI} onChange={event=>setSelectedVoiceURI(event.target.value)} className="max-w-[10rem] truncate bg-transparent text-xs font-bold text-stone-900 outline-none dark:text-stone-100">
+              {chineseVoices.map(voice=><option key={voice.voiceURI} value={voice.voiceURI}>{voice.name} · {voice.lang}</option>)}
+            </select>
+          </label>}
+        </div>
         <button type="button" onClick={()=>setShowPinyin(value=>!value)} className="min-h-10 rounded-xl border border-stone-200 px-3 text-xs font-bold dark:border-stone-700">{showPinyin?'Ẩn Pinyin':'Hiện Pinyin'}</button>
         <button type="button" onClick={()=>setShowVietnamese(value=>!value)} className="min-h-10 rounded-xl border border-stone-200 px-3 text-xs font-bold dark:border-stone-700">{showVietnamese?'Ẩn tiếng Việt':'Hiện tiếng Việt'}</button>
       </div></div>
-      <p className="mt-4 text-xs text-stone-500">Chạm vào từ hoặc chữ Hán để xem Pinyin và nghĩa. Khi nghe, phần văn bản đang được đọc sẽ tự động sáng lên.</p>
+      <p className="mt-4 text-xs text-stone-500" aria-live="polite">Chạm vào từ hoặc chữ Hán để xem Pinyin và nghĩa. Khi nghe, phần văn bản đang được đọc sẽ tự động sáng lên. {chineseVoices.length===0?'Thiết bị chưa cung cấp danh sách giọng zh-CN; trình duyệt sẽ dùng giọng mặc định nếu có.':'Bạn có thể chọn giọng tiếng Trung và điều chỉnh tốc độ đọc.'}</p>
       <p className="mt-5 font-cjk text-2xl leading-[2.5] tracking-wide text-stone-900 dark:text-stone-100 sm:text-[1.7rem] sm:leading-[2.7]">
         {(() => {
           const parts: React.ReactNode[] = [];

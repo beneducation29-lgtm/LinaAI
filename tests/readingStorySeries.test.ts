@@ -50,6 +50,12 @@ const storyReader = readFileSync(new URL('../src/components/reading/ReadingStory
 assert.ok(!readingScreen.includes('Bài đọc ('), 'the duplicate legacy graded-reading list should not render below the story library');
 assert.ok(storyReader.includes('<rt>{token.pinyin}</rt>'), 'Pinyin should render as ruby text above Hanzi');
 assert.ok(storyReader.includes('alignPinyinWithTones'), 'fallback character readings should preserve tone marks');
+assert.ok(storyReader.includes('voiceschanged'), 'Chinese voice options should refresh when browser voices load asynchronously');
+assert.ok(storyReader.includes('test(voice.lang)'), 'selected playback voices must be Chinese voices');
+assert.ok(storyReader.includes('aria-label="Chọn giọng đọc tiếng Trung"'), 'learners should be able to select an available Chinese voice');
+assert.ok(storyReader.includes('aria-label="Tốc độ giọng đọc"'), 'learners should be able to adjust reading speed');
+assert.ok(storyReader.includes('window.speechSynthesis.pause()') && storyReader.includes('window.speechSynthesis.resume()'), 'reading audio should support pause and resume');
+assert.ok(storyReader.includes('utterance.onboundary'), 'audio playback should keep synchronizing the active text highlight');
 for (const hanzi of ['今天', '早上', '六点', '起床', '妈妈', '一起', '吃早饭', '牛奶', '七点半', '学校', '汉语']) {
   assert.ok(morningChapter.vocabulary.some(word => word.hanzi === hanzi), hanzi + ' should have a clickable Pinyin and Vietnamese glossary entry');
 }
