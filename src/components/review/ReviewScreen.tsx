@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Flashcard } from '../flashcard/Flashcard';
 import { VocabularyCard } from '../vocabulary/VocabularyCard';
-import { LayerToggles } from '../common/LayerToggles';
 import { ReviewRating } from '../../types';
 import { MistakeRecord } from '../../types/learning';
 import { buildReviewQueue, isDue } from '../../services/learningEngine';
@@ -19,39 +18,44 @@ export const ReviewScreen: React.FC = () => {
   const [reviewMode, setReviewMode] = useState<'smart' | 'due' | 'hard'>('smart');
   const [sessionQueueIds, setSessionQueueIds] = useState<string[]>([]);
 
-  const dueReviewCount = useMemo(() => {
-    const now = new Date();
-    return flashcards.filter(card => isDue(card.nextReviewDate || now.toISOString(), now)).length;
+  const uniqueFlashcards = useMemo(() => {
+    const seen = new Set<string>();
+    return flashcards.filter(card => {
+      const key = card.vocabulary.id || `${card.vocabulary.hanzi}|${card.vocabulary.pinyin}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
   }, [flashcards]);
 
-  const hardReviewCount = useMemo(() => flashcards.filter(card => {
+  const dueReviewCount = useMemo(() => {
+    const now = new Date();
+    return uniqueFlashcards.filter(card => isDue(card.nextReviewDate || now.toISOString(), now)).length;
+  }, [uniqueFlashcards]);
+
+  const hardReviewCount = useMemo(() => uniqueFlashcards.filter(card => {
     const schedule = reviewSchedules[card.id];
     return card.lastRating === 'again' || card.lastRating === 'hard' || Boolean(schedule && (schedule.mastery < 35 || schedule.incorrectCount > schedule.correctCount));
-  }).length, [flashcards, reviewSchedules]);
+  }).length, [uniqueFlashcards, reviewSchedules]);
 
   const candidateReviewQueue = useMemo(() => {
     const now = new Date();
     const prioritized = buildReviewQueue(reviewSchedules, now);
     const priorityById = new Map(prioritized.map(item => [item.itemId, item.priorityScore]));
-    const dueCards = [...flashcards]
+    const dueCards = [...uniqueFlashcards]
       .filter(card => isDue(card.nextReviewDate || now.toISOString(), now))
       .sort((a, b) => (priorityById.get(b.id) ?? -1) - (priorityById.get(a.id) ?? -1));
-    const hardCards = [...flashcards]
+    const hardCards = [...uniqueFlashcards]
       .filter(card => {
         const schedule = reviewSchedules[card.id];
         return card.lastRating === 'again' || card.lastRating === 'hard' || Boolean(schedule && (schedule.mastery < 35 || schedule.incorrectCount > schedule.correctCount));
       })
       .sort((a, b) => (priorityById.get(b.id) ?? 0) - (priorityById.get(a.id) ?? 0));
-    const freshCards = [...flashcards]
-      .filter(card => !isDue(card.nextReviewDate || now.toISOString(), now))
-      .sort((a, b) => {
-        const urgency = (rating?: ReviewRating) => rating === 'again' ? 3 : rating === 'hard' ? 2 : rating === 'good' ? 1 : 0;
-        return urgency(b.lastRating) - urgency(a.lastRating);
-      });
     if (reviewMode === 'due') return dueCards.slice(0, 20);
     if (reviewMode === 'hard') return hardCards.slice(0, 20);
-    return [...dueCards, ...freshCards].slice(0, 20);
-  }, [flashcards, reviewSchedules, reviewMode]);
+    const dueIds = new Set(dueCards.map(card => card.id));
+    return [...dueCards, ...hardCards.filter(card => !dueIds.has(card.id))].slice(0, 20);
+  }, [uniqueFlashcards, reviewSchedules, reviewMode]);
 
   // Freeze the card IDs for the active session. Rating a due card updates its
   // next-review date, but must not reshuffle the remaining cards mid-session.
@@ -131,7 +135,7 @@ export const ReviewScreen: React.FC = () => {
                 : 'text-stone-500 hover:text-stone-900 dark:hover:text-stone-200'
             }`}
           >
-            Thẻ nhớ ({flashcards.length})
+            Thẻ nhớ ({uniqueFlashcards.length})
           </button>
           <button
             type="button"
@@ -160,12 +164,10 @@ export const ReviewScreen: React.FC = () => {
         </div>
       </div>
 
-      <LayerToggles compact />
-
       {activeTab === 'flashcards' && (
         <div className="grid grid-cols-3 gap-2 p-1 rounded-2xl bg-stone-100 dark:bg-stone-800" role="group" aria-label="Chế độ ôn tập">
           <button type="button" onClick={() => { setReviewMode('smart'); setSessionQueueIds([]); handleRestart(); }} aria-pressed={reviewMode === 'smart'} className={`min-h-10 rounded-xl px-2 py-2 text-xs font-semibold transition-colors ${reviewMode === 'smart' ? 'bg-white dark:bg-stone-900 text-stone-900 dark:text-stone-100 shadow-xs' : 'text-stone-500 hover:text-stone-900 dark:hover:text-stone-200'}`}>
-            Thông minh ({flashcards.length})
+            Thông minh ({dueReviewCount + Math.max(0, hardReviewCount - dueReviewCount)})
           </button>
           <button type="button" onClick={() => { setReviewMode('due'); setSessionQueueIds([]); handleRestart(); }} aria-pressed={reviewMode === 'due'} className={`min-h-10 rounded-xl px-2 py-2 text-xs font-semibold transition-colors ${reviewMode === 'due' ? 'bg-white dark:bg-stone-900 text-stone-900 dark:text-stone-100 shadow-xs' : 'text-stone-500 hover:text-stone-900 dark:hover:text-stone-200'}`}>
             Đến hạn ({dueReviewCount})
@@ -210,6 +212,7 @@ export const ReviewScreen: React.FC = () => {
               key={currentCard.id}
               card={currentCard}
               onRate={handleRate}
+              direction={(['hanzi-to-meaning', 'meaning-to-hanzi', 'audio-to-hanzi'] as const)[currentIndex % 3]}
             />
           </div>
         ) : (
