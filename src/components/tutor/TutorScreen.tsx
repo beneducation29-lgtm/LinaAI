@@ -413,10 +413,19 @@ export const TutorScreen: React.FC = () => {
         setMicState('IDLE');
         avatarService.setState('IDLE');
       }
-    } catch {
+    } catch (error) {
       setMicState('ERROR');
       avatarService.setState('ERROR');
-      setErrorMessage('Đang gặp sự cố kết nối. Bạn thử lại nhé.');
+      const code = String((error as any)?.code || '');
+      if (code === 'TUTOR_PROVIDER_UNAVAILABLE') {
+        setErrorMessage('Lina đang tạm thời quá tải từ phía dịch vụ AI. Câu nói của bạn vẫn được giữ; hãy thử gửi lại sau ít phút nhé.');
+      } else if (code === 'TUTOR_REPETITIVE_RESPONSE') {
+        setErrorMessage('Lina vừa tạo câu trả lời trùng với lượt trước. Nội dung bạn nói vẫn được giữ; bạn hãy gửi lại để Lina tiếp tục cuộc trò chuyện nhé.');
+      } else if (code === 'TUTOR_NOT_CONFIGURED') {
+        setErrorMessage('Lina AI chưa được cấu hình kết nối Gemini. Vui lòng báo quản trị viên kiểm tra GEMINI_API_KEY trên Vercel.');
+      } else {
+        setErrorMessage('Đang gặp sự cố kết nối. Bạn thử lại nhé.');
+      }
     }
   };
 
