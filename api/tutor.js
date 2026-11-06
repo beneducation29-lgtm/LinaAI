@@ -352,7 +352,7 @@ async function generateTutor(body) {
           'Previous Lina reply (do not repeat or paraphrase): ' + previousReply,
           'Learner latest message (respond to this specifically): ' + message,
           'Generate a genuinely new next turn that answers the learner and advances the current conversation. Do not restart or ask a question already answered.'
-        ].join('\\n');
+        ].join('\n');
         const retryText = await callGemini({ apiKey, model, prompt: retryPrompt });
         response = validateTutorResponse(parseTutorJson(retryText), speakingAttempt);
         if (repeatsPreviousTutorReply(response, history)) {
