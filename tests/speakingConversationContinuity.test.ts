@@ -13,6 +13,7 @@ assert.match(tutorApi, /function comparableChinese/);
 assert.match(tutorApi, /function repeatsPreviousTutorReply/);
 assert.match(tutorApi, /REGENERATION REQUIRED/);
 assert.match(tutorApi, /TUTOR_REPETITIVE_RESPONSE/);
+assert.match(tutorClient, /TUTOR_REPETITIVE_RESPONSE/);
 assert.match(tutorScreen, /TUTOR_REPETITIVE_RESPONSE/);
 
 console.log('Speaking conversation continuity tests passed');

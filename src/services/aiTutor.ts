@@ -78,7 +78,7 @@ class AITutorClientService implements AITutorProvider {
       if ((err as Error)?.name === 'AbortError' && options.signal?.aborted) throw err;
       // A provider outage is not a conversation turn. Do not substitute a
       // canned answer that appears to respond to unrelated learner messages.
-      if (['TUTOR_PROVIDER_UNAVAILABLE', 'TUTOR_NOT_CONFIGURED'].includes(String((err as any)?.code || ''))) throw err;
+      if (['TUTOR_PROVIDER_UNAVAILABLE', 'TUTOR_NOT_CONFIGURED', 'TUTOR_REPETITIVE_RESPONSE'].includes(String((err as any)?.code || ''))) throw err;
       console.warn('Tutor API failed, utilizing graceful local fallback:', err);
       return this.getLocalFallbackResponse(userText, options.mode, options.userName);
     }
