@@ -169,19 +169,36 @@ class SpeechService {
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       this.recognition.onresult = (event: any) => {
-        let transcript = '';
-        let isFinal = false;
-        let confidence = 0.9;
+        // Keep completed and still-changing speech separate. A single browser
+        // event may contain both kinds of segments.
+        let finalTranscript = '';
+        let interimTranscript = '';
+        let finalConfidence: number | undefined;
 
         for (let i = event.resultIndex; i < event.results.length; ++i) {
-          transcript += event.results[i][0].transcript;
-          if (event.results[i].isFinal) {
-            isFinal = true;
-            confidence = event.results[i][0].confidence || 0.9;
+          const result = event.results[i];
+          const alternative = result?.[0];
+          const segment = typeof alternative?.transcript === 'string'
+            ? alternative.transcript.trim()
+            : '';
+          if (!segment) continue;
+
+          if (result.isFinal) {
+            finalTranscript += segment;
+            if (typeof alternative.confidence === 'number') {
+              finalConfidence = alternative.confidence;
+            }
+          } else {
+            interimTranscript += segment;
           }
         }
 
-        options.onResult({ transcript: transcript.trim(), isFinal, confidence });
+        if (finalTranscript) {
+          options.onResult({ transcript: finalTranscript, isFinal: true, confidence: finalConfidence });
+        }
+        if (interimTranscript) {
+          options.onResult({ transcript: interimTranscript, isFinal: false });
+        }
       };
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
