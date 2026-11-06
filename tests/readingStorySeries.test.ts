@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { READING_STORY_SERIES } from '../src/data/readingStorySeries';
 
 const seriesIds = new Set<string>();
@@ -42,6 +43,11 @@ assert.equal(
   'the HSK 1 morning story should be a continuous, meaningful long-form passage'
 );
 assert.ok(morningChapter.sentences.length >= 10, 'the morning chapter should provide enough context for sustained reading');
+const readingScreen = readFileSync(new URL('../src/components/reading/ReadingScreen.tsx', import.meta.url), 'utf8');
+const storyReader = readFileSync(new URL('../src/components/reading/ReadingStoryLibrary.tsx', import.meta.url), 'utf8');
+assert.ok(!readingScreen.includes('Bài đọc ('), 'the duplicate legacy graded-reading list should not render below the story library');
+assert.ok(storyReader.includes('<rt>{token.pinyin}</rt>'), 'Pinyin should render as ruby text above Hanzi');
+assert.ok(storyReader.includes('alignPinyinWithTones'), 'fallback character readings should preserve tone marks');
 for (const hanzi of ['今天', '早上', '六点', '起床', '妈妈', '一起', '吃早饭', '牛奶', '七点半', '学校', '汉语']) {
   assert.ok(morningChapter.vocabulary.some(word => word.hanzi === hanzi), hanzi + ' should have a clickable Pinyin and Vietnamese glossary entry');
 }
