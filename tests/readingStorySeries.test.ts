@@ -51,7 +51,7 @@ assert.ok(!readingScreen.includes('Bài đọc ('), 'the duplicate legacy graded
 assert.ok(storyReader.includes('<rt>{token.pinyin}</rt>'), 'Pinyin should render as ruby text above Hanzi');
 assert.ok(storyReader.includes('alignPinyinWithTones'), 'fallback character readings should preserve tone marks');
 assert.ok(storyReader.includes('voiceschanged'), 'Chinese voice options should refresh when browser voices load asynchronously');
-assert.ok(storyReader.includes('test(voice.lang)') 'selected playback voices must be Chinese voices');
+assert.ok(storyReader.includes('test(voice.lang)'), 'selected playback voices must be Chinese voices');
 assert.ok(storyReader.includes('aria-label="Chọn giọng đọc tiếng Trung"'), 'learners should be able to select an available Chinese voice');
 assert.ok(storyReader.includes('aria-label="Tốc độ giọng đọc"'), 'learners should be able to adjust reading speed');
 assert.ok(storyReader.includes('window.speechSynthesis.pause()') && storyReader.includes('window.speechSynthesis.resume()'), 'reading audio should support pause and resume');
