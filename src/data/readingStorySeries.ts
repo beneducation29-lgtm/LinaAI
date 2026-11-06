@@ -247,8 +247,17 @@ export const READING_STORY_SERIES: ReadingStorySeries[] = [
       { id: 'hsk1-school-day-03', title: 'Buổi sáng của tôi', titleZh: '我的早上',
         sentences: [
           { chinese: '今天早上，我六点起床。', pinyin: 'Jīntiān zǎoshang, wǒ liù diǎn qǐchuáng.', vietnamese: 'Sáng nay, tôi thức dậy lúc sáu giờ.' },
-          { chinese: '我和妈妈一起吃早饭，喝一杯牛奶。', pinyin: 'Wǒ hé māma yìqǐ chī zǎofàn, hē yì bēi niúnǎi.', vietnamese: 'Tôi cùng mẹ ăn sáng và uống một cốc sữa.' },
-          { chinese: '七点半，我去学校学习汉语。', pinyin: 'Qī diǎn bàn, wǒ qù xuéxiào xuéxí Hànyǔ.', vietnamese: 'Bảy giờ rưỡi, tôi đến trường học tiếng Trung.' }
+          { chinese: '妈妈已经在厨房做早饭了。', pinyin: 'Māma yǐjīng zài chúfáng zuò zǎofàn le.', vietnamese: 'Mẹ đã ở trong bếp chuẩn bị bữa sáng.' },
+          { chinese: '我吃了一个鸡蛋，又喝了一杯牛奶。', pinyin: 'Wǒ chī le yí ge jīdàn, yòu hē le yì bēi niúnǎi.', vietnamese: 'Tôi ăn một quả trứng rồi uống thêm một cốc sữa.' },
+          { chinese: '出门以前，妈妈帮我把书放进书包。', pinyin: 'Chūmén yǐqián, māma bāng wǒ bǎ shū fàng jìn shūbāo.', vietnamese: 'Trước khi ra khỏi nhà, mẹ giúp tôi bỏ sách vào cặp.' },
+          { chinese: '七点半，我和朋友一起去学校。', pinyin: 'Qī diǎn bàn, wǒ hé péngyou yìqǐ qù xuéxiào.', vietnamese: 'Bảy giờ rưỡi, tôi cùng bạn đến trường.' },
+          { chinese: '路上，朋友发现自己忘了带笔。', pinyin: 'Lùshang, péngyou fāxiàn zìjǐ wàng le dài bǐ.', vietnamese: 'Trên đường, bạn tôi phát hiện mình quên mang bút.' },
+          { chinese: '我把自己的笔给他用。', pinyin: 'Wǒ bǎ zìjǐ de bǐ gěi tā yòng.', vietnamese: 'Tôi đưa chiếc bút của mình cho bạn dùng.' },
+          { chinese: '他笑着说谢谢，我也觉得很高兴。', pinyin: 'Tā xiàozhe shuō xièxie, wǒ yě juéde hěn gāoxìng.', vietnamese: 'Bạn mỉm cười cảm ơn, tôi cũng cảm thấy rất vui.' },
+          { chinese: '到了教室，老师让我们读中文。', pinyin: 'Dào le jiàoshì, lǎoshī ràng wǒmen dú Zhōngwén.', vietnamese: 'Đến lớp, thầy cô bảo chúng tôi đọc tiếng Trung.' },
+          { chinese: '我认真地听，也大声地读。', pinyin: 'Wǒ rènzhēn de tīng, yě dàshēng de dú.', vietnamese: 'Tôi chăm chú lắng nghe và đọc thành tiếng.' },
+          { chinese: '下课以后，我们约好明天一起复习。', pinyin: 'Xiàkè yǐhòu, wǒmen yuē hǎo míngtiān yìqǐ fùxí.', vietnamese: 'Sau giờ học, chúng tôi hẹn ngày mai cùng ôn bài.' },
+          { chinese: '回家的路上，我想：学习新词很重要，关心朋友也很重要。', pinyin: 'Huí jiā de lùshang, wǒ xiǎng: xuéxí xīn cí hěn zhòngyào, guānxīn péngyou yě hěn zhòngyào.', vietnamese: 'Trên đường về nhà, tôi nghĩ: học từ mới rất quan trọng, quan tâm đến bạn bè cũng quan trọng không kém.' }
         ],
         vocabulary: [
           { hanzi: '今天', pinyin: 'jīntiān', vietnamese: 'hôm nay' },
@@ -267,11 +276,23 @@ export const READING_STORY_SERIES: ReadingStorySeries[] = [
           { hanzi: '去', pinyin: 'qù', vietnamese: 'đi' },
           { hanzi: '学校', pinyin: 'xuéxiào', vietnamese: 'trường học' },
           { hanzi: '学习', pinyin: 'xuéxí', vietnamese: 'học tập' },
-          { hanzi: '汉语', pinyin: 'Hànyǔ', vietnamese: 'tiếng Trung' }
+          { hanzi: '汉语', pinyin: 'Hànyǔ', vietnamese: 'tiếng Trung' },
+          { hanzi: '厨房', pinyin: 'chúfáng', vietnamese: 'nhà bếp' },
+          { hanzi: '鸡蛋', pinyin: 'jīdàn', vietnamese: 'trứng gà' },
+          { hanzi: '书包', pinyin: 'shūbāo', vietnamese: 'cặp sách' },
+          { hanzi: '朋友', pinyin: 'péngyou', vietnamese: 'bạn bè' },
+          { hanzi: '发现', pinyin: 'fāxiàn', vietnamese: 'phát hiện' },
+          { hanzi: '忘记', pinyin: 'wàngjì', vietnamese: 'quên' },
+          { hanzi: '铅笔', pinyin: 'qiānbǐ', vietnamese: 'bút chì' },
+          { hanzi: '教室', pinyin: 'jiàoshì', vietnamese: 'phòng học' },
+          { hanzi: '认真', pinyin: 'rènzhēn', vietnamese: 'chăm chú; nghiêm túc' },
+          { hanzi: '复习', pinyin: 'fùxí', vietnamese: 'ôn tập' },
+          { hanzi: '关心', pinyin: 'guānxīn', vietnamese: 'quan tâm' }
         ],
         questions: [
           { question: '“我”几点起床？', options: ['五点', '六点', '七点半'], answer: 1, explanation: '第一句说：“我六点起床。”' },
-          { question: '“我”早上和谁一起吃早饭？', options: ['爸爸', '妈妈', '朋友'], answer: 1, explanation: '第二句说：“我和妈妈一起吃早饭。”' }
+          { question: '朋友在路上遇到了什么问题？', options: ['忘了带笔', '忘了带书包', '忘了吃早饭'], answer: 0, explanation: '第六句说：朋友发现自己忘了带笔。' },
+          { question: '“我”为什么觉得高兴？', options: ['因为帮助了朋友', '因为不用上课', '因为买了新书'], answer: 0, explanation: '“我”把自己的笔借给朋友使用，朋友向“我”道谢。' }
         ]
       }
     ]
