@@ -57,7 +57,7 @@ const magazineChapterIds = READING_STORY_SERIES
 assert.equal(magazineChapterIds.length, 12, 'six graded magazine themes should add twelve chapters');
 
 const hsk1ReadingCount = READING_STORY_SERIES.filter(series => series.level === 'HSK 1').reduce((total, series) => total + series.chapters.length, 0);
-assert.equal(hsk1ReadingCount, 23, 'HSK 1 should contain 23 complete readings after the new story series');
+assert.equal(hsk1ReadingCount, 25, 'HSK 1 should contain 25 complete readings after adding the two magazine chapters');
 for (const level of expectedLevels.slice(1)) {
   const levelStories = READING_STORY_SERIES.filter(series => series.level === level);
   assert.ok(levelStories.length >= 2, level + ' should contain at least two separate story series');
