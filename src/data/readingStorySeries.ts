@@ -1,6 +1,7 @@
 import type { HSKLevel } from '../types';
 import { HSK1_EXPANSION_CHAPTERS } from './readingStoryExpansion';
 import { MORE_READING_STORIES } from './readingStoryMoreSeries';
+import { READING_MAGAZINE_SERIES } from './readingMagazineSeries';
 
 export interface StorySentence {
   chinese: string;
@@ -539,5 +540,6 @@ export const READING_STORY_SERIES: ReadingStorySeries[] = [
       ? { ...series, chapters: [...series.chapters, ...HSK1_EXPANSION_CHAPTERS] }
       : series
   ),
-  ...MORE_READING_STORIES
+  ...MORE_READING_STORIES,
+  ...READING_MAGAZINE_SERIES
 ];

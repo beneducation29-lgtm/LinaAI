@@ -33,8 +33,31 @@ for (const level of expectedLevels) {
   assert.ok(READING_STORY_SERIES.some(series => series.level === level), level + ' stories should be available');
 }
 assert.ok(chapterIds.size >= 35, 'the library should contain a substantial multi-level chapter collection');
+const magazineSeriesIds = [
+  'magazine-hsk1-daily-life',
+  'magazine-hsk2-city-weekend',
+  'magazine-hsk3-learning-method',
+  'magazine-hsk4-digital-payment',
+  'magazine-hsk5-workplace-change',
+  'magazine-hsk6-information-literacy'
+];
+for (const id of magazineSeriesIds) {
+  const series = READING_STORY_SERIES.find(item => item.id === id);
+  assert.ok(series, id + ' magazine-style reading should be available');
+  assert.equal(series.chapters.length, 2, id + ' should contain two complete chapters');
+  for (const chapter of series.chapters) {
+    assert.ok(chapter.sentences.length >= 4, 'magazine chapters should provide sustained reading context');
+    assert.ok(chapter.vocabulary.length >= 6, 'magazine chapters should include a focused glossary');
+    assert.ok(chapter.questions.length >= 2, 'magazine chapters should include comprehension checks');
+  }
+}
+const magazineChapterIds = READING_STORY_SERIES
+  .filter(series => magazineSeriesIds.includes(series.id))
+  .flatMap(series => series.chapters.map(chapter => chapter.id));
+assert.equal(magazineChapterIds.length, 12, 'six graded magazine themes should add twelve chapters');
+
 const hsk1ReadingCount = READING_STORY_SERIES.filter(series => series.level === 'HSK 1').reduce((total, series) => total + series.chapters.length, 0);
-assert.equal(hsk1ReadingCount, 23, 'HSK 1 should contain 23 complete readings after the new story series');
+assert.equal(hsk1ReadingCount, 25, 'HSK 1 should contain 25 complete readings after adding the two magazine chapters');
 for (const level of expectedLevels.slice(1)) {
   const levelStories = READING_STORY_SERIES.filter(series => series.level === level);
   assert.ok(levelStories.length >= 2, level + ' should contain at least two separate story series');
