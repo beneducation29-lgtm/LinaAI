@@ -1,5 +1,6 @@
 import React from 'react';
 import { ReadingStoryLibrary } from './ReadingStoryLibrary';
+import { ReadingProgressOverview } from './ReadingProgressOverview';
 import type { Vocabulary } from '../../types';
 
 const PINYIN_SYLLABLES = new Set(`a ai an ang ao e ei en eng er o ou
@@ -122,6 +123,7 @@ function speakChinese(value: string | string[]) {
 /** One focused reading experience; the duplicate legacy graded-reading panel is retired. */
 export const ReadingScreen: React.FC<{ ownerId: string; vocabularies: Vocabulary[]; onSaveVocabulary: (id: string) => void; isVocabularySaved: (id: string) => boolean }> = (props) => (
   <div className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
+    <ReadingProgressOverview ownerId={props.ownerId} />
     <ReadingStoryLibrary {...props} />
   </div>
 );

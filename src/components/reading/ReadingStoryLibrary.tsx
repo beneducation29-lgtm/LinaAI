@@ -233,6 +233,7 @@ export const ReadingStoryLibrary: React.FC<Props> = ({ ownerId, vocabularies, on
     const next = { ...progress, [chapter.id]: { completedAt: new Date().toISOString(), correct: score, total: chapter.questions.length } };
     setProgress(next);
     try { localStorage.setItem(accountStorageKey(STORAGE_KEY, ownerId), JSON.stringify(next)); } catch { /* session state remains available */ }
+    if (typeof window !== 'undefined') window.dispatchEvent(new Event('lina-reading-progress-updated'));
     setSubmitted(true);
   };
   const nextChapter = () => {
