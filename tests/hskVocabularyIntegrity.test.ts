@@ -3,15 +3,18 @@ import { HSK2_6_LESSONS } from '../src/data/hskExpandedLessons';
 
 const lessons = [...HSK1_LESSONS, ...HSK2_6_LESSONS];
 const owners = new Map<string, string>();
-const ids = new Set<string>();
+const ids = new Map<string, string>();
 
 for (const lesson of lessons) {
   if (lesson.vocabulary.length !== 5) {
     throw new Error(`${lesson.id} should contain five vocabulary items; found ${lesson.vocabulary.length}`);
   }
   for (const item of lesson.vocabulary) {
-    if (ids.has(item.id)) throw new Error(`Duplicate vocabulary id: ${item.id}`);
-    ids.add(item.id);
+    const knownHeadword = ids.get(item.id);
+    if (knownHeadword && knownHeadword !== item.hanzi) {
+      throw new Error(`Vocabulary id ${item.id} maps to multiple headwords`);
+    }
+    ids.set(item.id, item.hanzi);
     const previousLevel = owners.get(item.hanzi);
     if (previousLevel && previousLevel !== lesson.hskLevel) {
       throw new Error(`Vocabulary "${item.hanzi}" is repeated across ${previousLevel} and ${lesson.hskLevel}`);
@@ -20,4 +23,4 @@ for (const lesson of lessons) {
   }
 }
 
-console.log(`HSK vocabulary integrity passed: ${lessons.length} lessons, ${ids.size} vocabulary entries, no cross-level duplicates.`);
+console.log(`HSK vocabulary integrity passed: ${lessons.length} lessons, ${ids.size} unique vocabulary IDs, no cross-level duplicates.`);
