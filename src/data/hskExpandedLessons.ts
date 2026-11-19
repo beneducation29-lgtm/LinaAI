@@ -41,12 +41,12 @@ const data: Record<Level, Array<{vi:string; zh:string; py:string; objective:stri
 };
 
 function makeVocabulary(level:Level, lessonNo:number, words:Array<[string,string,string,string,string]>, cat:string):StructuredVocabulary[]{
-  return words.map((w,i)=>({id:level.replace(' ','').toLowerCase()+'-v'+lessonNo+'-'+(i+1),hanzi:w[0],pinyin:w[1],pinyinNumbered:w[1],vietnamese:w[2],partOfSpeech:w[3],exampleChinese:w[4],examplePinyin:w[1],exampleVietnamese:w[2],hskLevel:level,category:cat,audio:'',difficulty:(i<2?1:i<4?2:3) as 1|2|3}));
+  return words.map((w,i)=>({id:level.replace(' ','').toLowerCase()+'-v'+lessonNo+'-'+(i+1),hanzi:w[0],pinyin:w[1],pinyinNumbered:w[1],vietnamese:w[2],partOfSpeech:w[3],exampleChinese:w[4],examplePinyin:'',exampleVietnamese:'',hskLevel:level,category:cat,audio:'',difficulty:(i<2?1:i<4?2:3) as 1|2|3}));
 }
 function sentence(id:string,chinese:string,pinyin:string,vietnamese:string):StructuredSentence{return{id,chinese,pinyin,vietnamese};}
 function makeLesson(level:Level,lessonNo:number,item:(typeof data)[Level][number]):StructuredLesson{
   const vocab=makeVocabulary(level,lessonNo,item.words,item.cat);
-  const g:GrammarRecord={id:item.grammar[0],pattern:item.grammar[1],meaning:item.grammar[2],explanationVi:item.grammar[3],examples:item.grammar[4].map((x,i)=>sentence(item.grammar[0]+'-'+i,x,'',x)),commonMistakes:['Dùng sai trật tự thành phần hoặc áp dụng cấu trúc ngoài ngữ cảnh.','Cần kiểm tra chủ ngữ, thời điểm và quan hệ logic của hai mệnh đề.'],practiceQuestions:item.grammar[4]};
+  const g:GrammarRecord={id:item.grammar[0],pattern:item.grammar[1],meaning:item.grammar[2],explanationVi:item.grammar[3],examples:item.grammar[4].map((x,i)=>sentence(item.grammar[0]+'-'+i,x,'','')),commonMistakes:['Dùng sai trật tự thành phần hoặc áp dụng cấu trúc ngoài ngữ cảnh.','Cần kiểm tra chủ ngữ, thời điểm và quan hệ logic của hai mệnh đề.'],practiceQuestions:item.grammar[4]};
   const prompt=sentence(level.replace(' ','')+'-'+lessonNo+'-prompt',item.prompt[0],item.prompt[1],item.prompt[2]);
   const follow=sentence(level.replace(' ','')+'-'+lessonNo+'-follow',item.prompt[0],item.prompt[1],item.prompt[3]);
   const review:ReviewItem[]=vocab.slice(0,5).map((v,i)=>({id:v.id+'-review',type:i%2?'vi-to-zh':'zh-to-vi',prompt:i%2?v.vietnamese:v.hanzi,answer:i%2?v.hanzi:v.vietnamese,vocabularyId:v.id}));
