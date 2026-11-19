@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Vocabulary } from '../../types';
 import { useApp } from '../../context/AppContext';
-import { textToSpeechService } from '../../services';
+import { speechService } from '../../services/speech';
 import { Volume2, Star, ChevronDown, ChevronUp } from 'lucide-react';
 import { PinyinText } from '../common/PinyinText';
 import { VietnameseTranslation } from '../common/VietnameseTranslation';
@@ -20,15 +20,28 @@ export const VocabularyCard: React.FC<VocabularyCardProps> = ({
   const { preferences, isVocabularySaved, toggleSaveVocabulary } = useApp();
   const [isPlaying, setIsPlaying] = useState(false);
   const [showExample, setShowExample] = useState(showExampleByDefault);
+  const [audioError, setAudioError] = useState(false);
 
   const isSaved = isVocabularySaved(vocabulary.id);
 
   const handlePlayAudio = async (text: string) => {
-    if (isPlaying) return;
+    if (isPlaying || !text.trim()) return;
     setIsPlaying(true);
-    await textToSpeechService.speak(text, 'zh-CN', () => {
+    setAudioError(false);
+    try {
+      // Use the same Chinese TTS pipeline as the lesson player: Gemini audio
+      // when available, with the browser's Chinese speech synthesis fallback.
+      await speechService.speakChinese(text, {
+        lang: 'zh-CN',
+        rate: 0.75,
+        useGeminiTTS: true,
+        onError: () => setAudioError(true),
+      });
+    } catch {
+      setAudioError(true);
+    } finally {
       setIsPlaying(false);
-    });
+    }
   };
 
   return (
@@ -95,6 +108,8 @@ export const VocabularyCard: React.FC<VocabularyCardProps> = ({
           </button>
         </div>
       </div>
+
+      {audioError && <p role="status" className="mt-2 text-xs text-rose-600 dark:text-rose-400">Chưa phát được âm thanh. Bạn kiểm tra kết nối hoặc thử lại nhé.</p>}
 
       {/* Example Sentence Section */}
       {vocabulary.exampleSentence && (
