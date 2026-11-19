@@ -15,8 +15,8 @@ assert.match(source, /private playbackSessionId = 0;/, 'each playback should hav
 assert.match(source, /private activePlaybackResolve: \(\(\) => void\) \| null = null;/, 'stopping playback should settle the previous pending promise');
 assert.match(speak, /this\.stopSpeaking\(\);\s*const playbackSessionId = this\.playbackSessionId;/, 'new playback should establish a fresh session after cancelling the old one');
 assert.match(speak, /await this\.fetchGeminiTTSAudio\(text\);\s*if \(playbackSessionId !== this\.playbackSessionId\)/, 'a delayed TTS response must not start after its session was cancelled');
-assert.match(speak, /audio\.onended = \(\) => \{\s*if \(playbackSessionId !== this\.playbackSessionId\) return;/, 'stale audio end events must not clear newer playback state');
-assert.match(speak, /audio\.onerror = \(\) => \{\s*if \(playbackSessionId !== this\.playbackSessionId\) return;/, 'stale audio errors must not mutate newer playback state');
+assert.match(speak, /audio\.onended = \(\) => \{\s*if \(playbackSessionId !== this\.playbackSessionId(?: \|\| this\.currentAudioElement !== audio)?\) return;/, 'stale audio end events must not clear newer playback state');
+assert.match(speak, /audio\.onerror = \(\) => \{\s*if \(playbackSessionId !== this\.playbackSessionId(?: \|\| this\.currentAudioElement !== audio)?\) return;/, 'stale audio errors must not mutate newer playback state');
 assert.match(synth, /utterance\.onstart = \(\) => \{\s*if \(playbackSessionId !== this\.playbackSessionId\) return;/, 'stale synthesis start events must be ignored');
 assert.match(synth, /utterance\.onend = \(\) => \{\s*if \(playbackSessionId !== this\.playbackSessionId\) return;/, 'stale synthesis end events must be ignored');
 assert.match(synth, /utterance\.onerror = \(\) => \{\s*if \(playbackSessionId !== this\.playbackSessionId\) return;/, 'stale synthesis errors must be ignored');

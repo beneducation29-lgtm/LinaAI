@@ -523,7 +523,7 @@ class SpeechService {
           options?.onStart?.();
 
           audio.onended = () => {
-            if (playbackSessionId !== this.playbackSessionId) return;
+            if (playbackSessionId !== this.playbackSessionId || this.currentAudioElement !== audio) return;
             this.currentAudioElement = null;
             this.playbackListeners.forEach(listener => listener(null));
             options?.onEnd?.();
@@ -531,12 +531,12 @@ class SpeechService {
           };
 
           audio.onerror = () => {
-            if (playbackSessionId !== this.playbackSessionId) return;
+            if (playbackSessionId !== this.playbackSessionId || this.currentAudioElement !== audio) return;
             this.currentAudioElement = null;
             this.playbackListeners.forEach(listener => listener(null));
-            options?.onError?.();
-            options?.onEnd?.();
-            finish();
+            // Generated audio may fail at playback time due to codec or browser
+            // limitations. Keep the learning flow usable with native speech.
+            this.speakWithSpeechSynthesis(text, options, finish, playbackSessionId);
           };
 
           audio.play().catch(() => {
