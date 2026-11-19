@@ -34,7 +34,7 @@ export const VocabularyCard: React.FC<VocabularyCardProps> = ({
       // Gemini's Chinese voice and automatically falls back to browser speech.
       await speechService.speakChinese(text, {
         lang: 'zh-CN',
-        rate: 0.9,
+        rate: 0.75,
         useGeminiTTS: true,
         onStart: () => setPlaybackError(null),
         onError: () => setPlaybackError('Chưa phát được âm thanh. Bạn kiểm tra kết nối hoặc thử lại nhé.')
