@@ -40,13 +40,50 @@ const data: Record<Level, Array<{vi:string; zh:string; py:string; objective:stri
   ]
 };
 
+const curatedSentenceContent: Record<string, [string, string]> = {
+  '我周末喜欢看电影。': ['Wǒ zhōumò xǐhuan kàn diànyǐng.', 'Cuối tuần tôi thích xem phim.'],
+  '我们一起学习吧。': ['Wǒmen yìqǐ xuéxí ba.', 'Chúng ta cùng học nhé.'],
+  '我打算周末去北京。': ['Wǒ dǎsuàn zhōumò qù Běijīng.', 'Tôi dự định cuối tuần đi Bắc Kinh.'],
+  '我已经吃饭了。': ['Wǒ yǐjīng chīfàn le.', 'Tôi ăn cơm rồi.'],
+  '我还想喝茶。': ['Wǒ hái xiǎng hē chá.', 'Tôi vẫn muốn uống trà.'],
+  '我每天坐地铁上班。': ['Wǒ měitiān zuò dìtiě shàngbān.', 'Hằng ngày tôi đi tàu điện ngầm đến chỗ làm.'],
+  '我坐公共汽车去学校。': ['Wǒ zuò gōnggòng qìchē qù xuéxiào.', 'Tôi đi xe buýt đến trường.'],
+  '学校离我家很近。': ['Xuéxiào lí wǒ jiā hěn jìn.', 'Trường học rất gần nhà tôi.'],
+  '这里离车站很远。': ['Zhèlǐ lí chēzhàn hěn yuǎn.', 'Ở đây cách nhà ga rất xa.'],
+  '坐地铁很方便。': ['Zuò dìtiě hěn fāngbiàn.', 'Đi tàu điện ngầm rất thuận tiện.'],
+  '身体很重要。': ['Shēntǐ hěn zhòngyào.', 'Sức khỏe rất quan trọng.'],
+  '今天感觉很舒服。': ['Jīntiān gǎnjué hěn shūfu.', 'Hôm nay tôi cảm thấy rất dễ chịu.'],
+  '我今天头疼。': ['Wǒ jīntiān tóuténg.', 'Hôm nay tôi bị đau đầu.'],
+  '你应该休息一下。': ['Nǐ yīnggāi xiūxi yíxià.', 'Bạn nên nghỉ ngơi một chút.'],
+  '你应该早点睡觉。': ['Nǐ yīnggāi zǎodiǎn shuìjiào.', 'Bạn nên đi ngủ sớm.'],
+  '我每天复习生词。': ['Wǒ měitiān fùxí shēngcí.', 'Mỗi ngày tôi ôn tập từ mới.'],
+  '我要多练习口语。': ['Wǒ yào duō liànxí kǒuyǔ.', 'Tôi cần luyện nói nhiều hơn.'],
+  '我的中文进步了。': ['Wǒ de Zhōngwén jìnbù le.', 'Tiếng Trung của tôi đã tiến bộ.'],
+  '我忘记这个词了。': ['Wǒ wàngjì zhège cí le.', 'Tôi quên từ này rồi.'],
+  '我们想一个办法。': ['Wǒmen xiǎng yí ge bànfǎ.', 'Chúng ta hãy nghĩ ra một cách.'],
+  '这个比较便宜。': ['Zhège bǐjiào piányi.', 'Cái này tương đối rẻ.'],
+  '那个太贵了。': ['Nàge tài guì le.', 'Cái kia đắt quá.'],
+  '你喜欢什么颜色？': ['Nǐ xǐhuan shénme yánsè?', 'Bạn thích màu gì?'],
+  '我要一件衣服。': ['Wǒ yào yí jiàn yīfu.', 'Tôi muốn mua một chiếc áo.'],
+  '这里有很多选择。': ['Zhèlǐ yǒu hěn duō xuǎnzé.', 'Ở đây có nhiều lựa chọn.'],
+  '他已经到了。': ['Tā yǐjīng dào le.', 'Anh ấy đến nơi rồi.'],
+  '我家离学校很近。': ['Wǒ jiā lí xuéxiào hěn jìn.', 'Nhà tôi ở rất gần trường học.'],
+  '公司离地铁站不远。': ['Gōngsī lí dìtiě zhàn bù yuǎn.', 'Công ty cách ga tàu điện ngầm không xa.'],
+  '你应该早点休息。': ['Nǐ yīnggāi zǎodiǎn xiūxi.', 'Bạn nên nghỉ ngơi sớm.'],
+  '你应该多喝水。': ['Nǐ yīnggāi duō hē shuǐ.', 'Bạn nên uống nhiều nước.'],
+  '我一边听一边写。': ['Wǒ yìbiān tīng yìbiān xiě.', 'Tôi vừa nghe vừa viết.'],
+  '她一边走一边说。': ['Tā yìbiān zǒu yìbiān shuō.', 'Cô ấy vừa đi vừa nói.'],
+  '这个比那个便宜。': ['Zhège bǐ nàge piányi.', 'Cái này rẻ hơn cái kia.'],
+  '今天比昨天冷。': ['Jīntiān bǐ zuótiān lěng.', 'Hôm nay lạnh hơn hôm qua.']
+};
+
 function makeVocabulary(level:Level, lessonNo:number, words:Array<[string,string,string,string,string]>, cat:string):StructuredVocabulary[]{
-  return words.map((w,i)=>({id:level.replace(' ','').toLowerCase()+'-v'+lessonNo+'-'+(i+1),hanzi:w[0],pinyin:w[1],pinyinNumbered:w[1],vietnamese:w[2],partOfSpeech:w[3],exampleChinese:w[4],examplePinyin:'',exampleVietnamese:'',hskLevel:level,category:cat,audio:'',difficulty:(i<2?1:i<4?2:3) as 1|2|3}));
+  return words.map((w,i)=>{const example=curatedSentenceContent[w[4]];return{id:level.replace(' ','').toLowerCase()+'-v'+lessonNo+'-'+(i+1),hanzi:w[0],pinyin:w[1],pinyinNumbered:w[1],vietnamese:w[2],partOfSpeech:w[3],exampleChinese:w[4],examplePinyin:example?.[0]||'',exampleVietnamese:example?.[1]||'',hskLevel:level,category:cat,audio:'',difficulty:(i<2?1:i<4?2:3) as 1|2|3};});
 }
 function sentence(id:string,chinese:string,pinyin:string,vietnamese:string):StructuredSentence{return{id,chinese,pinyin,vietnamese};}
 function makeLesson(level:Level,lessonNo:number,item:(typeof data)[Level][number]):StructuredLesson{
   const vocab=makeVocabulary(level,lessonNo,item.words,item.cat);
-  const g:GrammarRecord={id:item.grammar[0],pattern:item.grammar[1],meaning:item.grammar[2],explanationVi:item.grammar[3],examples:item.grammar[4].map((x,i)=>sentence(item.grammar[0]+'-'+i,x,'','')),commonMistakes:['Dùng sai trật tự thành phần hoặc áp dụng cấu trúc ngoài ngữ cảnh.','Cần kiểm tra chủ ngữ, thời điểm và quan hệ logic của hai mệnh đề.'],practiceQuestions:item.grammar[4]};
+  const g:GrammarRecord={id:item.grammar[0],pattern:item.grammar[1],meaning:item.grammar[2],explanationVi:item.grammar[3],examples:item.grammar[4].map((x,i)=>{const content=curatedSentenceContent[x];return sentence(item.grammar[0]+'-'+i,x,content?.[0]||'',content?.[1]||'');}),commonMistakes:['Dùng sai trật tự thành phần hoặc áp dụng cấu trúc ngoài ngữ cảnh.','Cần kiểm tra chủ ngữ, thời điểm và quan hệ logic của hai mệnh đề.'],practiceQuestions:item.grammar[4]};
   const prompt=sentence(level.replace(' ','')+'-'+lessonNo+'-prompt',item.prompt[0],item.prompt[1],item.prompt[2]);
   const follow=sentence(level.replace(' ','')+'-'+lessonNo+'-follow',item.prompt[0],item.prompt[1],item.prompt[3]);
   const review:ReviewItem[]=vocab.slice(0,5).map((v,i)=>({id:v.id+'-review',type:i%2?'vi-to-zh':'zh-to-vi',prompt:i%2?v.vietnamese:v.hanzi,answer:i%2?v.hanzi:v.vietnamese,vocabularyId:v.id}));
