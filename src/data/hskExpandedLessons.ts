@@ -110,6 +110,7 @@ const curatedSentenceContent: Record<string, [string, string]> = {
   '天气越来越热。': ['Tiānqì yuèláiyuè rè.', 'Thời tiết ngày càng nóng.'],
   '为了健康，我每天运动。': ['Wèile jiànkāng, wǒ měitiān yùndòng.', 'Vì sức khỏe, ngày nào tôi cũng tập thể dục.'],
   '为了学习中文，他来中国。': ['Wèile xuéxí Zhōngwén, tā lái Zhōngguó.', 'Để học tiếng Trung, anh ấy đến Trung Quốc.']
+};
 
 function makeVocabulary(level:Level, lessonNo:number, words:Array<[string,string,string,string,string]>, cat:string):StructuredVocabulary[]{
   return words.map((w,i)=>{const example=curatedSentenceContent[w[4]];return{id:level.replace(' ','').toLowerCase()+'-v'+lessonNo+'-'+(i+1),hanzi:w[0],pinyin:w[1],pinyinNumbered:w[1],vietnamese:w[2],partOfSpeech:w[3],exampleChinese:w[4],examplePinyin:example?.[0]||'',exampleVietnamese:example?.[1]||'',hskLevel:level,category:cat,audio:'',difficulty:(i<2?1:i<4?2:3) as 1|2|3};});
