@@ -14,6 +14,9 @@ for (const lesson of HSK2_6_LESSONS) {
     const hasPinyin = Boolean(word.examplePinyin.trim());
     const hasVietnamese = Boolean(word.exampleVietnamese.trim());
     assert.equal(hasPinyin, hasVietnamese, `${word.id} must provide both sentence pinyin and Vietnamese, or neither`);
+    if (lesson.hskLevel === 'HSK 2') {
+      assert.ok(hasPinyin && hasVietnamese, `${word.id} HSK 2 example must have curated sentence pinyin and Vietnamese`);
+    }
     if (hasVietnamese) {
       assert.ok(!hanziPattern.test(word.exampleVietnamese), `${word.id} Vietnamese translation must not contain Chinese characters`);
       assert.notEqual(word.exampleVietnamese, word.vietnamese, `${word.id} must not reuse the headword meaning as a sentence translation`);
@@ -29,6 +32,9 @@ for (const lesson of HSK2_6_LESSONS) {
       const hasPinyin = Boolean(example.pinyin.trim());
       const hasVietnamese = Boolean(example.vietnamese.trim());
       assert.equal(hasPinyin, hasVietnamese, `${example.id} must provide both pinyin and Vietnamese, or neither`);
+      if (lesson.hskLevel === 'HSK 2') {
+        assert.ok(hasPinyin && hasVietnamese, `${example.id} HSK 2 grammar example must have curated pinyin and Vietnamese`);
+      }
       if (hasVietnamese) {
         assert.ok(!hanziPattern.test(example.vietnamese), `${example.id} Vietnamese translation must not contain Chinese characters`);
       }
