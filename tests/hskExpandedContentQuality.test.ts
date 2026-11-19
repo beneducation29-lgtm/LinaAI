@@ -14,8 +14,8 @@ for (const lesson of HSK2_6_LESSONS) {
     const hasPinyin = Boolean(word.examplePinyin.trim());
     const hasVietnamese = Boolean(word.exampleVietnamese.trim());
     assert.equal(hasPinyin, hasVietnamese, `${word.id} must provide both sentence pinyin and Vietnamese, or neither`);
-    if (lesson.hskLevel === 'HSK 2' || lesson.hskLevel === 'HSK 3' || lesson.hskLevel === 'HSK 4') {
-      assert.ok(hasPinyin && hasVietnamese, `${word.id} HSK 2 example must have curated sentence pinyin and Vietnamese`);
+    if (['HSK 2', 'HSK 3', 'HSK 4', 'HSK 5', 'HSK 6'].includes(lesson.hskLevel)) {
+      assert.ok(hasPinyin && hasVietnamese, `${word.id} ${lesson.hskLevel} example must have curated sentence pinyin and Vietnamese`);
     }
     if (hasVietnamese) {
       assert.ok(!hanziPattern.test(word.exampleVietnamese), `${word.id} Vietnamese translation must not contain Chinese characters`);
@@ -32,7 +32,7 @@ for (const lesson of HSK2_6_LESSONS) {
       const hasPinyin = Boolean(example.pinyin.trim());
       const hasVietnamese = Boolean(example.vietnamese.trim());
       assert.equal(hasPinyin, hasVietnamese, `${example.id} must provide both pinyin and Vietnamese, or neither`);
-      if (lesson.hskLevel === 'HSK 2' || lesson.hskLevel === 'HSK 3' || lesson.hskLevel === 'HSK 4') {
+      if (['HSK 2', 'HSK 3', 'HSK 4', 'HSK 5', 'HSK 6'].includes(lesson.hskLevel)) {
         assert.ok(hasPinyin && hasVietnamese, `${example.id} HSK 2 grammar example must have curated pinyin and Vietnamese`);
       }
       if (hasVietnamese) {
