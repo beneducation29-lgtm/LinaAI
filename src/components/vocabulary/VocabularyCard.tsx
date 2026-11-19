@@ -33,7 +33,7 @@ export const VocabularyCard: React.FC<VocabularyCardProps> = ({
       // when available, with the browser's Chinese speech synthesis fallback.
       await speechService.speakChinese(text, {
         lang: 'zh-CN',
-        rate: 0.9,
+        rate: 0.75,
         useGeminiTTS: true,
         onError: () => setAudioError(true),
       });
