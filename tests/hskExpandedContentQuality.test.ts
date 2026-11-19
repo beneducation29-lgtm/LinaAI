@@ -14,7 +14,7 @@ for (const lesson of HSK2_6_LESSONS) {
     const hasPinyin = Boolean(word.examplePinyin.trim());
     const hasVietnamese = Boolean(word.exampleVietnamese.trim());
     assert.equal(hasPinyin, hasVietnamese, `${word.id} must provide both sentence pinyin and Vietnamese, or neither`);
-    if (lesson.hskLevel === 'HSK 2') {
+    if (lesson.hskLevel === 'HSK 2' || lesson.hskLevel === 'HSK 3') {
       assert.ok(hasPinyin && hasVietnamese, `${word.id} HSK 2 example must have curated sentence pinyin and Vietnamese`);
     }
     if (hasVietnamese) {
