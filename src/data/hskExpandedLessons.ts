@@ -145,6 +145,7 @@ const curatedSentenceContent: Record<string, [string, string]> = {
   '与其等待，不如开始。': ['Yǔqí děngdài, bùrú kāishǐ.', 'Thay vì chờ đợi, chi bằng bắt đầu.'],
   '即使很忙，我也会完成。': ['Jíshǐ hěn máng, wǒ yě huì wánchéng.', 'Cho dù rất bận, tôi vẫn sẽ hoàn thành.'],
   '即使下雨，我们也去。': ['Jíshǐ xiàyǔ, wǒmen yě qù.', 'Cho dù trời mưa, chúng tôi vẫn đi.']
+};
 
 function makeVocabulary(level:Level, lessonNo:number, words:Array<[string,string,string,string,string]>, cat:string):StructuredVocabulary[]{
   return words.map((w,i)=>{const example=curatedSentenceContent[w[4]];return{id:level.replace(' ','').toLowerCase()+'-v'+lessonNo+'-'+(i+1),hanzi:w[0],pinyin:w[1],pinyinNumbered:w[1],vietnamese:w[2],partOfSpeech:w[3],exampleChinese:w[4],examplePinyin:example?.[0]||'',exampleVietnamese:example?.[1]||'',hskLevel:level,category:cat,audio:'',difficulty:(i<2?1:i<4?2:3) as 1|2|3};});
