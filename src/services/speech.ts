@@ -523,7 +523,7 @@ class SpeechService {
           options?.onStart?.();
 
           audio.onended = () => {
-            if (playbackSessionId !== this.playbackSessionId) return;
+            if (playbackSessionId !== this.playbackSessionId || this.currentAudioElement !== audio) return;
             this.currentAudioElement = null;
             this.playbackListeners.forEach(listener => listener(null));
             options?.onEnd?.();
@@ -531,12 +531,13 @@ class SpeechService {
           };
 
           audio.onerror = () => {
-            if (playbackSessionId !== this.playbackSessionId) return;
+            if (playbackSessionId !== this.playbackSessionId || this.currentAudioElement !== audio) return;
             this.currentAudioElement = null;
             this.playbackListeners.forEach(listener => listener(null));
-            options?.onError?.();
-            options?.onEnd?.();
-            finish();
+            // A generated audio file can fail after loading (for example, a
+            // codec or browser playback issue). Fall back to native speech
+            // instead of ending the learner's pronunciation attempt abruptly.
+            this.speakWithSpeechSynthesis(text, options, finish, playbackSessionId);
           };
 
           audio.play().catch(() => {
