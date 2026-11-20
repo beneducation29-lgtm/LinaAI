@@ -16,4 +16,12 @@ assert.match(tutorApi, /TUTOR_REPETITIVE_RESPONSE/);
 assert.match(tutorClient, /TUTOR_REPETITIVE_RESPONSE/);
 assert.match(tutorScreen, /TUTOR_REPETITIVE_RESPONSE/);
 
+
+assert.match(tutorApi, /function isGenericAcknowledgement/);
+assert.match(tutorApi, /isGenericAcknowledgement\(response\)/);
+assert.match(tutorApi, /Do not say only that you understood/);
+assert.doesNotMatch(tutorClient, /getLocalFallbackResponse/, 'AI failures must never be converted into canned learner-facing replies');
+assert.match(tutorClient, /code: 'TUTOR_PROVIDER_UNAVAILABLE'/);
+assert.match(tutorScreen, /TUTOR_PROVIDER_UNAVAILABLE/);
+
 console.log('Speaking conversation continuity tests passed');
