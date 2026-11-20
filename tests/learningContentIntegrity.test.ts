@@ -4,6 +4,8 @@ import { HSK_SPEAKING_VOCABULARY } from '../src/data/hskSpeakingVocabulary';
 import { HSK1_VOCABULARY } from '../src/data/hsk1Structured';
 import { HSK1_LESSONS } from '../src/data/hsk1Lessons';
 import { HSK2_6_LESSONS } from '../src/data/hskExpandedLessons';
+import { GRADED_READINGS } from '../src/data/gradedReadings';
+import { READING_STORY_SERIES } from '../src/data/readingStorySeries';
 
 function assertUnique(values: string[], label: string) {
   const duplicates = values.filter((value, index) => values.indexOf(value) !== index);
@@ -29,6 +31,13 @@ const lessons = [...HSK1_LESSONS, ...HSK2_6_LESSONS];
 assertUnique(lessons.map(item => item.id), 'structured lesson IDs');
 assert.ok(lessons.every(item => item.objective.trim() && item.titleVi.trim() && item.titleZh.trim()), 'every lesson requires a clear learning objective and bilingual title');
 assert.ok(lessons.every(item => item.vocabulary.length > 0 && item.vocabulary.every(word => word.hanzi.trim() && word.pinyin.trim() && word.vietnamese.trim())), 'every lesson requires complete target vocabulary');
+
+const readingSentences = [
+  ...GRADED_READINGS.flatMap(reading => reading.sentences),
+  ...READING_STORY_SERIES.flatMap(series => series.chapters.flatMap(chapter => chapter.sentences))
+];
+assertUnique(readingSentences.map(sentence => sentence.chinese), 'graded reading sentences across the reading library');
+assert.ok(readingSentences.every(sentence => sentence.chinese.trim() && sentence.pinyin.trim() && sentence.vietnamese.trim()), 'every reading sentence requires Hanzi, Pinyin and Vietnamese alignment');
 
 const generatedExampleAlignmentIssues = HSK2_6_LESSONS.flatMap(lesson => lesson.vocabulary
   .filter(word => word.exampleChinese && (word.examplePinyin === word.pinyin || word.exampleVietnamese === word.vietnamese))
