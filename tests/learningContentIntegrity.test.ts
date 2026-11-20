@@ -31,6 +31,8 @@ const lessons = [...HSK1_LESSONS, ...HSK2_6_LESSONS];
 assertUnique(lessons.map(item => item.id), 'structured lesson IDs');
 assert.ok(lessons.every(item => item.objective.trim() && item.titleVi.trim() && item.titleZh.trim()), 'every lesson requires a clear learning objective and bilingual title');
 assert.ok(lessons.every(item => item.vocabulary.length > 0 && item.vocabulary.every(word => word.hanzi.trim() && word.pinyin.trim() && word.vietnamese.trim())), 'every lesson requires complete target vocabulary');
+assertUnique(HSK2_6_LESSONS.flatMap(item => item.vocabulary.map(word => word.hanzi)), 'HSK 2–6 lesson vocabulary across levels');
+for (const lesson of lessons) assertUnique(lesson.vocabulary.map(word => word.hanzi), `vocabulary in ${lesson.id}`);
 
 const readingSentences = [
   ...GRADED_READINGS.flatMap(reading => reading.sentences),
