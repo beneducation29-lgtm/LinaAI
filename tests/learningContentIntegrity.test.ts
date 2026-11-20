@@ -52,26 +52,15 @@ assert.ok(readingSentences.every(sentence => sentence.chinese.trim() && sentence
 assert.ok(HSK2_6_LESSONS.every(lesson => lesson.dialogue.every(line => line.chinese.trim() && line.pinyin.trim() && line.vietnamese.trim())), 'generated dialogue must contain only complete aligned turns');
 assert.ok(HSK2_6_LESSONS.every(lesson => lesson.grammar.every(grammar => grammar.examples.every(example => example.chinese.trim() && example.pinyin.trim() && example.vietnamese.trim()))), 'grammar examples must never be published with missing sentence-level alignment');
 
-const generatedExampleAlignmentIssues = HSK2_6_LESSONS.flatMap(lesson => lesson.vocabulary
-  .filter(word => word.exampleChinese && (word.examplePinyin === word.pinyin || word.exampleVietnamese === word.vietnamese))
-  .map(word => `${lesson.id}:${word.hanzi}`));
-if (generatedExampleAlignmentIssues.length) {
-  console.warn(`[CONTENT AUDIT] ${generatedExampleAlignmentIssues.length} HSK 2–6 vocabulary examples still reuse word-level Pinyin/gloss instead of sentence-level alignment. These entries need editorial correction.`);
-}
+const generatedVocabularyExamples = HSK2_6_LESSONS.flatMap(lesson => lesson.vocabulary);
+assert.equal(generatedVocabularyExamples.length,125,'HSK 2–6 must retain 125 authored sentence examples');
+assert.ok(generatedVocabularyExamples.every(word => word.exampleChinese.trim() && word.examplePinyin.trim() && word.exampleVietnamese.trim()),'every HSK 2–6 vocabulary example requires sentence-level Hanzi, Pinyin and Vietnamese');
+assert.ok(generatedVocabularyExamples.every(word => word.examplePinyin !== word.pinyin && word.exampleVietnamese !== word.vietnamese),'sentence-level examples must not reuse the headword Pinyin or gloss');
 
-const duplicateGeneratedFollowUps = HSK2_6_LESSONS.filter(lesson =>
-  lesson.dialogue.length > 1 &&
-  lesson.dialogue[0].chinese === lesson.dialogue[1].chinese &&
-  lesson.dialogue[0].pinyin === lesson.dialogue[1].pinyin);
-if (duplicateGeneratedFollowUps.length) {
-  console.warn(`[CONTENT AUDIT] ${duplicateGeneratedFollowUps.length} HSK 2–6 lessons reuse the opening Chinese/Pinyin as a second dialogue turn, while the second Vietnamese field is only an instruction. These follow-ups need real authored dialogue lines.`);
-}
+const generatedGrammarExamples = HSK2_6_LESSONS.flatMap(lesson => lesson.grammar.flatMap(grammar => grammar.examples));
+assert.equal(generatedGrammarExamples.length,50,'HSK 2–6 must contain 50 fully authored grammar examples');
+assert.ok(generatedGrammarExamples.every(example => example.chinese.trim() && example.pinyin.trim() && example.vietnamese.trim()),'all grammar examples require aligned Hanzi, Pinyin and Vietnamese');
 
-const generatedGrammarAlignmentIssues = HSK2_6_LESSONS.flatMap(lesson => lesson.grammar.flatMap(grammar =>
-  grammar.examples.filter(example => !example.pinyin.trim() || example.vietnamese === example.chinese)
-    .map(example => `${lesson.id}:${grammar.id}`)));
-if (generatedGrammarAlignmentIssues.length) {
-  console.warn(`[CONTENT AUDIT] ${generatedGrammarAlignmentIssues.length} HSK 2–6 grammar examples are missing sentence-level Pinyin or Vietnamese translations.`);
-}
+assert.ok(HSK2_6_LESSONS.every(lesson => lesson.dialogue.length===2 && lesson.dialogue[0].chinese!==lesson.dialogue[1].chinese && lesson.dialogue.every(line=>line.chinese.trim() && line.pinyin.trim() && line.vietnamese.trim())),'all 25 lessons require two distinct, complete dialogue turns');
 
 console.log(`Learning content integrity passed: ${HSK_CLASSIC_VOCABULARY.length} classic terms, ${HSK_SPEAKING_VOCABULARY.length} curated speaking terms, ${lessons.length} structured lessons.`);
