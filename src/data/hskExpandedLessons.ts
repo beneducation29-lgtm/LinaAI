@@ -69,6 +69,22 @@ const vocabularyExamples: Record<string,[string,string]> = {
 长期:['Wǒmen yào kǎolǜ zhège juécè de chángqī yǐngxiǎng.','Chúng ta cần cân nhắc ảnh hưởng dài hạn của quyết định này.'],战略:['Gōngsī xūyào zhìdìng chángqī zhànlüè.','Công ty cần xây dựng chiến lược dài hạn.'],执行:['Zhège jìhuà xūyào rènzhēn zhíxíng.','Kế hoạch này cần được thực hiện nghiêm túc.'],成果:['Jīngguò nǔlì, wǒmen kàn dào le chéngguǒ.','Sau nỗ lực, chúng tôi đã nhìn thấy thành quả.'],持续:['Xuéxí xūyào chíxù de tóurù.','Việc học cần sự đầu tư liên tục.']
 };
 
+
+const grammarPinyin: Record<string,string[]> = {
+'h2-g1':['Wǒ yǐjīng chīfàn le.','Tā yǐjīng dào le.'],'h2-g2':['Wǒ jiā lí xuéxiào hěn jìn.','Gōngsī lí dìtiězhàn bù yuǎn.'],'h2-g3':['Nǐ yīnggāi zǎodiǎn xiūxi.','Nǐ yīnggāi duō hē shuǐ.'],'h2-g4':['Wǒ yìbiān tīng yìbiān xiě.','Tā yìbiān zǒu yìbiān shuō.'],'h2-g5':['Zhège bǐ nàge piányi.','Jīntiān bǐ zuótiān lěng.'],
+'h3-g1':['Suīrán hěn lèi, dànshì wǒ hái yào xuéxí.','Suīrán xiàyǔ, dànshì tā lái le.'],'h3-g2':['Qǐng bǎ wénjiàn gěi wǒ.','Wǒ bǎ zuòyè zuò wán le.'],'h3-g3':['Chúle Běijīng yǐwài, wǒ hái qùguo Shànghǎi.','Chúle Zhōngwén, wǒ hái xué Yīngyǔ.'],'h3-g4':['Zhōngwén yuèláiyuè yǒuyìsi.','Tiānqì yuèláiyuè rè.'],'h3-g5':['Wèile jiànkāng, wǒ měitiān yùndòng.','Wèile xuéxí Zhōngwén, tā lái Zhōngguó.'],
+'h4-g1':['Tā bùjǐn cōngming, érqiě hěn nǔlì.','Xuéxí Zhōngwén bùjǐn yǒuyòng, érqiě hěn yǒuyìsi.'],'h4-g2':['Tā bèi yāoqǐng cānjiā huìyì.','Shǒujī bèi rén ná zǒu le.'],'h4-g3':['Zhǐyào jiānchí, jiù huì jìnbù.','Zhǐyào yǒu shíjiān, wǒ jiù liànxí.'],'h4-g4':['Yǔqí dānxīn, bùrú xíngdòng.','Yǔqí děngdài, bùrú kāishǐ.'],'h4-g5':['Jíshǐ hěn máng, wǒ yě huì wánchéng.','Jíshǐ xiàyǔ, wǒmen yě qù.'],
+'h5-g1':['Jìrán juédìng le, jiù jiānchí xiàqù.','Jìrán yǒu shùjù, jiù yīnggāi fēnxī.'],'h5-g2':['Yídàn kāishǐ, jiù búyào fàngqì.','Yídàn quèrèn, jiù lìjí zhíxíng.'],'h5-g3':['Jǐnguǎn hěn kùnnan, tā háishi wánchéng le.','Jǐnguǎn yǒu wèntí, wǒmen háishi jìxù.'],'h5-g4':['Tā bùdàn méiyǒu shībài, fǎn’ér chénggōng le.','Wèntí bùdàn méi jiǎnshǎo, fǎn’ér zēngjiā le.'],'h5-g5':['Yǔqí jiāolǜ, dào bùrú xíngdòng.','Yǔqí děngdài, dào bùrú chángshì.'],
+'h6-g1':['Yǔqí shuō zhè shì shībài, bùrú shuō shì jīngyàn.','Yǔqí shuō kùnnan, bùrú shuō xūyào nàixīn.'],'h6-g2':['Suízhe jìshù fāzhǎn, shēnghuó biàn de gèng fāngbiàn.','Suízhe jīngyàn zēngjiā, tā biàn de gèng zìxìn.'],'h6-g3':['Zhège fāngfǎ jì jiǎndān yòu kěkào.','Tā jì rènzhēn yòu yǒu jīngyàn.'],'h6-g4':['Bìngfēi tā bù nǔlì, érshì fāngfǎ bù héshì.','Bìngfēi méiyǒu jīhuì, érshì xūyào zhǔnbèi.'],'h6-g5':['Jìrán mùbiāo míngquè, nàme jiù yào jiānchí zhíxíng.','Jìrán yǐjīng juédìng, nàme jiù jìxù.']
+};
+const grammarVietnamese: Record<string,string[]> = {
+'h2-g1':['Tôi ăn cơm rồi.','Anh ấy đến nơi rồi.'],'h2-g2':['Nhà tôi cách trường học rất gần.','Công ty cách ga tàu điện ngầm không xa.'],'h2-g3':['Bạn nên nghỉ ngơi sớm hơn.','Bạn nên uống nhiều nước hơn.'],'h2-g4':['Tôi vừa nghe vừa viết.','Cô ấy vừa đi vừa nói.'],'h2-g5':['Cái này rẻ hơn cái kia.','Hôm nay lạnh hơn hôm qua.'],
+'h3-g1':['Mặc dù rất mệt nhưng tôi vẫn phải học.','Mặc dù trời mưa nhưng anh ấy vẫn đến.'],'h3-g2':['Hãy đưa tài liệu cho tôi.','Tôi đã làm xong bài tập rồi.'],'h3-g3':['Ngoài Bắc Kinh ra, tôi còn từng đến Thượng Hải.','Ngoài tiếng Trung, tôi còn học tiếng Anh.'],'h3-g4':['Tiếng Trung ngày càng thú vị.','Thời tiết ngày càng nóng.'],'h3-g5':['Để khỏe mạnh, tôi tập thể dục mỗi ngày.','Để học tiếng Trung, anh ấy đến Trung Quốc.'],
+'h4-g1':['Anh ấy không những thông minh mà còn rất chăm chỉ.','Học tiếng Trung không những hữu ích mà còn rất thú vị.'],'h4-g2':['Anh ấy được mời tham gia cuộc họp.','Điện thoại đã bị người khác lấy mất.'],'h4-g3':['Chỉ cần kiên trì thì sẽ tiến bộ.','Chỉ cần có thời gian thì tôi sẽ luyện tập.'],'h4-g4':['Thay vì lo lắng, chi bằng hành động.','Thay vì chờ đợi, chi bằng bắt đầu.'],'h4-g5':['Cho dù rất bận, tôi vẫn sẽ hoàn thành.','Cho dù trời mưa, chúng tôi vẫn đi.'],
+'h5-g1':['Đã quyết định rồi thì hãy kiên trì tiếp tục.','Đã có dữ liệu thì nên phân tích.'],'h5-g2':['Một khi đã bắt đầu thì đừng bỏ cuộc.','Một khi đã xác nhận thì lập tức thực hiện.'],'h5-g3':['Mặc dù rất khó khăn, anh ấy vẫn hoàn thành.','Mặc dù có vấn đề, chúng tôi vẫn tiếp tục.'],'h5-g4':['Anh ấy không những không thất bại mà ngược lại còn thành công.','Vấn đề không những không giảm mà ngược lại còn tăng.'],'h5-g5':['Thay vì lo âu, chi bằng hành động.','Thay vì chờ đợi, chi bằng thử sức.'],
+'h6-g1':['Nói đây là thất bại thì đúng hơn nên nói đây là kinh nghiệm.','Nói là khó khăn thì đúng hơn nên nói là cần kiên nhẫn.'],'h6-g2':['Cùng với sự phát triển của công nghệ, cuộc sống trở nên tiện lợi hơn.','Cùng với kinh nghiệm tăng lên, anh ấy trở nên tự tin hơn.'],'h6-g3':['Phương pháp này vừa đơn giản vừa đáng tin cậy.','Anh ấy vừa nghiêm túc vừa có kinh nghiệm.'],'h6-g4':['Không phải anh ấy không nỗ lực, mà là phương pháp chưa phù hợp.','Không phải không có cơ hội, mà là cần chuẩn bị.'],'h6-g5':['Đã xác định rõ mục tiêu thì cần kiên trì thực hiện.','Đã quyết định rồi thì hãy tiếp tục.']
+};
+
 function makeVocabulary(level:Level, lessonNo:number, words:Array<[string,string,string,string,string]>, cat:string):StructuredVocabulary[]{
   return words.map((w,i)=>{
     const aligned=vocabularyExamples[w[0]];
@@ -79,10 +95,9 @@ function makeVocabulary(level:Level, lessonNo:number, words:Array<[string,string
 function sentence(id:string,chinese:string,pinyin:string,vietnamese:string):StructuredSentence{return{id,chinese,pinyin,vietnamese};}
 function makeLesson(level:Level,lessonNo:number,item:(typeof data)[Level][number]):StructuredLesson{
   const vocab=makeVocabulary(level,lessonNo,item.words,item.cat);
-  // Do not publish raw Chinese examples as if they had aligned Pinyin/Vietnamese.
-  // The source currently lacks sentence-level translations; keep the exercise prompts
-  // available while withholding unverified example cards until editorial data is added.
-  const g:GrammarRecord={id:item.grammar[0],pattern:item.grammar[1],meaning:item.grammar[2],explanationVi:item.grammar[3],examples:[],commonMistakes:['Dùng sai trật tự thành phần hoặc áp dụng cấu trúc ngoài ngữ cảnh.','Cần kiểm tra chủ ngữ, thời điểm và quan hệ logic của hai mệnh đề.'],practiceQuestions:item.grammar[4]};
+  const grammarPy=grammarPinyin[item.grammar[0]], grammarVi=grammarVietnamese[item.grammar[0]];
+  if(!grammarPy || !grammarVi || grammarPy.length!==item.grammar[4].length || grammarVi.length!==item.grammar[4].length) throw new Error('Missing aligned grammar examples for '+item.grammar[0]);
+  const g:GrammarRecord={id:item.grammar[0],pattern:item.grammar[1],meaning:item.grammar[2],explanationVi:item.grammar[3],examples:item.grammar[4].map((zh,i)=>sentence(item.grammar[0]+'-'+i,zh,grammarPy[i],grammarVi[i])),commonMistakes:['Dùng sai trật tự thành phần hoặc áp dụng cấu trúc ngoài ngữ cảnh.','Cần kiểm tra chủ ngữ, thời điểm và quan hệ logic của hai mệnh đề.'],practiceQuestions:item.grammar[4]};
   const prompt=sentence(level.replace(' ','')+'-'+lessonNo+'-prompt',item.prompt[0],item.prompt[1],item.prompt[2]);
   // item.prompt[3] is a Vietnamese coaching instruction, not a Chinese follow-up sentence.
   // Never mislabel it as Hanzi/Pinyin/Vietnamese dialogue content.
