@@ -40,13 +40,13 @@ export const GRADED_READINGS: GradedReading[] = [
     summary: 'Luyện chào hỏi, thời gian, ăn sáng và đi học.',
     estimatedMinutes: 3,
     sentences: [
-      { chinese: '今天早上，我六点起床。', pinyin: 'Jīntiān zǎoshang, wǒ liù diǎn qǐchuáng.', vietnamese: 'Sáng nay, tôi thức dậy lúc sáu giờ.' },
+      { chinese: '今天早上，我先喝了一杯水。', pinyin: 'Jīntiān zǎoshang, wǒ xiān hē le yì bēi shuǐ.', vietnamese: 'Sáng nay, trước tiên tôi uống một cốc nước.' },
       { chinese: '我和妈妈一起吃早饭，喝一杯牛奶。', pinyin: 'Wǒ hé māma yìqǐ chī zǎofàn, hē yì bēi niúnǎi.', vietnamese: 'Tôi ăn sáng cùng mẹ và uống một cốc sữa.' },
       { chinese: '七点半，我去学校学习汉语。', pinyin: 'Qī diǎn bàn, wǒ qù xuéxiào xuéxí Hànyǔ.', vietnamese: 'Bảy giờ rưỡi, tôi đến trường học tiếng Trung.' }
     ],
     focusWords: ['今天', '早上', '起床', '妈妈', '一起', '吃', '牛奶', '学校', '学习', '汉语'],
     questions: [
-      { question: '主人公几点起床？', options: ['五点', '六点', '七点半'], answer: 1, explanation: '第一句 nói 今天早上，我六点起床。' },
+      { question: '主人公早上先做了什么？', options: ['喝一杯水', '吃早饭', '去学校'], answer: 0, explanation: '第一句说：我先喝了一杯水。' },
       { question: '主人公和谁一起吃早饭？', options: ['爸爸', '老师', '妈妈'], answer: 2, explanation: '第二句 nói 我和妈妈一起吃早饭。' }
     ],
     sourceNote: 'Bài đọc do LinaAI biên soạn mới theo chủ đề và vốn từ HSK 1.'

@@ -577,6 +577,7 @@ class SpeechService {
     playbackSessionId: number
   ) {
     if (!this.synth) {
+      options?.onError?.();
       options?.onEnd?.();
       resolve();
       return;

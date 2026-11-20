@@ -30,7 +30,7 @@ export const ReviewScreen: React.FC = () => {
 
   const dueReviewCount = useMemo(() => {
     const now = new Date();
-    return uniqueFlashcards.filter(card => isDue(card.nextReviewDate || now.toISOString(), now)).length;
+    return uniqueFlashcards.filter(card => Boolean(card.nextReviewDate) && isDue(card.nextReviewDate, now)).length;
   }, [uniqueFlashcards]);
 
   const hardReviewCount = useMemo(() => uniqueFlashcards.filter(card => {
@@ -43,7 +43,7 @@ export const ReviewScreen: React.FC = () => {
     const prioritized = buildReviewQueue(reviewSchedules, now);
     const priorityById = new Map(prioritized.map(item => [item.itemId, item.priorityScore]));
     const dueCards = [...uniqueFlashcards]
-      .filter(card => isDue(card.nextReviewDate || now.toISOString(), now))
+      .filter(card => Boolean(card.nextReviewDate) && isDue(card.nextReviewDate, now))
       .sort((a, b) => (priorityById.get(b.id) ?? -1) - (priorityById.get(a.id) ?? -1));
     const hardCards = [...uniqueFlashcards]
       .filter(card => {

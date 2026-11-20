@@ -20,4 +20,7 @@ assert.match(flashcard, /nhập câu trả lời trước khi xem đáp án/, 'A
 assert.match(shell, /React\.lazy\(\(\) => import\('\.\.\/tutor\/TutorScreen'\)/, 'Heavy tutor screen should be loaded on demand');
 assert.match(shell, /React\.Suspense fallback/, 'Lazy screens should have a loading fallback');
 
+assert.match(review, /Boolean\(card\.nextReviewDate\) && isDue\(card\.nextReviewDate, now\)/, 'Cards without a scheduled review date must not be treated as overdue');
+assert.doesNotMatch(review, /nextReviewDate \|\| now\.toISOString\(\)/, 'Missing review dates must not be silently converted into due-now cards');
+
 console.log('Review efficiency and app-loading regression tests passed');
