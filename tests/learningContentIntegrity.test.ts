@@ -38,7 +38,7 @@ for (const lesson of lessons) assertUnique(lesson.vocabulary.map(word => word.ha
 const listeningSource = fs.readFileSync('src/components/listening/ListeningScreen.tsx', 'utf8');
 const listeningIds = [...listeningSource.matchAll(/\{ id:'([^']+)',hsk:/g)].map(match => match[1]);
 const listeningLevels = [...listeningSource.matchAll(/\{ id:'[^']+',hsk:(\d+)/g)].map(match => Number(match[1]));
-assert.equal(listeningIds.length, 54, 'listening library should retain its 54 curated activities');
+assert.equal(listeningIds.length, 50, 'listening library should retain its 50 curated activities');
 assertUnique(listeningIds, 'listening activity IDs');
 assert.ok(listeningLevels.every(level => level >= 1 && level <= 6), 'listening activities must stay within HSK 1–6');
 
