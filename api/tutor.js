@@ -128,7 +128,7 @@ function repeatsPreviousTutorReply(response, history) {
 // Reject the generic acknowledgement that used to appear after a failed AI
 // request. It does not address the learner's latest utterance.
 function isGenericAcknowledgement(response) {
-  const text = cleanString(response && response.chinese, 4000).replace(/\\s+/g, '');
+  const text = cleanString(response && response.chinese, 4000).replace(/\s+/g, '');
   return /我听懂了.{0,24}我们继续练习吧/.test(text) ||
     /你可以再说一句.{0,32}我会根据你的内容回应/.test(text) ||
     /我会根据你的内容回应/.test(text);
