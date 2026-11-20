@@ -34,6 +34,13 @@ assert.ok(lessons.every(item => item.vocabulary.length > 0 && item.vocabulary.ev
 assertUnique(HSK2_6_LESSONS.flatMap(item => item.vocabulary.map(word => word.hanzi)), 'HSK 2–6 lesson vocabulary across levels');
 for (const lesson of lessons) assertUnique(lesson.vocabulary.map(word => word.hanzi), `vocabulary in ${lesson.id}`);
 
+const listeningSource = fs.readFileSync('src/components/listening/ListeningScreen.tsx', 'utf8');
+const listeningIds = [...listeningSource.matchAll(/\\{ id:'([^']+)',hsk:/g)].map(match => match[1]);
+const listeningLevels = [...listeningSource.matchAll(/\\{ id:'[^']+',hsk:(\\d+)/g)].map(match => Number(match[1]));
+assert.equal(listeningIds.length, 54, 'listening library should retain its 54 curated activities');
+assertUnique(listeningIds, 'listening activity IDs');
+assert.ok(listeningLevels.every(level => level >= 1 && level <= 6), 'listening activities must stay within HSK 1–6');
+
 const readingSentences = [
   ...GRADED_READINGS.flatMap(reading => reading.sentences),
   ...READING_STORY_SERIES.flatMap(series => series.chapters.flatMap(chapter => chapter.sentences))
