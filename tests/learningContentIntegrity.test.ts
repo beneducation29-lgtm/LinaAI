@@ -49,6 +49,9 @@ const readingSentences = [
 assertUnique(readingSentences.map(sentence => sentence.chinese), 'graded reading sentences across the reading library');
 assert.ok(readingSentences.every(sentence => sentence.chinese.trim() && sentence.pinyin.trim() && sentence.vietnamese.trim()), 'every reading sentence requires Hanzi, Pinyin and Vietnamese alignment');
 
+assert.ok(HSK2_6_LESSONS.every(lesson => lesson.dialogue.every(line => line.chinese.trim() && line.pinyin.trim() && line.vietnamese.trim())), 'generated dialogue must contain only complete aligned turns');
+assert.ok(HSK2_6_LESSONS.every(lesson => lesson.grammar.every(grammar => grammar.examples.every(example => example.chinese.trim() && example.pinyin.trim() && example.vietnamese.trim()))), 'grammar examples must never be published with missing sentence-level alignment');
+
 const generatedExampleAlignmentIssues = HSK2_6_LESSONS.flatMap(lesson => lesson.vocabulary
   .filter(word => word.exampleChinese && (word.examplePinyin === word.pinyin || word.exampleVietnamese === word.vietnamese))
   .map(word => `${lesson.id}:${word.hanzi}`));
