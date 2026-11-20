@@ -78,11 +78,17 @@ class AITutorClientService implements AITutorProvider {
       return await this.sendMessageStreaming(options, userText, callbacks);
     } catch (err) {
       if ((err as Error)?.name === 'AbortError' && options.signal?.aborted) throw err;
-      // A provider outage is not a conversation turn. Do not substitute a
-      // canned answer that appears to respond to unrelated learner messages.
-      if (['TUTOR_PROVIDER_UNAVAILABLE', 'TUTOR_NOT_CONFIGURED', 'TUTOR_REPETITIVE_RESPONSE'].includes(String((err as any)?.code || ''))) throw err;
-      console.warn('Tutor API failed, utilizing graceful local fallback:', err);
-      return this.getLocalFallbackResponse(userText, options.mode, options.userName);
+      const code = String((err as any)?.code || '');
+      if (['TUTOR_PROVIDER_UNAVAILABLE', 'TUTOR_NOT_CONFIGURED', 'TUTOR_REPETITIVE_RESPONSE'].includes(code)) throw err;
+
+      // Never fabricate a conversational turn from a fixed local template.
+      // A fallback that ignores the latest utterance looks like Lina understood
+      // the learner and causes the repeated "I understand, continue" loop.
+      console.warn('[Lina] Tutor response unavailable; preserving the learner turn without a canned reply:', err);
+      throw Object.assign(
+        new Error('Lina chưa nhận được phản hồi phù hợp từ AI. Câu nói của bạn vẫn được giữ; hãy thử gửi lại nhé.'),
+        { code: 'TUTOR_PROVIDER_UNAVAILABLE', cause: err }
+      );
     }
   }
 
@@ -218,197 +224,7 @@ class AITutorClientService implements AITutorProvider {
     return {score:null,feedbackVi:cleanSpoken?'STT đã nhận diện nội dung, nhưng Lina chưa có acoustic provider đủ dữ liệu để chấm điểm phát âm.':'Chưa thể đánh giá chính xác. Cần microphone/audio analysis provider.'};
   }
 
-  private getLocalFallbackResponse(userText: string, mode: TutorMode, userName: string): StructuredTutorResponse {
-    // If user text contains the classic test mistake: 我昨天去北京吗？
-    if (userText.includes('我昨天去北京吗')) {
-      return {
-        chinese: '我昨天去北京了。你昨天去哪儿了？',
-        pinyin: 'Wǒ zuótiān qù Běijīng le. Nǐ zuótiān qù nǎr le?',
-        vietnamese: 'Hôm qua mình đi Bắc Kinh. Hôm qua bạn đã đi đâu thế?',
-        responseType: 'correction',
-        emotion: 'encouraging',
-        correction: {
-          hasMistake: true,
-          originalSentence: '我昨天去北京吗？',
-          correctedSentence: '我昨天去北京了吗？',
-          pinyin: 'Wǒ zuótiān qù Běijīng le ma?',
-          explanationVi: 'Bạn diễn đạt đúng ý rồi. Mình sửa một chút để câu tự nhiên hơn nhé: Khi hỏi về hành động đã xảy ra trong quá khứ (như "hôm qua"), ta dùng trợ từ "了" trước "吗" (去...了吗).',
-          tryAgainPromptVi: 'Bạn thử nói lại: "我昨天去北京了吗？" xem nhé!'
-        },
-        vocabulary: [
-          {
-            hanzi: '昨天',
-            pinyin: 'zuótiān',
-            vietnamese: 'hôm qua',
-            partOfSpeech: 'Danh từ chỉ thời gian',
-            exampleSentence: '昨天我很忙。',
-            hskLevel: 'HSK 1'
-          }
-        ],
-        grammar: [
-          {
-            structure: 'Hành động + 了吗？',
-            meaningVi: 'Hỏi ai đó đã làm gì chưa (trong quá khứ)',
-            exampleSentence: '你去北京了吗？',
-            examplePinyin: 'Nǐ qù Běijīng le ma?',
-            exampleVietnamese: 'Bạn đã đi Bắc Kinh chưa?'
-          }
-        ],
-        progressiveHints: {
-          hint1_semantic: 'Diễn đạt bạn đã đi đâu vào hôm qua.',
-          hint2_keywords: '昨天 (zuótiān), 去 (qù), 了 (le)',
-          hint3_structure: '我 + 昨天 + 去 + [Nơi chốn] + 了。',
-          hint4_fullAnswer: '我昨天去北京了。(Wǒ zuótiān qù Běijīng le.)'
-        },
-        suggestedReplies: [
-          { hanzi: '我昨天去北京了吗？', pinyin: 'Wǒ zuótiān qù Běijīng le ma?', vietnamese: 'Hôm qua tôi đi Bắc Kinh phải không?' },
-          { hanzi: '我昨天在家休息。', pinyin: 'Wǒ zuótiān zài jiā xiūxi.', vietnamese: 'Hôm qua tôi ở nhà nghỉ ngơi.' },
-          { hanzi: '我去河内了。', pinyin: 'Wǒ qù Hénèi le.', vietnamese: 'Tôi đã đi Hà Nội rồi.' }
-        ]
-      };
-    }
 
-    const text = sanitizePlainText(userText, 2000);
-    if (/我吃了[，,。.!！ ]*(你呢)?[？?]?/.test(text)) {
-      return {
-        chinese: '我还没吃呢。你刚下班，准备吃什么？',
-        pinyin: 'Wǒ hái méi chī ne. Nǐ gāng xiàbān, zhǔnbèi chī shénme?',
-        vietnamese: 'Mình vẫn chưa ăn. Bạn vừa tan làm, định ăn gì vậy?',
-        responseType: 'conversation', emotion: 'happy', correction: null, vocabulary: [], grammar: [],
-        progressiveHints: { hint1_semantic: 'Nói món bạn định ăn.', hint2_keywords: '准备, 吃, 面, 米饭', hint3_structure: '我准备 + 去吃 + món ăn', hint4_fullAnswer: '我准备去吃面。' },
-        suggestedReplies: [
-          { hanzi: '我准备去吃面。', pinyin: 'Wǒ zhǔnbèi qù chī miàn.', vietnamese: 'Mình định đi ăn mì.' },
-          { hanzi: '我想吃米饭和鸡肉。', pinyin: 'Wǒ xiǎng chī mǐfàn hé jīròu.', vietnamese: 'Mình muốn ăn cơm và thịt gà.' },
-          { hanzi: '我还没决定。', pinyin: 'Wǒ hái méi juédìng.', vietnamese: 'Mình vẫn chưa quyết định.' }
-        ]
-      };
-    }
-    if (/我们去逛街了/.test(text)) {
-      return {
-        chinese: '听起来不错！你们今天买了什么？',
-        pinyin: 'Tīng qǐlái búcuò! Nǐmen jīntiān mǎi le shénme?',
-        vietnamese: 'Nghe hay đấy! Hôm nay các bạn đã mua gì?',
-        responseType: 'conversation', emotion: 'happy', correction: null, vocabulary: [], grammar: [],
-        progressiveHints: { hint1_semantic: 'Nói các bạn đã mua gì.', hint2_keywords: '买, 衣服, 咖啡', hint3_structure: '我们 + 买了 + ...', hint4_fullAnswer: '我们买了衣服。' },
-        suggestedReplies: [
-          { hanzi: '我们买了衣服。', pinyin: 'Wǒmen mǎi le yīfu.', vietnamese: 'Tụi mình mua quần áo.' },
-          { hanzi: '我们喝了咖啡，还看了电影。', pinyin: 'Wǒmen hē le kāfēi, hái kàn le diànyǐng.', vietnamese: 'Tụi mình uống cà phê và còn xem phim.' },
-          { hanzi: '我们只是逛了一会儿。', pinyin: 'Wǒmen zhǐshì guàng le yíhuìr.', vietnamese: 'Tụi mình chỉ đi dạo một lúc.' }
-        ]
-      };
-    }
-    if (/^好的[！!。.]?$/.test(text)) {
-      return {
-        chinese: '好呀！那我们接着聊。你今天最开心的事情是什么？',
-        pinyin: 'Hǎo ya! Nà wǒmen jiēzhe liáo. Nǐ jīntiān zuì kāixīn de shìqing shì shénme?',
-        vietnamese: 'Được nhé! Mình nói tiếp nào. Hôm nay điều gì làm bạn vui nhất?',
-        responseType: 'conversation', emotion: 'encouraging', correction: null, vocabulary: [], grammar: [],
-        progressiveHints: { hint1_semantic: 'Nói một chuyện vui hôm nay.', hint2_keywords: '今天, 开心, 朋友', hint3_structure: '我今天 + ...', hint4_fullAnswer: '我今天很开心。' },
-        suggestedReplies: [
-          { hanzi: '我今天很开心。', pinyin: 'Wǒ jīntiān hěn kāixīn.', vietnamese: 'Hôm nay mình rất vui.' },
-          { hanzi: '我今天工作很忙。', pinyin: 'Wǒ jīntiān gōngzuò hěn máng.', vietnamese: 'Hôm nay mình làm việc rất bận.' }
-        ]
-      };
-    }
-    if (/^(你好|您好|嗨|哈喽|hello|hi)[！!。.?？ ]*$/i.test(text)) {
-      return {
-        chinese: `你好！很高兴见到你，${userName}。今天想练习什么？`,
-        pinyin: `Nǐ hǎo! Hěn gāoxìng jiàndào nǐ, ${userName}. Jīntiān xiǎng liànxí shénme?`,
-        vietnamese: `Xin chào! Rất vui được gặp bạn, ${userName}. Hôm nay bạn muốn luyện gì?`,
-        responseType: 'conversation', emotion: 'happy', correction: null, vocabulary: [], grammar: [],
-        progressiveHints: { hint1_semantic: 'Nói bạn muốn luyện chủ đề nào.', hint2_keywords: '练习, 中文, 口语', hint3_structure: '我想练习 + chủ đề', hint4_fullAnswer: '我想练习中文。' },
-        suggestedReplies: [
-          { hanzi: '我想练习中文。', pinyin: 'Wǒ xiǎng liànxí Zhōngwén.', vietnamese: 'Mình muốn luyện tiếng Trung.' },
-          { hanzi: '我想练习口语。', pinyin: 'Wǒ xiǎng liànxí kǒuyǔ.', vietnamese: 'Mình muốn luyện nói.' }
-        ]
-      };
-    }
-
-    if (/练习中文|luyện tiếng Trung/i.test(text)) {
-      return {
-        chinese: '当然可以！我们先从简单的日常对话开始。你可以先介绍一下自己。',
-        pinyin: 'Dāngrán kěyǐ! Wǒmen xiān cóng jiǎndān de rìcháng duìhuà kāishǐ. Nǐ kěyǐ xiān jièshào yíxià zìjǐ.',
-        vietnamese: 'Được chứ! Chúng ta bắt đầu bằng hội thoại hằng ngày đơn giản nhé. Bạn thử giới thiệu bản thân trước.',
-        responseType: 'lesson', emotion: 'encouraging', correction: null, vocabulary: [], grammar: [],
-        progressiveHints: { hint1_semantic: 'Giới thiệu tên của bạn.', hint2_keywords: '我叫, 名字', hint3_structure: '我叫 + tên', hint4_fullAnswer: '你好！我叫明。' },
-        suggestedReplies: [
-          { hanzi: '你好！我叫明。', pinyin: 'Nǐ hǎo! Wǒ jiào Míng.', vietnamese: 'Xin chào! Mình tên là Minh.' },
-          { hanzi: '我来自越南。', pinyin: 'Wǒ láizì Yuènán.', vietnamese: 'Mình đến từ Việt Nam.' }
-        ]
-      };
-    }
-
-    if (/你能教我一些新词吗|教我.*新词|教我.*词/i.test(text)) {
-      return {
-        chinese: '当然可以！我们先学三个很常用的词：“朋友”“喜欢”“学习”。你想先学哪一个？',
-        pinyin: 'Dāngrán kěyǐ! Wǒmen xiān xué sān ge hěn chángyòng de cí: “péngyou”, “xǐhuan”, “xuéxí”. Nǐ xiǎng xiān xué nǎ yí ge?',
-        vietnamese: 'Tất nhiên rồi! Mình học trước 3 từ rất thường dùng: “朋友” (bạn bè), “喜欢” (thích), “学习” (học). Bạn muốn học từ nào trước?',
-        responseType: 'lesson',
-        emotion: 'encouraging',
-        correction: null,
-        vocabulary: [],
-        grammar: [],
-        progressiveHints: {
-          hint1_semantic: 'Chọn một từ bạn muốn học trước.',
-          hint2_keywords: '朋友, 喜欢, 学习',
-          hint3_structure: '我喜欢 + ...',
-          hint4_fullAnswer: '我喜欢学习中文。'
-        },
-        suggestedReplies: [
-          { hanzi: '我想学“朋友”。', pinyin: 'Wǒ xiǎng xué “péngyou”.', vietnamese: 'Mình muốn học từ “bạn bè”.' },
-          { hanzi: '教我“喜欢”吧。', pinyin: 'Jiāo wǒ “xǐhuan” ba.', vietnamese: 'Dạy mình từ “thích” nhé.' },
-          { hanzi: '我想学日常口语。', pinyin: 'Wǒ xiǎng xué rìcháng kǒuyǔ.', vietnamese: 'Mình muốn học khẩu ngữ hằng ngày.' }
-        ]
-      };
-    }
-
-    if (/我喜欢学习中文|我喜欢学中文|喜欢学习中文/i.test(text)) {
-      return {
-        chinese: '很好！“喜欢”表示“thích”。你可以说：“我喜欢学习中文。” 你还喜欢什么？',
-        pinyin: 'Hěn hǎo! “Xǐhuan” biǎoshì “thích”. Nǐ kěyǐ shuō: “Wǒ xǐhuan xuéxí Zhōngwén.” Nǐ hái xǐhuan shénme?',
-        vietnamese: 'Rất tốt! “喜欢” có nghĩa là “thích”. Bạn còn thích gì nữa?',
-        responseType: 'lesson',
-        emotion: 'encouraging',
-        correction: null,
-        vocabulary: [],
-        grammar: [],
-        progressiveHints: {
-          hint1_semantic: 'Nói một điều bạn thích.',
-          hint2_keywords: '喜欢, 中文, 学习',
-          hint3_structure: '我喜欢 + ...',
-          hint4_fullAnswer: '我喜欢学习中文。'
-        },
-        suggestedReplies: [
-          { hanzi: '我喜欢听音乐。', pinyin: 'Wǒ xǐhuan tīng yīnyuè.', vietnamese: 'Mình thích nghe nhạc.' },
-          { hanzi: '我喜欢看电影。', pinyin: 'Wǒ xǐhuan kàn diànyǐng.', vietnamese: 'Mình thích xem phim.' },
-          { hanzi: '我喜欢学中文。', pinyin: 'Wǒ xǐhuan xué Zhōngwén.', vietnamese: 'Mình thích học tiếng Trung.' }
-        ]
-      };
-    }
-
-    const hasRealName = userName && userName !== 'Bạn';
-    const greeting = hasRealName ? `，${userName}` : '';
-    return {
-      chinese: `好的${greeting}！我听懂了。我们继续练习吧。你可以再说一句，我会根据你的内容回应。`,
-      pinyin: `Hǎo${hasRealName ? `, ${userName}` : ''}! Wǒ tīng dǒng le. Wǒmen jìxù liànxí ba. Nǐ kěyǐ zài shuō yí jù, wǒ huì gēnjù nǐ de nèiróng huíyìng.`,
-      vietnamese: `Được${hasRealName ? `, ${userName}` : ''}! Mình hiểu rồi. Mình tiếp tục luyện tập nhé. Bạn cứ nói thêm một câu, mình sẽ phản hồi theo đúng nội dung bạn nói.`,
-      responseType: 'conversation',
-      emotion: 'happy',
-      correction: null,
-      vocabulary: [],
-      grammar: [],
-      progressiveHints: {
-        hint1_semantic: 'Hãy nói thêm một ý liên quan đến chủ đề hiện tại.',
-        hint2_keywords: '我觉得, 我喜欢, 今天',
-        hint3_structure: '我 + động từ + ...',
-        hint4_fullAnswer: '我喜欢学习中文。'
-      },
-      suggestedReplies: [
-        { hanzi: '我喜欢学习中文。', pinyin: 'Wǒ xǐhuan xuéxí Zhōngwén.', vietnamese: 'Mình thích học tiếng Trung.' },
-        { hanzi: '我今天很开心。', pinyin: 'Wǒ jīntiān hěn kāixīn.', vietnamese: 'Hôm nay mình rất vui.' }
-      ]
-    };
-  }
 }
 
 export const aiTutor = new AITutorClientService();
