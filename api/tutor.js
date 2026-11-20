@@ -125,6 +125,15 @@ function repeatsPreviousTutorReply(response, history) {
   return currentText.length >= 12 && currentText === previousText;
 }
 
+// Reject the generic acknowledgement that used to appear after a failed AI
+// request. It does not address the learner's latest utterance.
+function isGenericAcknowledgement(response) {
+  const text = cleanString(response && response.chinese, 4000).replace(/\\s+/g, '');
+  return /我听懂了.{0,24}我们继续练习吧/.test(text) ||
+    /你可以再说一句.{0,32}我会根据你的内容回应/.test(text) ||
+    /我会根据你的内容回应/.test(text);
+}
+
 function parseTutorJson(text) {
   const raw = String(text || '').trim();
   if (!raw) throw new Error('Gemini returned empty text');
@@ -344,18 +353,18 @@ async function generateTutor(body) {
       let response = validateTutorResponse(parseTutorJson(text), speakingAttempt);
 
       // Only retry when the generated Chinese exactly repeats the previous AI turn.
-      if (mode !== 'teacher' && repeatsPreviousTutorReply(response, history)) {
+      if (mode !== 'teacher' && (repeatsPreviousTutorReply(response, history) || isGenericAcknowledgement(response))) {
         const previousReply = [...history].reverse().find((item) => item.sender === 'ai')?.hanzi || '';
         const retryPrompt = [
           prompt,
-          'REGENERATION REQUIRED: your draft exactly repeats Lina’s previous Chinese reply.',
+          'REGENERATION REQUIRED: your draft repeats Lina’s previous reply or is only a generic acknowledgement.',
           'Previous Lina reply (do not repeat or paraphrase): ' + previousReply,
           'Learner latest message (respond to this specifically): ' + message,
-          'Generate a genuinely new next turn that answers the learner and advances the current conversation. Do not restart or ask a question already answered.'
+          'Do not say only that you understood or ask the learner to say another sentence. Mention one concrete detail from the learner message, add one useful related idea, then ask one specific follow-up question. Generate a genuinely new next turn and do not ask a question already answered.'
         ].join('\n');
         const retryText = await callGemini({ apiKey, model, prompt: retryPrompt });
         response = validateTutorResponse(parseTutorJson(retryText), speakingAttempt);
-        if (repeatsPreviousTutorReply(response, history)) {
+        if (repeatsPreviousTutorReply(response, history) || isGenericAcknowledgement(response)) {
           throw Object.assign(new Error('Lina generated a repeated conversation turn.'), {
             code: 'TUTOR_REPETITIVE_RESPONSE', status: 502
           });
