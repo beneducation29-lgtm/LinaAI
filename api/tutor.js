@@ -352,7 +352,7 @@ async function generateTutor(body) {
       const text = await callGemini({ apiKey, model, prompt });
       let response = validateTutorResponse(parseTutorJson(text), speakingAttempt);
 
-      // Only retry when the generated Chinese exactly repeats the previous AI turn.
+      // Retry exact repeats and generic acknowledgements that do not answer the learner.
       if (mode !== 'teacher' && (repeatsPreviousTutorReply(response, history) || isGenericAcknowledgement(response))) {
         const previousReply = [...history].reverse().find((item) => item.sender === 'ai')?.hanzi || '';
         const retryPrompt = [
