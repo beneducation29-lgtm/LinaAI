@@ -46,4 +46,11 @@ if (generatedExampleAlignmentIssues.length) {
   console.warn(`[CONTENT AUDIT] ${generatedExampleAlignmentIssues.length} HSK 2–6 vocabulary examples still reuse word-level Pinyin/gloss instead of sentence-level alignment. These entries need editorial correction.`);
 }
 
+const generatedGrammarAlignmentIssues = HSK2_6_LESSONS.flatMap(lesson => lesson.grammar.flatMap(grammar =>
+  grammar.examples.filter(example => !example.pinyin.trim() || example.vietnamese === example.chinese)
+    .map(example => `${lesson.id}:${grammar.id}`)));
+if (generatedGrammarAlignmentIssues.length) {
+  console.warn(`[CONTENT AUDIT] ${generatedGrammarAlignmentIssues.length} HSK 2–6 grammar examples are missing sentence-level Pinyin or Vietnamese translations.`);
+}
+
 console.log(`Learning content integrity passed: ${HSK_CLASSIC_VOCABULARY.length} classic terms, ${HSK_SPEAKING_VOCABULARY.length} curated speaking terms, ${lessons.length} structured lessons.`);
