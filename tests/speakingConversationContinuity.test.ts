@@ -21,6 +21,7 @@ assert.match(tutorApi, /function isGenericAcknowledgement/);
 assert.match(tutorApi, /isGenericAcknowledgement\(response\)/);
 assert.match(tutorApi, /Do not say only that you understood/);
 assert.doesNotMatch(tutorClient, /getLocalFallbackResponse/, 'AI failures must never be converted into canned learner-facing replies');
+assert.doesNotMatch(tutorClient, /fallbackResponse/, 'legacy fallback SSE events must not be accepted as genuine tutor turns');
 assert.match(tutorClient, /code: 'TUTOR_PROVIDER_UNAVAILABLE'/);
 assert.match(tutorScreen, /TUTOR_PROVIDER_UNAVAILABLE/);
 
