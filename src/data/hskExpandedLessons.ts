@@ -46,13 +46,18 @@ function makeVocabulary(level:Level, lessonNo:number, words:Array<[string,string
 function sentence(id:string,chinese:string,pinyin:string,vietnamese:string):StructuredSentence{return{id,chinese,pinyin,vietnamese};}
 function makeLesson(level:Level,lessonNo:number,item:(typeof data)[Level][number]):StructuredLesson{
   const vocab=makeVocabulary(level,lessonNo,item.words,item.cat);
-  const g:GrammarRecord={id:item.grammar[0],pattern:item.grammar[1],meaning:item.grammar[2],explanationVi:item.grammar[3],examples:item.grammar[4].map((x,i)=>sentence(item.grammar[0]+'-'+i,x,'',x)),commonMistakes:['Dùng sai trật tự thành phần hoặc áp dụng cấu trúc ngoài ngữ cảnh.','Cần kiểm tra chủ ngữ, thời điểm và quan hệ logic của hai mệnh đề.'],practiceQuestions:item.grammar[4]};
+  // Do not publish raw Chinese examples as if they had aligned Pinyin/Vietnamese.
+  // The source currently lacks sentence-level translations; keep the exercise prompts
+  // available while withholding unverified example cards until editorial data is added.
+  const g:GrammarRecord={id:item.grammar[0],pattern:item.grammar[1],meaning:item.grammar[2],explanationVi:item.grammar[3],examples:[],commonMistakes:['Dùng sai trật tự thành phần hoặc áp dụng cấu trúc ngoài ngữ cảnh.','Cần kiểm tra chủ ngữ, thời điểm và quan hệ logic của hai mệnh đề.'],practiceQuestions:item.grammar[4]};
   const prompt=sentence(level.replace(' ','')+'-'+lessonNo+'-prompt',item.prompt[0],item.prompt[1],item.prompt[2]);
-  const follow=sentence(level.replace(' ','')+'-'+lessonNo+'-follow',item.prompt[0],item.prompt[1],item.prompt[3]);
+  // item.prompt[3] is a Vietnamese coaching instruction, not a Chinese follow-up sentence.
+  // Never mislabel it as Hanzi/Pinyin/Vietnamese dialogue content.
+  const follow=sentence(level.replace(' ','')+'-'+lessonNo+'-follow','','','');
   const review:ReviewItem[]=vocab.slice(0,5).map((v,i)=>({id:v.id+'-review',type:i%2?'vi-to-zh':'zh-to-vi',prompt:i%2?v.vietnamese:v.hanzi,answer:i%2?v.hanzi:v.vietnamese,vocabularyId:v.id}));
   const speaking:SpeakingExercise={id:level.replace(' ','')+'-'+lessonNo+'-speak',prompt,expectedMeaning:item.prompt[2],followUp:follow};
   const roleplay:RoleplayScenario={id:level.replace(' ','')+'-'+lessonNo+'-roleplay',title:item.role,situation:item.situation,aiOpening:prompt,targetVocabIds:vocab.map(v=>v.id),evaluationDimensions:['meaning','grammar','vocabulary','naturalness','pronunciation']};
-  return{id:level.replace(' ','').toLowerCase()+'-lesson-'+lessonNo,hskLevel:level,lessonNumber:lessonNo,titleVi:item.vi,titleZh:item.zh,pinyin:item.py,objective:item.objective,estimatedMinutes:15,vocabulary:vocab,grammar:[g],dialogue:[prompt,follow],listening:[prompt,follow],speaking:[speaking],roleplay,review};
+  return{id:level.replace(' ','').toLowerCase()+'-lesson-'+lessonNo,hskLevel:level,lessonNumber:lessonNo,titleVi:item.vi,titleZh:item.zh,pinyin:item.py,objective:item.objective,estimatedMinutes:15,vocabulary:vocab,grammar:[g],dialogue:[prompt],listening:[prompt],speaking:[speaking],roleplay,review};
 }
 export const HSK2_6_LESSONS:StructuredLesson[]=(['HSK 2','HSK 3','HSK 4','HSK 5','HSK 6'] as Level[]).flatMap(level=>data[level].map((item,i)=>makeLesson(level,i+1,item)));
 export const HSK_LESSONS:StructuredLesson[] = HSK2_6_LESSONS;
