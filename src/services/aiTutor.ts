@@ -70,10 +70,9 @@ class AITutorClientService implements AITutorProvider {
    * Send a user turn to Gemini via the server-side proxy
    */
   async sendMessage(options: SendMessageOptions, userText: string, callbacks: StreamingTutorCallbacks = {}): Promise<StructuredTutorResponse> {
-    // Keep non-streaming and streaming conversation paths on the same deployed Vercel function.
-    // The legacy /api/tutor/chat route was removed when the tutor endpoint was flattened to /api/tutor.
-    // Reuse the same streaming path so realtime voice still receives text/speech callbacks,
-    // while preserving the local fallback when the deployed tutor endpoint fails.
+    // Keep all conversation turns on the same deployed Vercel tutor endpoint.
+    // Reuse the streaming path so realtime voice receives text/speech callbacks.
+    // Provider errors are surfaced; they must never be disguised as learner-specific replies.
     try {
       return await this.sendMessageStreaming(options, userText, callbacks);
     } catch (err) {
@@ -130,14 +129,12 @@ class AITutorClientService implements AITutorProvider {
     const decoder = new TextDecoder();
     let buffer = '';
     let finalResponse: StructuredTutorResponse | null = null;
-    let fallbackResponse: StructuredTutorResponse | null = null;
 
     const consume = (payload: any) => {
       if (!payload || typeof payload.type !== 'string') return;
       if (payload.type === 'text' && typeof payload.text === 'string') callbacks.onText?.(payload.text);
       if (payload.type === 'speech' && typeof payload.text === 'string') callbacks.onSpeech?.(payload.text);
       if (payload.type === 'response' && payload.response) finalResponse = payload.response as StructuredTutorResponse;
-      if (payload.type === 'fallback' && payload.response) fallbackResponse = payload.response as StructuredTutorResponse;
       if (payload.type === 'error') {
         throw Object.assign(new Error(payload.error || 'Streaming tutor error'), {
           code: payload.code || 'TUTOR_API_ERROR'
@@ -162,7 +159,6 @@ class AITutorClientService implements AITutorProvider {
     }
 
     if (finalResponse) return finalResponse;
-    if (fallbackResponse) return fallbackResponse;
     throw new Error('Streaming tutor ended without a structured response.');
   }
 
