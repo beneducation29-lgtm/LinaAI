@@ -55,6 +55,14 @@ if (generatedExampleAlignmentIssues.length) {
   console.warn(`[CONTENT AUDIT] ${generatedExampleAlignmentIssues.length} HSK 2–6 vocabulary examples still reuse word-level Pinyin/gloss instead of sentence-level alignment. These entries need editorial correction.`);
 }
 
+const duplicateGeneratedFollowUps = HSK2_6_LESSONS.filter(lesson =>
+  lesson.dialogue.length > 1 &&
+  lesson.dialogue[0].chinese === lesson.dialogue[1].chinese &&
+  lesson.dialogue[0].pinyin === lesson.dialogue[1].pinyin);
+if (duplicateGeneratedFollowUps.length) {
+  console.warn(`[CONTENT AUDIT] ${duplicateGeneratedFollowUps.length} HSK 2–6 lessons reuse the opening Chinese/Pinyin as a second dialogue turn, while the second Vietnamese field is only an instruction. These follow-ups need real authored dialogue lines.`);
+}
+
 const generatedGrammarAlignmentIssues = HSK2_6_LESSONS.flatMap(lesson => lesson.grammar.flatMap(grammar =>
   grammar.examples.filter(example => !example.pinyin.trim() || example.vietnamese === example.chinese)
     .map(example => `${lesson.id}:${grammar.id}`)));
