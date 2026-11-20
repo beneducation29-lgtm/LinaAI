@@ -18,6 +18,7 @@ assert.match(tutorScreen, /TUTOR_REPETITIVE_RESPONSE/);
 
 
 assert.match(tutorApi, /function isGenericAcknowledgement/);
+assert.ok(tutorApi.includes("replace(/\\s+/g, '')"), 'generic reply detection must normalize whitespace before checking repeated fallback phrases');
 assert.match(tutorApi, /isGenericAcknowledgement\(response\)/);
 assert.match(tutorApi, /Do not say only that you understood/);
 assert.doesNotMatch(tutorClient, /getLocalFallbackResponse/, 'AI failures must never be converted into canned learner-facing replies');
