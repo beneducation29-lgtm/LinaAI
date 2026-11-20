@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import { HSK_CLASSIC_VOCABULARY } from '../src/data/hskClassicVocabulary';
 import { HSK_SPEAKING_VOCABULARY } from '../src/data/hskSpeakingVocabulary';
 import { HSK1_VOCABULARY } from '../src/data/hsk1Structured';
