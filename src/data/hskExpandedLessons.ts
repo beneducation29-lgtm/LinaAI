@@ -85,6 +85,35 @@ const grammarVietnamese: Record<string,string[]> = {
 'h6-g1':['Nói đây là thất bại thì đúng hơn nên nói đây là kinh nghiệm.','Nói là khó khăn thì đúng hơn nên nói là cần kiên nhẫn.'],'h6-g2':['Cùng với sự phát triển của công nghệ, cuộc sống trở nên tiện lợi hơn.','Cùng với kinh nghiệm tăng lên, anh ấy trở nên tự tin hơn.'],'h6-g3':['Phương pháp này vừa đơn giản vừa đáng tin cậy.','Anh ấy vừa nghiêm túc vừa có kinh nghiệm.'],'h6-g4':['Không phải anh ấy không nỗ lực, mà là phương pháp chưa phù hợp.','Không phải không có cơ hội, mà là cần chuẩn bị.'],'h6-g5':['Đã xác định rõ mục tiêu thì cần kiên trì thực hiện.','Đã quyết định rồi thì hãy tiếp tục.']
 };
 
+
+const dialogueReplies: Record<string,[string,string,string]> = {
+'hsk2-1':['我打算星期六去公园，星期天在家复习。','Wǒ dǎsuàn xīngqīliù qù gōngyuán, xīngqītiān zài jiā fùxí.','Tôi định thứ Bảy đi công viên, Chủ nhật ở nhà ôn bài.'],
+'hsk2-2':['你可以先坐地铁到人民广场，再换公共汽车。','Nǐ kěyǐ xiān zuò dìtiě dào Rénmín Guǎngchǎng, zài huàn gōnggòng qìchē.','Bạn có thể đi tàu điện ngầm đến Quảng trường Nhân Dân trước, rồi đổi sang xe buýt.'],
+'hsk2-3':['我有一点儿头疼，今天想早点回家休息。','Wǒ yǒu yìdiǎnr tóuténg, jīntiān xiǎng zǎodiǎn huí jiā xiūxi.','Tôi hơi đau đầu, hôm nay muốn về nhà nghỉ sớm.'],
+'hsk2-4':['我每天先复习生词，再听中文，最后练习说句子。','Wǒ měitiān xiān fùxí shēngcí, zài tīng Zhōngwén, zuìhòu liànxí shuō jùzi.','Mỗi ngày tôi ôn từ mới trước, sau đó nghe tiếng Trung, cuối cùng luyện nói câu.'],
+'hsk2-5':['我觉得蓝色这件更合适，因为价格便宜，颜色也好看。','Wǒ juéde lánsè zhè jiàn gèng héshì, yīnwèi jiàgé piányi, yánsè yě hǎokàn.','Tôi thấy chiếc màu xanh này phù hợp hơn vì giá rẻ và màu cũng đẹp.'],
+'hsk3-1':['我准备下个月参加HSK考试，所以每天安排两个小时复习。','Wǒ zhǔnbèi xià ge yuè cānjiā HSK kǎoshì, suǒyǐ měitiān ānpái liǎng ge xiǎoshí fùxí.','Tôi chuẩn bị thi HSK tháng sau, vì vậy mỗi ngày dành hai giờ ôn tập.'],
+'hsk3-2':['我负责整理资料，明天下午的会议上向大家报告进度。','Wǒ fùzé zhěnglǐ zīliào, míngtiān xiàwǔ de huìyì shàng xiàng dàjiā bàogào jìndù.','Tôi phụ trách sắp xếp tài liệu và sẽ báo cáo tiến độ trong cuộc họp chiều mai.'],
+'hsk3-3':['我去年去过成都，那里的风景很美，食物也很有特色。','Wǒ qùnián qùguo Chéngdū, nàlǐ de fēngjǐng hěn měi, shíwù yě hěn yǒu tèsè.','Năm ngoái tôi từng đến Thành Đô; phong cảnh ở đó rất đẹp và đồ ăn cũng đặc sắc.'],
+'hsk3-4':['我常用手机查词、听播客，也会下载课程材料。','Wǒ cháng yòng shǒujī chá cí, tīng bōkè, yě huì xiàzǎi kèchéng cáiliào.','Tôi thường dùng điện thoại tra từ, nghe podcast và tải tài liệu khóa học.'],
+'hsk3-5':['我们可以少用塑料袋、做好垃圾分类，还要节约用水。','Wǒmen kěyǐ shǎo yòng sùliàodài, zuò hǎo lājī fēnlèi, hái yào jiéyuē yòngshuǐ.','Chúng ta có thể giảm dùng túi nhựa, phân loại rác và tiết kiệm nước.'],
+'hsk4-1':['我基本同意，不过还需要考虑这个办法对不同人群的影响。','Wǒ jīběn tóngyì, búguò hái xūyào kǎolǜ zhège bànfǎ duì bùtóng rénqún de yǐngxiǎng.','Tôi cơ bản đồng ý, nhưng vẫn cần cân nhắc ảnh hưởng của cách này đến các nhóm người khác nhau.'],
+'hsk4-2':['我看到一篇关于城市交通的报道，里面引用了最新的调查数据。','Wǒ kàndào yì piān guānyú chéngshì jiāotōng de bàodào, lǐmiàn yǐnyòng le zuìxīn de diàochá shùjù.','Tôi đọc một bài về giao thông đô thị, trong đó trích dẫn dữ liệu khảo sát mới nhất.'],
+'hsk4-3':['我希望一年内通过HSK四级，每周测试一次，检查自己的进步。','Wǒ xīwàng yì nián nèi tōngguò HSK sì jí, měi zhōu cèshì yí cì, jiǎnchá zìjǐ de jìnbù.','Tôi hy vọng đỗ HSK 4 trong một năm và kiểm tra tiến bộ mỗi tuần.'],
+'hsk4-4':['比如在餐桌礼仪上，有些习惯不同，但我们应该先了解再判断。','Bǐrú zài cānzhuō lǐyí shàng, yǒuxiē xíguàn bùtóng, dàn wǒmen yīnggāi xiān liǎojiě zài pànduàn.','Ví dụ, phép tắc bàn ăn có những khác biệt, nhưng chúng ta nên tìm hiểu trước khi đánh giá.'],
+'hsk4-5':['我会先说明具体问题，再提供订单信息，并礼貌地提出换货要求。','Wǒ huì xiān shuōmíng jùtǐ wèntí, zài tígōng dìngdān xìnxī, bìng lǐmào de tíchū huànhuò yāoqiú.','Tôi sẽ trình bày vấn đề, cung cấp thông tin đơn hàng và lịch sự đề nghị đổi hàng.'],
+'hsk5-1':['我会先核对发布机构和原始数据，再比较其他可靠来源。','Wǒ huì xiān héduì fābù jīgòu hé yuánshǐ shùjù, zài bǐjiào qítā kěkào láiyuán.','Tôi sẽ kiểm tra cơ quan công bố và dữ liệu gốc trước, rồi so sánh nguồn đáng tin cậy khác.'],
+'hsk5-2':['目前最大的风险是交付时间可能延迟，我们建议增加人手并分阶段验收。','Mùqián zuì dà de fēngxiǎn shì jiāofù shíjiān kěnéng yánchí, wǒmen jiànyì zēngjiā rénshǒu bìng fēn jiēduàn yànshōu.','Rủi ro lớn nhất là bàn giao có thể chậm; chúng tôi đề xuất tăng nhân lực và nghiệm thu theo giai đoạn.'],
+'hsk5-3':['我理解你的看法，但现有证据还不足以支持这个结论。','Wǒ lǐjiě nǐ de kànfǎ, dàn xiànyǒu zhèngjù hái bù zúyǐ zhīchí zhège jiélùn.','Tôi hiểu quan điểm của bạn, nhưng bằng chứng hiện có chưa đủ để ủng hộ kết luận này.'],
+'hsk5-4':['转发之前，我会确认消息来源、发布时间和是否有原始报道。','Zhuǎnfā zhīqián, wǒ huì quèrèn xiāoxi láiyuán, fābù shíjiān hé shìfǒu yǒu yuánshǐ bàodào.','Trước khi chia sẻ, tôi sẽ xác nhận nguồn tin, thời điểm đăng và bản tin gốc.'],
+'hsk5-5':['我把任务分成几个小步骤，每天留出运动和休息的时间。','Wǒ bǎ rènwu fēn chéng jǐ ge xiǎo bùzhòu, měitiān liú chū yùndòng hé xiūxi de shíjiān.','Tôi chia nhiệm vụ thành vài bước nhỏ và dành thời gian vận động, nghỉ ngơi mỗi ngày.'],
+'hsk6-1':['我会先列出长期收益、短期成本和最坏情况，再决定是否承担风险。','Wǒ huì xiān lièchū chángqī shōuyì, duǎnqī chéngběn hé zuì huài qíngkuàng, zài juédìng shìfǒu chéngdān fēngxiǎn.','Tôi sẽ liệt kê lợi ích dài hạn, chi phí ngắn hạn và tình huống xấu nhất trước khi quyết định chấp nhận rủi ro.'],
+'hsk6-2':['自动化能提高效率，但也要求劳动者学习新技能并适应产业变化。','Zìdònghuà néng tígāo xiàolǜ, dàn yě yāoqiú láodòngzhě xuéxí xīn jìnéng bìng shìyìng chǎnyè biànhuà.','Tự động hóa nâng cao hiệu suất nhưng cũng đòi hỏi người lao động học kỹ năng mới và thích ứng thay đổi ngành.'],
+'hsk6-3':['我们还需要重复实验，并公开方法和数据，才能判断结果是否可靠。','Wǒmen hái xūyào chóngfù shíyàn, bìng gōngkāi fāngfǎ hé shùjù, cái néng pànduàn jiéguǒ shìfǒu kěkào.','Chúng ta cần lặp lại thí nghiệm và công khai phương pháp, dữ liệu để đánh giá độ tin cậy.'],
+'hsk6-4':['同一句话在不同场合可能有不同含义，所以不能脱离语境理解。','Tóng yí jù huà zài bùtóng chǎnghé kěnéng yǒu bùtóng hányì, suǒyǐ bù néng tuōlí yǔjìng lǐjiě.','Cùng một câu có thể mang nghĩa khác nhau trong các hoàn cảnh khác nhau, nên không thể hiểu tách rời ngữ cảnh.'],
+'hsk6-5':['我会把长期目标分成季度计划，并用可衡量的成果定期检查执行情况。','Wǒ huì bǎ chángqī mùbiāo fēn chéng jìdù jìhuà, bìng yòng kě héngliáng de chéngguǒ dìngqī jiǎnchá zhíxíng qíngkuàng.','Tôi sẽ chia mục tiêu dài hạn thành kế hoạch theo quý và định kỳ kiểm tra bằng kết quả đo lường được.']
+};
+
 function makeVocabulary(level:Level, lessonNo:number, words:Array<[string,string,string,string,string]>, cat:string):StructuredVocabulary[]{
   return words.map((w,i)=>{
     const aligned=vocabularyExamples[w[0]];
@@ -99,13 +128,13 @@ function makeLesson(level:Level,lessonNo:number,item:(typeof data)[Level][number
   if(!grammarPy || !grammarVi || grammarPy.length!==item.grammar[4].length || grammarVi.length!==item.grammar[4].length) throw new Error('Missing aligned grammar examples for '+item.grammar[0]);
   const g:GrammarRecord={id:item.grammar[0],pattern:item.grammar[1],meaning:item.grammar[2],explanationVi:item.grammar[3],examples:item.grammar[4].map((zh,i)=>sentence(item.grammar[0]+'-'+i,zh,grammarPy[i],grammarVi[i])),commonMistakes:['Dùng sai trật tự thành phần hoặc áp dụng cấu trúc ngoài ngữ cảnh.','Cần kiểm tra chủ ngữ, thời điểm và quan hệ logic của hai mệnh đề.'],practiceQuestions:item.grammar[4]};
   const prompt=sentence(level.replace(' ','')+'-'+lessonNo+'-prompt',item.prompt[0],item.prompt[1],item.prompt[2]);
-  // item.prompt[3] is a Vietnamese coaching instruction, not a Chinese follow-up sentence.
-  // Never mislabel it as Hanzi/Pinyin/Vietnamese dialogue content.
-  const follow=sentence(level.replace(' ','')+'-'+lessonNo+'-follow','','','');
+  const reply=dialogueReplies[level.replace(' ','').toLowerCase()+'-'+lessonNo];
+  if(!reply) throw new Error('Missing authored dialogue reply for '+level+' lesson '+lessonNo);
+  const follow=sentence(level.replace(' ','')+'-'+lessonNo+'-follow',reply[0],reply[1],reply[2]);
   const review:ReviewItem[]=vocab.slice(0,5).map((v,i)=>({id:v.id+'-review',type:i%2?'vi-to-zh':'zh-to-vi',prompt:i%2?v.vietnamese:v.hanzi,answer:i%2?v.hanzi:v.vietnamese,vocabularyId:v.id}));
   const speaking:SpeakingExercise={id:level.replace(' ','')+'-'+lessonNo+'-speak',prompt,expectedMeaning:item.prompt[2],followUp:follow};
   const roleplay:RoleplayScenario={id:level.replace(' ','')+'-'+lessonNo+'-roleplay',title:item.role,situation:item.situation,aiOpening:prompt,targetVocabIds:vocab.map(v=>v.id),evaluationDimensions:['meaning','grammar','vocabulary','naturalness','pronunciation']};
-  return{id:level.replace(' ','').toLowerCase()+'-lesson-'+lessonNo,hskLevel:level,lessonNumber:lessonNo,titleVi:item.vi,titleZh:item.zh,pinyin:item.py,objective:item.objective,estimatedMinutes:15,vocabulary:vocab,grammar:[g],dialogue:[prompt],listening:[prompt],speaking:[speaking],roleplay,review};
+  return{id:level.replace(' ','').toLowerCase()+'-lesson-'+lessonNo,hskLevel:level,lessonNumber:lessonNo,titleVi:item.vi,titleZh:item.zh,pinyin:item.py,objective:item.objective,estimatedMinutes:15,vocabulary:vocab,grammar:[g],dialogue:[prompt,follow],listening:[prompt,follow],speaking:[speaking],roleplay,review};
 }
 export const HSK2_6_LESSONS:StructuredLesson[]=(['HSK 2','HSK 3','HSK 4','HSK 5','HSK 6'] as Level[]).flatMap(level=>data[level].map((item,i)=>makeLesson(level,i+1,item)));
 export const HSK_LESSONS:StructuredLesson[] = HSK2_6_LESSONS;
