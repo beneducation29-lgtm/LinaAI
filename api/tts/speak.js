@@ -35,8 +35,30 @@ export default async function handler(req, res) {
     let data = {};
     try { data = raw ? JSON.parse(raw) : {}; } catch {}
     if (!response.ok) {
-      console.error('[Lina][GEMINI_TTS_ERROR]', response.status, data?.error?.message || raw.slice(0, 300));
-      return res.status(response.status === 429 ? 429 : 502).json({ error: data?.error?.message || 'Gemini TTS request failed.' });
+      const providerMessage = data?.error?.message || 'Gemini TTS request failed.';
+      console.error('[Lina][GEMINI_TTS_ERROR]', response.status, providerMessage);
+      // A 403 caused by unavailable billing/free-tier access is a persistent
+      // provider configuration failure, not a transient audio playback error.
+      // Tell the client to use native speech and keep this provider in cooldown.
+      if (response.status === 403) {
+        return res.status(503).json({
+          code: 'TTS_PROVIDER_DISABLED',
+          error: 'Giọng đọc AI tạm thời không khả dụng. Lina sẽ chuyển sang giọng đọc trên thiết bị.',
+          cooldownSeconds: 300
+        });
+      }
+      if (response.status === 429) {
+        return res.status(429).json({
+          code: 'TTS_RATE_LIMITED',
+          error: 'Giọng đọc AI đang quá tải. Lina sẽ tạm dùng giọng đọc trên thiết bị.',
+          cooldownSeconds: 30
+        });
+      }
+      return res.status(502).json({
+        code: 'TTS_PROVIDER_ERROR',
+        error: providerMessage,
+        cooldownSeconds: 15
+      });
     }
 
     const part = data?.candidates?.[0]?.content?.parts?.find(p => p?.inlineData?.data);
