@@ -449,7 +449,15 @@ class SpeechService {
           body: JSON.stringify({ text, voice: 'Kore' }),
         });
         if (!res.ok) {
-          if (res.status === 429 || res.status === 503) this.audioFailureUntil = Date.now() + 8000;
+          const failure = await res.json().catch(() => ({}));
+          const serverCooldown = Number(failure?.cooldownSeconds);
+          const fallbackCooldown = res.status === 429 ? 30 : res.status === 503 ? 60 : 15;
+          const cooldownSeconds = Number.isFinite(serverCooldown) && serverCooldown > 0
+            ? Math.min(600, Math.max(5, serverCooldown))
+            : fallbackCooldown;
+          if (res.status === 429 || res.status >= 500) {
+            this.audioFailureUntil = Date.now() + cooldownSeconds * 1000;
+          }
           return null;
         }
         const data = await res.json();
